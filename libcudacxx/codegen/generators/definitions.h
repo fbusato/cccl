@@ -14,9 +14,11 @@
 #include <map>
 #include <string>
 #include <type_traits>
-#include <vector>
 
 #include <fmt/format.h>
+
+//----------------------------------------------------------------------------------------------------------------------
+// PTX Mapped Memory I/O
 
 enum class Mmio
 {
@@ -41,6 +43,9 @@ inline std::string mmio_tag(Mmio m)
   };
   return mmio_map[std::underlying_type_t<Mmio>(m)];
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// PTX operand types
 
 enum class Operand
 {
@@ -82,6 +87,9 @@ inline std::string operand_proxy_type(Operand op, size_t sz)
   return fmt::format("uint{}_t", sz);
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+// PTX binding constraints
+
 inline std::string constraints(Operand op, size_t sz)
 {
   static std::map constraint_map = {
@@ -118,8 +126,12 @@ inline std::string constraints(Operand op, size_t sz)
   }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+// PTX Memory Semantics
+
 enum class Semantic
 {
+  Weak,
   Relaxed,
   Release,
   Acquire,
@@ -131,6 +143,7 @@ enum class Semantic
 inline std::string semantic(Semantic sem)
 {
   static std::map sem_map = {
+    std::pair{Semantic::Weak, ".weak"},
     std::pair{Semantic::Relaxed, ".relaxed"},
     std::pair{Semantic::Release, ".release"},
     std::pair{Semantic::Acquire, ".acquire"},
@@ -144,6 +157,7 @@ inline std::string semantic(Semantic sem)
 inline std::string semantic_tag(Semantic sem)
 {
   static std::map sem_map = {
+    std::pair{Semantic::Weak, "__cuda_weak"},
     std::pair{Semantic::Relaxed, "__atomic_cuda_relaxed"},
     std::pair{Semantic::Release, "__atomic_cuda_release"},
     std::pair{Semantic::Acquire, "__atomic_cuda_acquire"},
@@ -153,6 +167,9 @@ inline std::string semantic_tag(Semantic sem)
   };
   return sem_map[sem];
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// PTX Thread Hierarchy Scopes
 
 enum class Scope
 {
@@ -188,6 +205,116 @@ inline std::string scope_tag(Scope sco)
     std::pair{Scope::System, "__thread_scope_system_tag"},
   };
   return sco_map[sco];
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// PTX Memory Space Scopes
+
+enum class Space
+{
+  Global,
+  Cluster,
+  Shared,
+};
+
+inline std::string space(Space space)
+{
+  static std::map map = {std::pair{Space::Global, ".global"},
+                         std::pair{Space::Cluster, ".shared::cluster"},
+                         std::pair{Space::Shared, ".shared::cta"}};
+  return map[space];
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// PTX Cache Operators
+
+enum class LoadCacheOperator
+{
+  None,
+  CacheAll,
+  CacheGlobal,
+  CacheStreaming,
+  LastUse,
+  Volatile
+};
+
+inline std::string cache_operator(LoadCacheOperator space)
+{
+  static std::map map = {
+    std::pair{LoadCacheOperator::None, ""},
+    std::pair{LoadCacheOperator::CacheAll, ".ca"},
+    std::pair{LoadCacheOperator::CacheGlobal, ".cg"},
+    std::pair{LoadCacheOperator::CacheStreaming, ".cs"},
+    std::pair{LoadCacheOperator::LastUse, ".lu"},
+    std::pair{LoadCacheOperator::Volatile, ".cv"}};
+  return map[space];
+}
+
+enum class StoreCacheOperator
+{
+  None,
+  CacheWriteBack,
+  CacheGlobal,
+  CacheStreaming,
+  CacheWriteThrough
+};
+
+inline std::string cache_operator(StoreCacheOperator space)
+{
+  static std::map map = {
+    std::pair{StoreCacheOperator::None, ""},
+    std::pair{StoreCacheOperator::CacheWriteBack, ".wb"},
+    std::pair{StoreCacheOperator::CacheGlobal, ".cg"},
+    std::pair{StoreCacheOperator::CacheStreaming, ".cs"},
+    std::pair{StoreCacheOperator::CacheWriteThrough, ".wt"},
+  };
+  return map[space];
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// PTX Eviction Priority
+
+enum class EvictionPriority
+{
+  None,
+  Normal,
+  Unchanged,
+  First,
+  Last,
+  NoAllocate
+};
+
+inline std::string eviction_priority(EvictionPriority space)
+{
+  static std::map map = {
+    std::pair{EvictionPriority::None, ""},
+    std::pair{EvictionPriority::Normal, ".L1::evict_normal"},
+    std::pair{EvictionPriority::Unchanged, ".L1::evict_unchanged"},
+    std::pair{EvictionPriority::First, ".L1::evict_first"},
+    std::pair{EvictionPriority::Last, ".L1::evict_last"},
+    std::pair{EvictionPriority::NoAllocate, ".L1::no_allocate"}};
+  return map[space];
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// PTX Prefetch Size
+
+enum class PrefetchSize
+{
+  None,
+  L2_64B,
+  L2_128B,
+  L2_256B
+};
+
+inline std::string prefetch_size(PrefetchSize space)
+{
+  static std::map map = {
+    std::pair{PrefetchSize::None, ""},
+    std::pair{PrefetchSize::L2_64B, ".L2::64B"},
+    std::pair{PrefetchSize::L2_128B, ".L2::128B"},
+    std::pair{PrefetchSize::L2_256B, ".L2::256B"}};
+  return map[space];
 }
 
 #endif // DEFINITIONS_H

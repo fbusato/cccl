@@ -97,6 +97,42 @@ enum class dot_scope
   sys
 };
 
+// https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#cache-operators
+enum class dot_load_cache_op
+{
+  cache_all,
+  cache_global,
+  cache_streaming,
+  last_use,
+  mem_volatile
+};
+
+enum class dot_store_cache_op
+{
+  cache_write_back,
+  cache_global,
+  cache_streaming,
+  cache_write_through
+};
+
+// https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#cache-eviction-priority-hints
+enum class dot_eviction_priority
+{
+  normal,
+  unchanged,
+  first,
+  last,
+  no_allocate
+};
+
+// https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-ld
+enum class dot_prefetch_size
+{
+  l2_64B,
+  l2_128B,
+  l2_256B
+};
+
 enum class dot_op
 {
   add,
@@ -148,6 +184,56 @@ static constexpr scope_cluster_t scope_cluster{};
 static constexpr scope_cta_t scope_cta{};
 static constexpr scope_gpu_t scope_gpu{};
 static constexpr scope_sys_t scope_sys{};
+
+template <dot_load_cache_op __lcop>
+using load_cache_op_t        = _CUDA_VSTD::integral_constant<dot_load_cache_op, __lcop>;
+using load_cache_all_t       = load_cache_op_t<dot_load_cache_op::cache_all>;
+using load_cache_global_t    = load_cache_op_t<dot_load_cache_op::cache_global>;
+using load_cache_streaming_t = load_cache_op_t<dot_load_cache_op::cache_streaming>;
+using load_last_use_t        = load_cache_op_t<dot_load_cache_op::last_use>;
+using load_volatile_t        = load_cache_op_t<dot_load_cache_op::mem_volatile>;
+
+static constexpr load_cache_all_t load_cache_all{};
+static constexpr load_cache_global_t load_cache_global{};
+static constexpr load_cache_streaming_t load_cache_streaming{};
+static constexpr load_last_use_t load_last_use{};
+static constexpr load_volatile_t load_volatile{};
+
+template <dot_store_cache_op __scop>
+using store_cache_op_t            = _CUDA_VSTD::integral_constant<dot_store_cache_op, __scop>;
+using store_cache_global_t        = store_cache_op_t<dot_store_cache_op::cache_global>;
+using store_cache_streaming_t     = store_cache_op_t<dot_store_cache_op::cache_streaming>;
+using store_cache_write_back_t    = store_cache_op_t<dot_store_cache_op::cache_write_back>;
+using store_cache_write_through_t = store_cache_op_t<dot_store_cache_op::cache_write_through>;
+
+static constexpr store_cache_global_t store_cache_global{};
+static constexpr store_cache_streaming_t store_cache_streaming{};
+static constexpr store_cache_write_back_t store_cache_write_back{};
+static constexpr store_cache_write_through_t store_cache_write_through{};
+
+template <dot_eviction_priority __ep>
+using eviction_priority_t             = _CUDA_VSTD::integral_constant<dot_eviction_priority, __ep>;
+using eviction_priority_normal_t      = eviction_priority_t<dot_eviction_priority::normal>;
+using eviction_priority_unchanged_t   = eviction_priority_t<dot_eviction_priority::unchanged>;
+using eviction_priority_first_t       = eviction_priority_t<dot_eviction_priority::first>;
+using eviction_priority_last_t        = eviction_priority_t<dot_eviction_priority::last>;
+using eviction_priority_no_allocate_t = eviction_priority_t<dot_eviction_priority::no_allocate>;
+
+static constexpr eviction_priority_normal_t eviction_priority_normal{};
+static constexpr eviction_priority_unchanged_t eviction_priority_unchanged{};
+static constexpr eviction_priority_first_t eviction_priority_first{};
+static constexpr eviction_priority_last_t eviction_priority_last{};
+static constexpr eviction_priority_no_allocate_t eviction_priority_no_allocate{};
+
+template <dot_prefetch_size __scop>
+using prefetch_size_t         = _CUDA_VSTD::integral_constant<dot_prefetch_size, __scop>;
+using prefetch_size_l2_64B_t  = prefetch_size_t<dot_prefetch_size::l2_64B>;
+using prefetch_size_l2_128B_t = prefetch_size_t<dot_prefetch_size::l2_128B>;
+using prefetch_size_l2_256B_t = prefetch_size_t<dot_prefetch_size::l2_256B>;
+
+static constexpr prefetch_size_l2_64B_t prefetch_size_l2_64B{};
+static constexpr prefetch_size_l2_128B_t prefetch_size_l2_128B{};
+static constexpr prefetch_size_l2_256B_t prefetch_size_l2_256B{};
 
 template <dot_op __op>
 using op_t        = _CUDA_VSTD::integral_constant<dot_op, __op>;

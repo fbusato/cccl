@@ -11,6 +11,7 @@
 #ifndef LD_ST_H
 #define LD_ST_H
 
+#include <iostream>
 #include <string>
 
 #include "definitions.h"
@@ -19,6 +20,7 @@
 inline std::string semantic_ld_st(Semantic sem)
 {
   static std::map sem_map = {
+    std::pair{Semantic::Weak, ".weak"},
     std::pair{Semantic::Relaxed, ".relaxed"},
     std::pair{Semantic::Release, ".release"},
     std::pair{Semantic::Acquire, ".acquire"},
@@ -91,6 +93,29 @@ static inline _CCCL_DEVICE void __cuda_atomic_load(
   const _Type* __ptr, _Type& __dst, {3}, __atomic_cuda_operand_{0}{1}, {5}, {7})
 {{ asm volatile("ld{8}{4}{6}.{0}{1} %0,[%1];" : "={2}"(__dst) : "l"(__ptr) : "memory"); }})XXX";
 
+  const std::string asm_intrinsic_format2 = R"XXX(
+template <class _Type>
+static inline _CCCL_DEVICE void __cuda_load(const _Type* __ptr,
+                                            _Type&       __dst,
+                                            {10},
+                                            __atomic_cuda_operand_{7}{8},
+                                            {11},
+                                            {7})
+{{ asm volatile("ld{1}{2}{3}{4}{5}{6}.{7}{8} %0,[%1];" : "={9}"(__dst) : "l"(__ptr) : "memory"); }})XXX";
+
+  // 1: mmio()             .mmio
+  // 2: semantic()         .weak, .relaxed, .release, etc.
+  // 3: scope()            .cta, .cluster, .gpu, .sys
+  // 4: space()            .global, .shared::cluster, .shared::cta
+  // 5: cache_operator()   .ca, .cg, .cs, .lu, .cv
+  // 6: prefetch_size()    .L2::64B, .L2::128B, .L2::256B
+  // 7: operand()          .f, .u, .s, .b
+  // 8: size               8, 16, 32, 64
+  // 9: constraints()      l, d, r, f
+  // 10: semantic_tag()    __cuda_weak,  __atomic_cuda_relaxed, __atomic_cuda_release, etc.
+  // 11: scope_tag()       Thread, Warp, CTA, Cluster, GPU, System
+  // 12: mmio_tag()        __atomic_cuda_mmio_disable, __atomic_cuda_mmio_enable
+
   constexpr size_t supported_sizes[] = {
     16,
     32,
@@ -106,6 +131,7 @@ static inline _CCCL_DEVICE void __cuda_atomic_load(
   };
 
   constexpr Semantic supported_semantics[] = {
+    Semantic::Weak,
     Semantic::Acquire,
     Semantic::Relaxed,
     Semantic::Volatile,
@@ -123,6 +149,28 @@ static inline _CCCL_DEVICE void __cuda_atomic_load(
     Mmio::Enabled,
   };
 
+  constexpr LoadCacheOperator supported_cache_operators[] = {
+    LoadCacheOperator::CacheAll,
+    LoadCacheOperator::CacheGlobal,
+    LoadCacheOperator::CacheStreaming,
+    LoadCacheOperator::LastUse,
+    LoadCacheOperator::Volatile,
+  };
+
+  constexpr EvictionPriority supported_eviction_priority[] = {
+    EvictionPriority::Normal,
+    EvictionPriority::Unchanged,
+    EvictionPriority::First,
+    EvictionPriority::Last,
+    EvictionPriority::NoAllocate,
+  };
+
+  constexpr PrefetchSize supported_prefetch_sizes[] = {
+    PrefetchSize::L2_64B,
+    PrefetchSize::L2_128B,
+    PrefetchSize::L2_256B,
+  };
+
   for (auto size : supported_sizes)
   {
     for (auto type : supported_types)
@@ -133,29 +181,52 @@ static inline _CCCL_DEVICE void __cuda_atomic_load(
         {
           for (auto mm : mmio_states)
           {
-            if (size == 16 && type == Operand::Floating)
+            for (auto cache_op : supported_cache_operators)
             {
-              continue;
+              for (auto eviction : supported_eviction_priority)
+              {
+                for (auto prefetch : supported_prefetch_sizes)
+                {
+                  if (size == 16 && type == Operand::Floating)
+                  {
+                    continue;
+                  }
+                  if (size == 128 && type != Operand::Bit)
+                  {
+                    continue;
+                  }
+                  if ((mm == Mmio::Enabled) && ((sco != Scope::System) || (sem != Semantic::Relaxed)))
+                  {
+                    continue;
+                  }
+                  if (cache_op != LoadCacheOperator::None && sem == Semantic::Weak)
+                  {
+                    continue;
+                  }
+                  if (eviction != EvictionPriority::None
+                      && ((sem != Semantic::Weak && sem != Semantic::Acquire && sem != Semantic::Relaxed)
+                          || cache_op != LoadCacheOperator::None))
+                  {
+                    continue;
+                  }
+                  if (prefetch != PrefetchSize::None && mm == Mmio::Enabled)
+                  {
+                    continue;
+                  }
+                  out << fmt::format(
+                    (size == 128) ? asm_intrinsic_format_128 : asm_intrinsic_format,
+                    /* 0 */ operand(type), // f, u, s, b
+                    /* 1 */ size, // 8, 16, 32, 64
+                    /* 2 */ constraints(type, size), // l, d, r, f
+                    /* 3 */ semantic_tag(sem), // __atomic_cuda_relaxed, __atomic_cuda_release, etc.
+                    /* 4 */ semantic_ld_st(sem), // .weak, .relaxed, .release, etc.
+                    /* 5 */ scope_tag(sco), // Thread, Warp, CTA, Cluster, GPU, System
+                    /* 6 */ scope_ld_st(sem, sco), // .cta, .cluster, .gpu, .sys
+                    /* 7 */ mmio_tag(mm), // __atomic_cuda_mmio_disable, __atomic_cuda_mmio_enable
+                    /* 8 */ mmio(mm)); // .mmio
+                }
+              }
             }
-            if (size == 128 && type != Operand::Bit)
-            {
-              continue;
-            }
-            if ((mm == Mmio::Enabled) && ((sco != Scope::System) || (sem != Semantic::Relaxed)))
-            {
-              continue;
-            }
-            out << fmt::format(
-              (size == 128) ? asm_intrinsic_format_128 : asm_intrinsic_format,
-              /* 0 */ operand(type),
-              /* 1 */ size,
-              /* 2 */ constraints(type, size),
-              /* 3 */ semantic_tag(sem),
-              /* 4 */ semantic_ld_st(sem),
-              /* 5 */ scope_tag(sco),
-              /* 6 */ scope_ld_st(sem, sco),
-              /* 7 */ mmio_tag(mm),
-              /* 8 */ mmio(mm));
           }
         }
       }
