@@ -402,7 +402,7 @@ _CCCL_HOST_DEVICE _CCCL_FORCEINLINE unsigned int WarpMask(unsigned int warp_id)
     member_mask <<= warp_id * LOGICAL_WARP_THREADS;
   }
   (void) warp_id;
-  // //
+  // // //
   return member_mask;
 }
 
