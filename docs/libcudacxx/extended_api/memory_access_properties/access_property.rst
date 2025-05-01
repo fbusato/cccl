@@ -5,7 +5,8 @@
 
 Defined in header ``<cuda/annotated_ptr>``.
 
-The class ``cuda::access_property`` provides an opaque encoding for *L2 cache memory residence* control and *memory space* properties. It is used in combination with :ref:`cuda::annotated_ptr <libcudacxx-extended-api-memory-access-properties-annotated-ptr>`, :ref:`cuda::associate_access_property <libcudacxx-extended-api-memory-access-properties-associate-access-property>` and :ref:`cuda::apply_access_property <libcudacxx-extended-api-memory-access-properties-apply-access-property>` to *request* the application of properties to memory operations.
+The class ``cuda::access_property`` provides an opaque encoding for *L2 cache memory residence* control and *memory space* properties. The properties are the high-level counterparts of the corresponding CUDA Runtime functionalities, see `Device Memory L2 Access Management <https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html?highlight=l2%2520residency#device-memory-l2-access-management>` section of the CUDA Programming Guide.
+The class is used in combination with :ref:`cuda::annotated_ptr <libcudacxx-extended-api-memory-access-properties-annotated-ptr>`, :ref:`cuda::associate_access_property <libcudacxx-extended-api-memory-access-properties-associate-access-property>` and :ref:`cuda::apply_access_property <libcudacxx-extended-api-memory-access-properties-apply-access-property>` to *request* the application of properties to memory operations.
 
 .. code:: cuda
 
