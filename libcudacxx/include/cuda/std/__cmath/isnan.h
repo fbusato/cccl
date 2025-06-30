@@ -25,9 +25,9 @@
 #include <cuda/std/__floating_point/fp.h>
 #include <cuda/std/__type_traits/is_constant_evaluated.h>
 #include <cuda/std/__type_traits/is_integral.h>
-#if _CCCL_HAS_CTK() && _CCCL_HAS_FLOAT128()
+#if _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS()
 #  include <crt/device_fp128_functions.h>
-#endif // _CCCL_HAS_CTK() && _CCCL_HAS_FLOAT128()
+#endif // _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS()
 
 #if !_CCCL_CUDA_COMPILER(NVRTC)
 #  include <math.h>
@@ -156,11 +156,13 @@ template <class _Tp>
 
 [[nodiscard]] _CCCL_API constexpr bool isnan(__float128 __x) noexcept
 {
-#  if _CCCL_HAS_CTK()
-  NV_IF_ELSE_TARGET(NV_PROVIDES_SM_100, (return ::__nv_fp128_isnan(__x);), (return __x != __x));
-#  else
-  return __x != __x;
+#  if _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS()
+  if (!_CUDA_VSTD::__cccl_default_is_constant_evaluated())
+  {
+    NV_IF_TARGET(NV_PROVIDES_SM_100, (return ::__nv_fp128_isnan(__x);));
+  }
 #  endif
+  return __x != __x;
 }
 
 #endif // _CCCL_HAS_FLOAT128()

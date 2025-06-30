@@ -147,15 +147,17 @@ _CCCL_REQUIRES(is_arithmetic_v<_A1>)
 
 [[nodiscard]] _CCCL_API inline __float128 fmax(__float128 __x, __float128 __y) noexcept
 {
-  // clang-format off
-  NV_IF_ELSE_TARGET(
-    NV_PROVIDES_SM_100,
-    (return ::__nv_fp128_fmax(__x, __y);),
-    (if (_CUDA_VSTD::isnan(__x))
-     {
-       return __y;
-     }
-     return __x < __y ? __y : __x;))
+#  if _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS()
+  if (!_CUDA_VSTD::__cccl_default_is_constant_evaluated())
+  {
+    NV_IF_TARGET(NV_PROVIDES_SM_100, (return ::__nv_fp128_fmax(__x, __y);))
+  }
+#  endif
+  if (_CUDA_VSTD::isnan(__x))
+  {
+    return __y;
+  }
+  return __x < __y ? __y : __x;
   // clang-format on
 }
 
@@ -291,16 +293,17 @@ _CCCL_REQUIRES(is_arithmetic_v<_A1>)
 
 [[nodiscard]] _CCCL_API inline __float128 fmin(__float128 __x, __float128 __y) noexcept
 {
-  // clang-format off
-  NV_IF_ELSE_TARGET(
-    NV_PROVIDES_SM_100,
-    (return ::__nv_fp128_fmin(__x, __y);),
-    (if (_CUDA_VSTD::isnan(__y))
-     {
-       return __x;
-     }
-     return __x < __y ? __x : __y;))
-  // clang-format on
+#  if _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS()
+  if (!_CUDA_VSTD::__cccl_default_is_constant_evaluated())
+  {
+    NV_IF_TARGET(NV_PROVIDES_SM_100, (return ::__nv_fp128_fmin(__x, __y);))
+  }
+#  endif
+  if (_CUDA_VSTD::isnan(__x))
+  {
+    return __x;
+  }
+  return __x < __y ? __x : __y;
 }
 
 _CCCL_TEMPLATE(typename _A1)
