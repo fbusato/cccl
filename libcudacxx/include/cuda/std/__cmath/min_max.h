@@ -21,6 +21,7 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/std/__cmath/isnan.h>
 #include <cuda/std/__floating_point/nvfp_types.h>
 #include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
@@ -142,13 +143,17 @@ _CCCL_REQUIRES(is_arithmetic_v<_A1>)
 
 #endif // _LIBCUDACXX_HAS_NVBF16()
 
-#if _CCCL_HAS_CTK() && _CCCL_HAS_FLOAT128()
+#if _CCCL_HAS_FLOAT128()
 
 [[nodiscard]] _CCCL_API inline __float128 fmax(__float128 __x, __float128 __y) noexcept
 {
+#  if _CCCL_HAS_CTK()
   NV_IF_ELSE_TARGET(NV_PROVIDES_SM_100,
-                    (return ::__nv_fp128_fmax(__lhs, __rhs);),
-                    (return __lhs < __rhs || _CUDA_VSTD::isnan(__lhs) ? __rhs : __lhs;))
+                    (return ::__nv_fp128_fmax(__x, __y);),
+                    (return __x < __y || _CUDA_VSTD::isnan(__x) ? __y : __x;))
+#  else
+  return return __x < __y || _CUDA_VSTD::isnan(__x) ? __y : __x;
+#  endif
 }
 
 _CCCL_TEMPLATE(typename _A1)
@@ -165,7 +170,7 @@ _CCCL_REQUIRES(is_arithmetic_v<_A1>)
   return _CUDA_VSTD::fmax(static_cast<__float128>(__x), __y);
 }
 
-#endif // _CCCL_HAS_CTK() &&  _CCCL_HAS_FLOAT128()
+#endif //  _CCCL_HAS_FLOAT128()
 
 _CCCL_TEMPLATE(typename _A1, typename _A2)
 _CCCL_REQUIRES(is_arithmetic_v<_A1> _CCCL_AND is_arithmetic_v<_A2>)
@@ -279,13 +284,17 @@ _CCCL_REQUIRES(is_arithmetic_v<_A1>)
 
 #endif // _LIBCUDACXX_HAS_NVBF16()
 
-#if _CCCL_HAS_CTK() && _CCCL_HAS_FLOAT128()
+#if _CCCL_HAS_FLOAT128()
 
 [[nodiscard]] _CCCL_API inline __float128 fmin(__float128 __x, __float128 __y) noexcept
 {
+#  if _CCCL_HAS_CTK()
   NV_IF_ELSE_TARGET(NV_PROVIDES_SM_100,
-                    (return ::__nv_fp128_fmin(__lhs, __rhs);),
-                    (return __lhs < __rhs || _CUDA_VSTD::isnan(__rhs) ? __lhs : __rhs;))
+                    (return ::__nv_fp128_fmin(__x, __y);),
+                    (return __x < __y || _CUDA_VSTD::isnan(__y) ? __x : __y;))
+#  else
+  return __x < __y || _CUDA_VSTD::isnan(__y) ? __x : __y;
+#  endif
 }
 
 _CCCL_TEMPLATE(typename _A1)
@@ -302,7 +311,7 @@ _CCCL_REQUIRES(is_arithmetic_v<_A1>)
   return _CUDA_VSTD::fmin(static_cast<__float128>(__x), __y);
 }
 
-#endif // _CCCL_HAS_CTK() && _CCCL_HAS_FLOAT128()
+#endif // _CCCL_HAS_FLOAT128()
 
 _CCCL_TEMPLATE(typename _A1, typename _A2)
 _CCCL_REQUIRES(is_arithmetic_v<_A1> _CCCL_AND is_arithmetic_v<_A2>)
