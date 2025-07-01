@@ -102,10 +102,10 @@
 #  endif // Host compiler support
 #endif // !CCCL_DISABLE_FLOAT128_SUPPORT && _CCCL_OS(LINUX)
 
-#if _CCCL_HAS_FLOAT128() && _CCCL_HAS_INCLUDE(<crt/device_fp128_functions.h>)
+#if _CCCL_HAS_FLOAT128() && _CCCL_HAS_INCLUDE(<crt/device_fp128_functions.h>) && !defined(_NVHPC_STDPAR_GPU)
 #  undef _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS
 #  define _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS() 1
-#endif // _CCCL_HAS_FLOAT128() && _CCCL_HAS_INCLUDE(<crt/device_fp128_functions.h>)
+#endif // _CCCL_HAS_FLOAT128() && _CCCL_HAS_INCLUDE(<crt/device_fp128_functions.h>) && !defined(_NVHPC_STDPAR_GPU)
 
 // gcc does not allow to use 'operator""q' when __STRICT_ANSI__ is defined, it may be allowed by
 // -fext-numeric-literals, but we have no way to detect it. However, from gcc 13, we can use 'operator""f128' and cast
