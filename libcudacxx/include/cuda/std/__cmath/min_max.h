@@ -152,7 +152,7 @@ _CCCL_REQUIRES(is_arithmetic_v<_A1>)
   {
     NV_IF_TARGET(NV_PROVIDES_SM_100, (return ::__nv_fp128_fmax(__x, __y);))
   }
-#  endif
+#  endif // _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS()
   if (_CUDA_VSTD::isnan(__x))
   {
     return __y;
@@ -298,7 +298,7 @@ _CCCL_REQUIRES(is_arithmetic_v<_A1>)
   {
     NV_IF_TARGET(NV_PROVIDES_SM_100, (return ::__nv_fp128_fmin(__x, __y);))
   }
-#  endif
+#  endif // _CCCL_HAS_FLOAT128_CUDA_FUNCTIONS()
   if (_CUDA_VSTD::isnan(__x))
   {
     return __x;
