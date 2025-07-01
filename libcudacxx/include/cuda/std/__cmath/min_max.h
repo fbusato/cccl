@@ -26,9 +26,7 @@
 #include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/promote.h>
-#if _CCCL_HAS_CTK() && _CCCL_HAS_FLOAT128()
-#  include <crt/device_fp128_functions.h>
-#endif // _CCCL_HAS_CTK() && _CCCL_HAS_FLOAT128()
+
 #include <nv/target>
 
 // MSVC and clang cuda need the host side functions included
