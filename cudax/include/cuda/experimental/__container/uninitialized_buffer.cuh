@@ -107,7 +107,7 @@ private:
   //! @pre The buffer must have the cuda::mr::device_accessible property.
   template <class _Tp2 = _Tp>
   [[nodiscard]] _CCCL_HIDE_FROM_ABI friend auto
-  __cudax_launch_transform(::cuda::stream_ref, uninitialized_buffer& __self) noexcept
+  transform_device_argument(::cuda::stream_ref, uninitialized_buffer& __self) noexcept
     _CCCL_TRAILING_REQUIRES(_CUDA_VSTD::span<_Tp>)(
       _CUDA_VSTD::same_as<_Tp, _Tp2>&& _CUDA_VSTD::__is_included_in_v<device_accessible, _Properties...>)
   {
@@ -118,7 +118,7 @@ private:
   //! @pre The buffer must have the cuda::mr::device_accessible property.
   template <class _Tp2 = _Tp>
   [[nodiscard]] _CCCL_HIDE_FROM_ABI friend auto
-  __cudax_launch_transform(::cuda::stream_ref, const uninitialized_buffer& __self) noexcept
+  transform_device_argument(::cuda::stream_ref, const uninitialized_buffer& __self) noexcept
     _CCCL_TRAILING_REQUIRES(_CUDA_VSTD::span<const _Tp>)(
       _CUDA_VSTD::same_as<_Tp, _Tp2>&& _CUDA_VSTD::__is_included_in_v<device_accessible, _Properties...>)
   {
@@ -143,7 +143,7 @@ public:
   _CCCL_HIDE_FROM_ABI uninitialized_buffer(__resource __mr, const size_t __count)
       : __mr_(_CUDA_VSTD::move(__mr))
       , __count_(__count)
-      , __buf_(__count_ == 0 ? nullptr : __mr_.allocate(__get_allocation_size(__count_)))
+      , __buf_(__count_ == 0 ? nullptr : __mr_.allocate_sync(__get_allocation_size(__count_)))
   {}
 
   _CCCL_HIDE_FROM_ABI uninitialized_buffer(const uninitialized_buffer&)            = delete;
@@ -181,7 +181,7 @@ public:
 
     if (__buf_)
     {
-      __mr_.deallocate(__buf_, __get_allocation_size(__count_));
+      __mr_.deallocate_sync(__buf_, __get_allocation_size(__count_));
     }
 
     __mr_    = _CUDA_VSTD::move(__other.__mr_);
@@ -197,7 +197,7 @@ public:
   {
     if (__buf_)
     {
-      __mr_.deallocate(__buf_, __get_allocation_size(__count_));
+      __mr_.deallocate_sync(__buf_, __get_allocation_size(__count_));
       __buf_   = nullptr;
       __count_ = 0;
     }
