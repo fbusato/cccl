@@ -5,6 +5,7 @@ build*/
 .config
 _deps/catch2-src/
 .vscode/
+.cursor/
 _site/
 .devcontainer/local*
 compile_commands.json
