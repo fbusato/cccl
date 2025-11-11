@@ -50,7 +50,7 @@ Example
 -------fsdfsdf
 
 .. code:: csdfdfsudafffsdfsd
-
+sdfsfd
     #include <cuda/memory>
     #include <cuda/std/cstdint>
 
