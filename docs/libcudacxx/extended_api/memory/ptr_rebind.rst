@@ -48,7 +48,7 @@ The functions return the pointer ``ptr`` cast to type ``U*`` or ``const U*``. Th
 
 Example
 -------fsdfsdf
-
+xcvxcv
 .. code:: csdfdfsudafffsdfsd
 sdfsfd
     #include <cuda/memory>
