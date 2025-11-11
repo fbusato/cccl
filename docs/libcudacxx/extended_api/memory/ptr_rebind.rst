@@ -49,7 +49,7 @@ The functions return the pointer ``ptr`` cast to type ``U*`` or ``const U*``. Th
 Example
 -------
 
-.. code:: cuda
+.. code:: cudafff
 
     #include <cuda/memory>
     #include <cuda/std/cstdint>
