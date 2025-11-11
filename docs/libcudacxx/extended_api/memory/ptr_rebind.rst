@@ -53,7 +53,7 @@ xcvxcv
 sdfsfd
     #include <cuda/memory>
     #include <cuda/std/cstdint>
-
+dsfdsf
     __global__ void kernel(const int* ptr, volatile int* ptr2) {
         auto ptr_res1 = cuda::ptr_rebind<uint64_t>(ptr);  // ptr_res1: const uint64_t*
         auto ptr_res2 = cuda::ptr_rebind<uint64_t>(ptr2); // ptr_res2: volatile uint64_t*
