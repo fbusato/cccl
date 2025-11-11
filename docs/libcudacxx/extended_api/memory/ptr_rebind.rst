@@ -47,7 +47,7 @@ The functions return the pointer ``ptr`` cast to type ``U*`` or ``const U*``. Th
 - The returned pointer maintains the same memory space, for example shared memory, as the input pointer.
 
 Example
--------f
+-------fsdfsdf
 
 .. code:: cudafffsdfsd
 
