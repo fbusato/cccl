@@ -46,7 +46,7 @@ The functions return the pointer ``ptr`` cast to type ``U*`` or ``const U*``. Th
 - The returned pointer is decorated with ``__builtin_assume_aligned`` with the ``alignof(U)`` value to help the compiler generate better code.
 - The returned pointer maintains the same memory space, for example shared memory, as the input pointer.
 
-Example
+Examplesdfsd
 -------fsdfsdf
 xcvxcv
 .. code:: csdfdfsudafffsdfsd
