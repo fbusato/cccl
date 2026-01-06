@@ -85,21 +85,21 @@ public:
 
   _CCCL_TEMPLATE(typename _Up)
   _CCCL_REQUIRES(
-    (__can_broadcast_v<value_type, ::cuda::std::remove_cvref_t<_Up>>) _CCCL_AND(__is_value_preserving_broadcast<_Up>))
-  _CCCL_API constexpr basic_vec(_Up&& __v) noexcept
-      : __s_{_Impl::__broadcast(static_cast<value_type>(__v))}
-  {}
-
-  _CCCL_TEMPLATE(typename _Up)
-  _CCCL_REQUIRES((__can_broadcast_v<value_type, ::cuda::std::remove_cvref_t<_Up>>) //
-                 _CCCL_AND(!__is_value_preserving_broadcast<_Up>))
+    (__explicitly_convertible_to<_Up, value_type>) _CCCL_AND(__is_simd_ctor_explicit_from_value<_Up, value_type>))
   _CCCL_API constexpr explicit basic_vec(_Up&& __v) noexcept
       : __s_{_Impl::__broadcast(static_cast<value_type>(__v))}
   {}
 
   _CCCL_TEMPLATE(typename _Up)
-  _CCCL_REQUIRES((!::cuda::std::is_same_v<_Up, _Tp>) _CCCL_AND(__is_non_narrowing_convertible_v<_Up, value_type>))
-  _CCCL_API constexpr explicit basic_vec(const basic_vec<_Up, abi_type>& __v) noexcept
+  _CCCL_REQUIRES(
+    (__explicitly_convertible_to<_Up, value_type>) _CCCL_AND(!__is_simd_ctor_explicit_from_value<_Up, value_type>))
+  _CCCL_API constexpr basic_vec(_Up&& __v) noexcept
+      : __s_{_Impl::__broadcast(static_cast<value_type>(__v))}
+  {}
+
+  _CCCL_TEMPLATE(typename _Up, typename _UAbi)
+  _CCCL_REQUIRES((__simd_size_v<_Up, _UAbi> == size()) _CCCL_AND(__explicitly_convertible_to<_Up, value_type>))
+  _CCCL_API constexpr explicit basic_vec(const basic_vec<_Up, _UAbi>& __v) noexcept
   {
     for (__simd_size_type __i = 0; __i < size; __i++)
     {
@@ -124,7 +124,7 @@ public:
       : __s_(_Impl::__generate(__g))
   {}
 
-  // TODO: add constructors
+  // TODO: add range constructors
   // template <class R, class... Flags>
   // constexpr basic_vec(R&& range, flags<Flags...> = {});
 
