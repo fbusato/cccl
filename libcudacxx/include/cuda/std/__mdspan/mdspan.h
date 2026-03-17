@@ -438,12 +438,6 @@ public:
     return accessor().access(data_handle(), mapping()(__indices...));
   }
 
-  [[nodiscard]] _CCCL_API static constexpr bool __mul_overflow(size_t x, size_t y, size_t* res) noexcept
-  {
-    *res = x * y;
-    return x && ((*res / x) != y);
-  }
-
   template <size_t... _Idxs>
   [[nodiscard]] _CCCL_API constexpr bool __check_size() const noexcept
   {
