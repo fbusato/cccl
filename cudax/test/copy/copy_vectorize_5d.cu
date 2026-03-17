@@ -18,16 +18,6 @@
 
 static constexpr int N = 48;
 
-static thrust::host_vector<int> make_data()
-{
-  thrust::host_vector<int> data(N);
-  for (int i = 0; i < N; ++i)
-  {
-    data[i] = i;
-  }
-  return data;
-}
-
 /***********************************************************************************************************************
  * 5D Vectorization Tests
  **********************************************************************************************************************/
@@ -36,19 +26,19 @@ static thrust::host_vector<int> make_data()
 // dst: (2,2,2,2,3):(2,1,4,8,16)
 TEST_CASE("copy d2d vectorize (2,2,2,2,3):(2,1,4,8,16)", "[copy][d2d][vectorize][5d]")
 {
-  test_copy_strided(make_data(), cuda::std::array<int, 5>{2, 2, 2, 2, 3}, cuda::std::array<int, 5>{2, 1, 4, 8, 16});
+  test_copy_strided(make_iota<int>(N), cuda::std::array<int, 5>{2, 2, 2, 2, 3}, cuda::std::array<int, 5>{2, 1, 4, 8, 16});
 }
 
 // src: (2,2,2,2,3):(8,1,4,2,16)
 // dst: (2,2,2,2,3):(8,1,4,2,16)
 TEST_CASE("copy d2d vectorize (2,2,2,2,3):(8,1,4,2,16)", "[copy][d2d][vectorize][5d]")
 {
-  test_copy_strided(make_data(), cuda::std::array<int, 5>{2, 2, 2, 2, 3}, cuda::std::array<int, 5>{8, 1, 4, 2, 16});
+  test_copy_strided(make_iota<int>(N), cuda::std::array<int, 5>{2, 2, 2, 2, 3}, cuda::std::array<int, 5>{8, 1, 4, 2, 16});
 }
 
 // src: (2,2,3,2,2):(6,3,1,24,12)
 // dst: (2,2,3,2,2):(6,3,1,24,12)
 TEST_CASE("copy d2d vectorize (2,2,3,2,2):(6,3,1,24,12)", "[copy][d2d][vectorize][5d]")
 {
-  test_copy_strided(make_data(), cuda::std::array<int, 5>{2, 2, 3, 2, 2}, cuda::std::array<int, 5>{6, 3, 1, 24, 12});
+  test_copy_strided(make_iota<int>(N), cuda::std::array<int, 5>{2, 2, 3, 2, 2}, cuda::std::array<int, 5>{6, 3, 1, 24, 12});
 }

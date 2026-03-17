@@ -170,8 +170,8 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
       _CCCL_TRY_CUDA_API(
         ::cub::DeviceTransform::Transform,
         "cub::DeviceTransform::Transform failed",
-        __src.data_handle(),
-        __dst.data_handle(),
+        __src_simplified.__data,
+        __dst_simplified.__data,
         __tensor_size,
         ::cuda::proclaim_copyable_arguments(::cuda::std::identity{}),
         __stream.get());
@@ -199,8 +199,8 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     {
       if constexpr (__are_vectorizable)
       {
-        const auto __op = [=](const auto& __src, const auto& __dst) {
-          cudax::__copy_optimized(__src, __dst, static_cast<__common_extent_t>(__tensor_size), __stream);
+        const auto __op = [__stream](const auto& __src, const auto& __dst) {
+          cudax::__copy_optimized(__src, __dst, cudax::__total_size(__src), __stream);
         };
         cudax::__dispatch_by_vector_size(__src_normalized, __dst_normalized, __op);
       }
@@ -216,7 +216,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
       cudax::__copy_optimized(
         __src_normalized,
         __dst_normalized,
-        static_cast<__common_extent_t>(__tensor_size),
+        cudax::__total_size(__src_normalized),
         __stream,
         __src.accessor(),
         __dst.accessor());

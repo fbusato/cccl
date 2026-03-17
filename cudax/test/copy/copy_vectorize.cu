@@ -15,14 +15,15 @@
 
 static constexpr int N = 48;
 
-static thrust::host_vector<int> make_data()
+/***********************************************************************************************************************
+ * 1D Vectorization Test
+ **********************************************************************************************************************/
+
+// src: (48):(1)
+// dst: (48):(1)
+TEST_CASE("copy d2d vectorize 48:1", "[copy][d2d][vectorize][1d]")
 {
-  thrust::host_vector<int> data(N);
-  for (int i = 0; i < N; ++i)
-  {
-    data[i] = i;
-  }
-  return data;
+  test_copy<layout_right>(make_iota<int>(N), N);
 }
 
 /***********************************************************************************************************************
@@ -33,39 +34,28 @@ static thrust::host_vector<int> make_data()
 // dst: (6,8):(8,1)
 TEST_CASE("copy d2d vectorize (6,8):(8,1)", "[copy][d2d][vectorize][2d]")
 {
-  test_copy<layout_right>(make_data(), 6, 8);
+  test_copy<layout_right>(make_iota<int>(N), 6, 8);
 }
 
 // src: (8,6):(1,8)
 // dst: (8,6):(1,8)
 TEST_CASE("copy d2d vectorize (8,6):(1,8)", "[copy][d2d][vectorize][2d]")
 {
-  test_copy<layout_left>(make_data(), 8, 6);
+  test_copy<layout_left>(make_iota<int>(N), 8, 6);
 }
 
 // src: (6,8):(1,6)
 // dst: (6,8):(1,6)
 TEST_CASE("copy d2d vectorize (6,8):(1,6)", "[copy][d2d][vectorize][2d]")
 {
-  test_copy<layout_left>(make_data(), 6, 8);
+  test_copy<layout_left>(make_iota<int>(N), 6, 8);
 }
 
 // src: (8,6):(6,1)
 // dst: (8,6):(6,1)
 TEST_CASE("copy d2d vectorize (8,6):(6,1)", "[copy][d2d][vectorize][2d]")
 {
-  test_copy<layout_right>(make_data(), 8, 6);
-}
-
-/***********************************************************************************************************************
- * 1D Vectorization Test
- **********************************************************************************************************************/
-
-// src: (48):(1)
-// dst: (48):(1)
-TEST_CASE("copy d2d vectorize 48:1", "[copy][d2d][vectorize][1d]")
-{
-  test_copy<layout_right>(make_data(), N);
+  test_copy<layout_right>(make_iota<int>(N), 8, 6);
 }
 
 /***********************************************************************************************************************
@@ -76,26 +66,26 @@ TEST_CASE("copy d2d vectorize 48:1", "[copy][d2d][vectorize][1d]")
 // dst: (3,16):(1,3)
 TEST_CASE("copy d2d vectorize (3,16):(1,3)", "[copy][d2d][vectorize][2d]")
 {
-  test_copy<layout_left>(make_data(), 3, 16);
+  test_copy<layout_left>(make_iota<int>(N), 3, 16);
 }
 
 // src: (3,16):(16,1)
 // dst: (3,16):(16,1)
 TEST_CASE("copy d2d vectorize (3,16):(16,1)", "[copy][d2d][vectorize][2d]")
 {
-  test_copy<layout_right>(make_data(), 3, 16);
+  test_copy<layout_right>(make_iota<int>(N), 3, 16);
 }
 
 // src: (16,3):(1,16)
 // dst: (16,3):(1,16)
 TEST_CASE("copy d2d vectorize (16,3):(1,16)", "[copy][d2d][vectorize][2d]")
 {
-  test_copy<layout_left>(make_data(), 16, 3);
+  test_copy<layout_left>(make_iota<int>(N), 16, 3);
 }
 
 // src: (16,3):(3,1)
 // dst: (16,3):(3,1)
 TEST_CASE("copy d2d vectorize (16,3):(3,1)", "[copy][d2d][vectorize][2d]")
 {
-  test_copy<layout_right>(make_data(), 16, 3);
+  test_copy<layout_right>(make_iota<int>(N), 16, 3);
 }

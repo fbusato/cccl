@@ -97,12 +97,7 @@ TEST_CASE("copy d2d large element 64 bytes", "[copy][d2d][large_element]")
 TEST_CASE("copy d2d tile boundary exact", "[copy][d2d][tile_boundary]")
 {
   constexpr int N = 1024;
-  thrust::host_vector<int> data(N);
-  for (int i = 0; i < N; ++i)
-  {
-    data[i] = i;
-  }
-  test_copy<layout_right>(data, N);
+  test_copy<layout_right>(make_iota<int>(N), N);
 }
 
 // src: (1020):(1)
@@ -110,12 +105,7 @@ TEST_CASE("copy d2d tile boundary exact", "[copy][d2d][tile_boundary]")
 TEST_CASE("copy d2d tile boundary sub-tile", "[copy][d2d][tile_boundary]")
 {
   constexpr int N = 1020;
-  thrust::host_vector<int> data(N);
-  for (int i = 0; i < N; ++i)
-  {
-    data[i] = i;
-  }
-  test_copy<layout_right>(data, N);
+  test_copy<layout_right>(make_iota<int>(N), N);
 }
 
 // src: (1028):(1)
@@ -123,12 +113,7 @@ TEST_CASE("copy d2d tile boundary sub-tile", "[copy][d2d][tile_boundary]")
 TEST_CASE("copy d2d tile boundary partial", "[copy][d2d][tile_boundary]")
 {
   constexpr int N = 1028;
-  thrust::host_vector<int> data(N);
-  for (int i = 0; i < N; ++i)
-  {
-    data[i] = i;
-  }
-  test_copy<layout_right>(data, N);
+  test_copy<layout_right>(make_iota<int>(N), N);
 }
 
 /***********************************************************************************************************************
@@ -167,11 +152,7 @@ TEST_CASE("copy d2d different extent types", "[copy][d2d][mixed_types]")
   constexpr int M = 4;
   constexpr int N = 8;
 
-  thrust::host_vector<float> h_data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    h_data[i] = static_cast<float>(i);
-  }
+  auto h_data = make_iota<float>(M * N);
   thrust::device_vector<float> d_src(h_data.begin(), h_data.end());
   thrust::device_vector<float> d_dst(M * N, 0.0f);
 
@@ -200,11 +181,7 @@ TEST_CASE("copy d2d different extent and stride types", "[copy][d2d][mixed_types
   constexpr int M = 4;
   constexpr int N = 8;
 
-  thrust::host_vector<float> h_data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    h_data[i] = static_cast<float>(i);
-  }
+  auto h_data = make_iota<float>(M * N);
   thrust::device_vector<float> d_src(h_data.begin(), h_data.end());
   thrust::device_vector<float> d_dst(M * N, 0.0f);
 

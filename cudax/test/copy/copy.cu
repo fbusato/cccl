@@ -23,12 +23,7 @@
 TEST_CASE("copy d2d 1D", "[copy][d2d][1d]")
 {
   constexpr int N = 16;
-  thrust::host_vector<int> data(N);
-  for (int i = 0; i < N; ++i)
-  {
-    data[i] = i;
-  }
-  test_copy<layout_right>(data, N);
+  test_copy<layout_right>(make_iota<int>(N), N);
 }
 
 /***********************************************************************************************************************
@@ -41,12 +36,7 @@ TEST_CASE("copy d2d 2D row-major to row-major", "[copy][d2d][2d][basic]")
 {
   constexpr int M = 4;
   constexpr int N = 8;
-  thrust::host_vector<int> data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    data[i] = i;
-  }
-  test_copy<layout_right>(data, M, N);
+  test_copy<layout_right>(make_iota<int>(M * N), M, N);
 }
 
 // src: (4,8):(1,4)
@@ -55,12 +45,7 @@ TEST_CASE("copy d2d 2D column-major to column-major", "[copy][d2d][2d][basic]")
 {
   constexpr int M = 4;
   constexpr int N = 8;
-  thrust::host_vector<int> data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    data[i] = i;
-  }
-  test_copy<layout_left>(data, M, N);
+  test_copy<layout_left>(make_iota<int>(M * N), M, N);
 }
 
 // src: (4,8):(8,1)
@@ -69,11 +54,7 @@ TEST_CASE("copy d2d 2D row-major to column-major", "[copy][d2d][2d][basic]")
 {
   constexpr int M = 4;
   constexpr int N = 8;
-  thrust::host_vector<int> data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    data[i] = i;
-  }
+  auto data = make_iota<int>(M * N);
   thrust::host_vector<int> expected(M * N);
   for (int i = 0; i < M; ++i)
   {
@@ -91,11 +72,7 @@ TEST_CASE("copy d2d 2D column-major to row-major", "[copy][d2d][2d][basic]")
 {
   constexpr int M = 4;
   constexpr int N = 8;
-  thrust::host_vector<int> data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    data[i] = i;
-  }
+  auto data = make_iota<int>(M * N);
   thrust::host_vector<int> expected(M * N);
   for (int i = 0; i < M; ++i)
   {
@@ -113,12 +90,7 @@ TEST_CASE("copy d2d 2D large", "[copy][d2d][2d][large]")
 {
   constexpr int M = 1280;
   constexpr int N = 2564;
-  thrust::host_vector<int> data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    data[i] = i;
-  }
-  test_copy<layout_right>(data, M, N);
+  test_copy<layout_right>(make_iota<int>(M * N), M, N);
 }
 
 /***********************************************************************************************************************
@@ -132,12 +104,7 @@ TEST_CASE("copy d2d 3D row-major", "[copy][d2d][3d]")
   constexpr int D0 = 2;
   constexpr int D1 = 3;
   constexpr int D2 = 4;
-  thrust::host_vector<int> data(D0 * D1 * D2);
-  for (int i = 0; i < D0 * D1 * D2; ++i)
-  {
-    data[i] = i;
-  }
-  test_copy<layout_right>(data, D0, D1, D2);
+  test_copy<layout_right>(make_iota<int>(D0 * D1 * D2), D0, D1, D2);
 }
 
 // src: (2,3,4):(12,4,1)
@@ -148,11 +115,7 @@ TEST_CASE("copy d2d 3D row-major to column-major", "[copy][d2d][3d]")
   constexpr int D1    = 3;
   constexpr int D2    = 4;
   constexpr int total = D0 * D1 * D2;
-  thrust::host_vector<int> data(total);
-  for (int i = 0; i < total; ++i)
-  {
-    data[i] = i;
-  }
+  auto data           = make_iota<int>(total);
   thrust::host_vector<int> expected(total);
   for (int i = 0; i < D0; ++i)
   {
@@ -228,11 +191,7 @@ TEST_CASE("copy d2d 3D strided permutation", "[copy][d2d][3d][stride][permutatio
   constexpr int D0 = 2;
   constexpr int D1 = 3;
   constexpr int D2 = 4;
-  thrust::host_vector<int> input(D0 * D1 * D2);
-  for (int i = 0; i < D0 * D1 * D2; ++i)
-  {
-    input[i] = i;
-  }
+  auto input = make_iota<int>(D0 * D1 * D2);
   cuda::std::array<int, 3> shape{D0, D1, D2};
   cuda::std::array<int, 3> src_strides{D1 * D2, D2, 1};
   cuda::std::array<int, 3> dst_strides{1, D2 * D0, D0};
@@ -262,11 +221,7 @@ TEST_CASE("copy d2d 3D strided different stride order", "[copy][d2d][3d][stride]
   constexpr int D0 = 2;
   constexpr int D1 = 3;
   constexpr int D2 = 4;
-  thrust::host_vector<int> input(D0 * D1 * D2);
-  for (int i = 0; i < D0 * D1 * D2; ++i)
-  {
-    input[i] = i;
-  }
+  auto input = make_iota<int>(D0 * D1 * D2);
   cuda::std::array<int, 3> shape{D0, D1, D2};
   cuda::std::array<int, 3> src_strides{D1 * D2, D2, 1};
   cuda::std::array<int, 3> dst_strides{8, 16, 1};
@@ -341,12 +296,7 @@ TEST_CASE("copy d2d 1D char", "[copy][d2d][types][char]")
 TEST_CASE("copy d2d 1D large", "[copy][d2d][1d][large]")
 {
   constexpr int N = 100000;
-  thrust::host_vector<float> data(N);
-  for (int i = 0; i < N; ++i)
-  {
-    data[i] = static_cast<float>(i);
-  }
-  test_copy<layout_right>(data, N);
+  test_copy<layout_right>(make_iota<float>(N), N);
 }
 
 // src: (13,17):(17,1)
@@ -355,11 +305,7 @@ TEST_CASE("copy d2d 2D transposition non-tile-divisible", "[copy][d2d][2d][bound
 {
   constexpr int M = 13;
   constexpr int N = 17;
-  thrust::host_vector<float> data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    data[i] = static_cast<float>(i);
-  }
+  auto data = make_iota<float>(M * N);
   thrust::host_vector<float> expected(M * N);
   for (int r = 0; r < M; ++r)
   {
@@ -377,11 +323,7 @@ TEST_CASE("copy d2d 2D large transposition", "[copy][d2d][2d][large][transpose]"
 {
   constexpr int M = 100;
   constexpr int N = 200;
-  thrust::host_vector<int> data(M * N);
-  for (int i = 0; i < M * N; ++i)
-  {
-    data[i] = i;
-  }
+  auto data = make_iota<int>(M * N);
   thrust::host_vector<int> expected(M * N);
   for (int r = 0; r < M; ++r)
   {

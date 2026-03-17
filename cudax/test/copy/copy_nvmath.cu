@@ -25,7 +25,7 @@ TEST_CASE("copy d2d nvmath minimal offset", "[copy][d2d][nvmath][debug]")
   cuda::std::array<int, 2> shape{3, 4};
   cuda::std::array<int, 2> src_strides{4, 1};
   cuda::std::array<int, 2> dst_strides{4, 1};
-  test_copy_offset<data_t>(16, 4, shape, src_strides, 12, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(16, 4, shape, src_strides, 12, 0, dst_strides);
 }
 
 // src: (4,256):(512,1), offset=256, alloc=2048+256
@@ -35,7 +35,7 @@ TEST_CASE("copy d2d nvmath medium offset", "[copy][d2d][nvmath][debug]")
   cuda::std::array<int, 2> shape{4, 256};
   cuda::std::array<int, 2> src_strides{512, 1};
   cuda::std::array<int, 2> dst_strides{256, 1};
-  test_copy_offset<data_t>(2048 + 256, 256, shape, src_strides, 1024, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(2048 + 256, 256, shape, src_strides, 1024, 0, dst_strides);
 }
 
 // src: (35,255,10,24):(61440,240,24,1), offset=240, alloc=35*256*10*24 — same as sliced_vec but smaller
@@ -48,7 +48,7 @@ TEST_CASE("copy d2d nvmath small sliced_vec", "[copy][d2d][nvmath][debug]")
   cuda::std::array<int, 4> shape{3, 255, 10, 24};
   cuda::std::array<int, 4> src_strides{61440, 240, 24, 1};
   cuda::std::array<int, 4> dst_strides{61200, 240, 24, 1};
-  test_copy_offset<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, 0, dst_strides);
 }
 
 /***********************************************************************************************************************
@@ -67,12 +67,8 @@ TEST_CASE("copy d2d nvmath memcpy_layout_0", "[copy][d2d][nvmath][memcpy]")
 TEST_CASE("copy d2d nvmath memcpy_layout_1", "[copy][d2d][nvmath][memcpy]")
 {
   constexpr int alloc = 70 * 90 * 80 * 80;
-  thrust::host_vector<data_t> data(alloc);
-  for (int i = 0; i < alloc; ++i)
-  {
-    data[i] = static_cast<data_t>(i);
-  }
-  test_copy_strided(data, cuda::std::array<int, 4>{70, 90, 80, 80}, cuda::std::array<int, 4>{90, 1, 6300, 504000});
+  test_copy_strided(
+    make_iota<data_t>(alloc), cuda::std::array<int, 4>{70, 90, 80, 80}, cuda::std::array<int, 4>{90, 1, 6300, 504000});
 }
 
 // src: (1001,1007,3,31):(31217,1,31248217,1007), offset=0, alloc=1001*1007*3*31
@@ -84,7 +80,7 @@ TEST_CASE("copy d2d nvmath memcpy_layout_2", "[copy][d2d][nvmath][memcpy]")
   constexpr int dst_offset = 31248217;
   cuda::std::array<int, 4> shape{1001, 1007, 3, 31};
   cuda::std::array<int, 4> strides{31217, 1, 31248217, 1007};
-  test_copy_offset<data_t>(src_alloc, 0, shape, strides, dst_alloc, dst_offset, strides);
+  test_copy_stride_relaxed<data_t>(src_alloc, 0, shape, strides, dst_alloc, dst_offset, strides);
 }
 
 // src: (57,71,1,1007,1):(71497,1,12225987,71,4075329), offset=12225987+4075329, alloc=57*71*3*1007*3
@@ -98,7 +94,7 @@ TEST_CASE("copy d2d nvmath memcpy_layout_3", "[copy][d2d][nvmath][memcpy]")
   cuda::std::array<int, 5> shape{57, 71, 1, 1007, 1};
   cuda::std::array<int, 5> src_strides{71497, 1, 12225987, 71, 4075329};
   cuda::std::array<int, 5> dst_strides{71497, 1, 4075329, 71, 20376645};
-  test_copy_offset<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, dst_offset, dst_strides);
+  test_copy_stride_relaxed<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, dst_offset, dst_strides);
 }
 
 // src: (63,70,1001):(1001,63063,-1), offset=1000
@@ -109,7 +105,7 @@ TEST_CASE("copy d2d nvmath memcpy_neg", "[copy][d2d][nvmath][memcpy]")
   constexpr int offset = 1000;
   cuda::std::array<int, 3> shape{63, 70, 1001};
   cuda::std::array<int, 3> strides{1001, 63063, -1};
-  test_copy_offset<data_t>(alloc, offset, shape, strides);
+  test_copy_stride_relaxed<data_t>(alloc, offset, shape, strides);
 }
 
 /***********************************************************************************************************************
@@ -125,7 +121,7 @@ TEST_CASE("copy d2d nvmath reorder_strides", "[copy][d2d][nvmath][reorder_stride
   cuda::std::array<int, 3> shape{8, 100019, 4};
   cuda::std::array<int, 3> src_strides{1100209, 11, 3};
   cuda::std::array<int, 3> dst_strides{1, 8, 800152};
-  test_copy_offset<data_t>(src_alloc, 0, shape, src_strides, dst_alloc, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(src_alloc, 0, shape, src_strides, dst_alloc, 0, dst_strides);
 }
 
 /***********************************************************************************************************************
@@ -141,7 +137,7 @@ TEST_CASE("copy d2d nvmath src_neg_stride", "[copy][d2d][nvmath][neg_stride]")
   cuda::std::array<int, 3> shape{63, 70, 1001};
   cuda::std::array<int, 3> src_strides{-1001, -63063, -1};
   cuda::std::array<int, 3> dst_strides{70070, 1001, 1};
-  test_copy_offset<data_t>(alloc, src_offset, shape, src_strides, alloc, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(alloc, src_offset, shape, src_strides, alloc, 0, dst_strides);
 }
 
 /***********************************************************************************************************************
@@ -170,7 +166,7 @@ TEST_CASE("copy d2d nvmath flatten_common", "[copy][d2d][nvmath][flatten]")
   {
     s = 2;
   }
-  test_copy_offset<data_t>(
+  test_copy_stride_relaxed<data_t>(
     alloc, 0, shape, make_flatten_common_src_strides(), alloc, 0, make_flatten_common_dst_strides());
 }
 
@@ -187,7 +183,7 @@ TEST_CASE("copy d2d nvmath flatten_one", "[copy][d2d][nvmath][flatten]")
   cuda::std::array<int, 20> dst_strides{
     1 << 19, 1 << 18, 1 << 17, 1 << 16, 1 << 15, 1 << 14, 1 << 13, 1 << 12, 1 << 11, 1 << 10,
     1 << 9,  1 << 8,  1 << 7,  1 << 6,  1 << 5,  1 << 4,  1 << 3,  1 << 2,  1 << 1,  1 << 0};
-  test_copy_offset<data_t>(src_alloc, 0, shape, src_strides, dst_alloc, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(src_alloc, 0, shape, src_strides, dst_alloc, 0, dst_strides);
 }
 
 /***********************************************************************************************************************
@@ -204,7 +200,7 @@ TEST_CASE("copy d2d nvmath sliced_vec", "[copy][d2d][nvmath][vectorize]")
   cuda::std::array<int, 4> shape{35, 255, 10, 24};
   cuda::std::array<int, 4> src_strides{61440, 240, 24, 1};
   cuda::std::array<int, 4> dst_strides{61200, 240, 24, 1};
-  test_copy_offset<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, 0, dst_strides);
 }
 
 // src: (355,255,4,3):(3072,12,3,1), offset=12, alloc=355*256*4*3
@@ -217,7 +213,7 @@ TEST_CASE("copy d2d nvmath sliced_vec_2", "[copy][d2d][nvmath][vectorize]")
   cuda::std::array<int, 4> shape{355, 255, 4, 3};
   cuda::std::array<int, 4> src_strides{3072, 12, 3, 1};
   cuda::std::array<int, 4> dst_strides{3060, 12, 3, 1};
-  test_copy_offset<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, 0, dst_strides);
 }
 
 // src: (35,255,5,10):(153000,600,20,1), offset=10*20+5=205, alloc=35*255*30*20
@@ -230,5 +226,5 @@ TEST_CASE("copy d2d nvmath sliced_unaligned_ptr", "[copy][d2d][nvmath][vectorize
   cuda::std::array<int, 4> shape{35, 255, 5, 10};
   cuda::std::array<int, 4> src_strides{153000, 600, 20, 1};
   cuda::std::array<int, 4> dst_strides{12750, 50, 10, 1};
-  test_copy_offset<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, 0, dst_strides);
+  test_copy_stride_relaxed<data_t>(src_alloc, src_offset, shape, src_strides, dst_alloc, 0, dst_strides);
 }
