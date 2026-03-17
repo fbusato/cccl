@@ -448,11 +448,14 @@ public:
   [[nodiscard]] _CCCL_API constexpr bool __check_size() const noexcept
   {
     size_t __prod = 1;
-    for (size_t __r = 0; __r != extents_type::rank(); ++__r)
+    if constexpr (extents_type::rank() > 0) // MSVC raises a warning even with __r != extents_type::rank()
     {
-      if (__mul_overflow(__prod, mapping().extents().extent(__r), &__prod))
+      for (size_t __r = 0; __r < extents_type::rank(); ++__r)
       {
-        return false;
+        if (__mul_overflow(__prod, mapping().extents().extent(__r), &__prod))
+        {
+          return false;
+        }
       }
     }
     return true;
