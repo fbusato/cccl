@@ -38,8 +38,10 @@ namespace cuda::experimental
 {
 //! @brief Tiled copy kernel for contiguous innermost dimension.
 //!
-//! Each block processes one tile of the innermost dimension for one outer index. Threads within a
-//! block stride over the tile, reading from the source and writing to the destination via accessors.
+//! Uses a 2D grid: blockIdx.x = tile along inner dimension, blockIdx.y = outer index.
+//! Threads within a block stride over the tile, reading from the source and writing to the
+//! destination via accessors. The coordinate iterator maps linear indices to multi-dimensional
+//! coordinates, which are then used with per-tensor strides for the actual memory access.
 //!
 //! @param[in]  __config          Kernel launch configuration
 //! @param[in]  __src_ptr         Pointer to source data
@@ -50,7 +52,6 @@ namespace cuda::experimental
 //! @param[in]  __dst_accessor    Accessor for writing destination elements
 //! @param[in]  __coord_iter      Coordinate iterator for multi-dimensional index mapping
 //! @param[in]  __inner_size      Extent of the contiguous innermost dimension
-//! @param[in]  __num_inner_tiles Number of tiles along the innermost dimension
 template <typename _Config,
           int _TileSize,
           typename _TpSrc,
@@ -70,31 +71,25 @@ __global__ void __copy_contiguous_kernel(
   _CCCL_GRID_CONSTANT const ::cuda::std::array<_StrideTOut, _Rank> __dst_strides,
   _CCCL_GRID_CONSTANT const _DstAccessor __dst_accessor,
   _CCCL_GRID_CONSTANT const __tensor_coord_iterator<_ExtentT, _Rank> __coord_iter,
-  _CCCL_GRID_CONSTANT const _ExtentT __inner_size,
-  _CCCL_GRID_CONSTANT const int __num_inner_tiles)
+  _CCCL_GRID_CONSTANT const _ExtentT __inner_size)
 {
-  const auto __thread_id      = ::cuda::gpu_thread.rank_as<_ExtentT>(::cuda::grid, __config);
-  const auto __stride         = ::cuda::gpu_thread.count_as<_ExtentT>(::cuda::grid, __config);
-  const auto __block_id       = ::cuda::block.rank_as<int>(::cuda::grid, __config);
-  constexpr auto __block_size = ::cuda::gpu_thread.count(::cuda::block, __config);
-  __partial_tensor __src{__src_ptr, __src_strides, __src_accessor};
-  __partial_tensor __dst{__dst_ptr, __dst_strides, __dst_accessor};
+  const auto __thread_id      = ::cuda::gpu_thread.rank_as<_ExtentT>(::cuda::block, __config);
+  const auto __block_idx      = ::cuda::block.index_as<_ExtentT>(::cuda::grid);
+  constexpr auto __block_size = ::cuda::gpu_thread.count_as<int>(::cuda::block, __config);
+  const __partial_tensor __src{__src_ptr, __src_strides, __src_accessor};
+  const __partial_tensor __dst{__dst_ptr, __dst_strides, __dst_accessor};
 
-  const int __tile_idx    = __block_id % __num_inner_tiles;
-  const int __outer_idx   = __block_id / __num_inner_tiles;
-  const int __tile_offset = __tile_idx * _TileSize;
-  const int __flat_offset = __tile_offset + __outer_idx * __inner_size;
-  const int __remaining   = __inner_size - __tile_offset;
+  const auto __tile_offset = __block_idx.x * _TileSize;
+  const auto __outer_idx   = __block_idx.y;
+  const auto __remaining   = __inner_size - __tile_offset;
+  const auto __base_idx    = __tile_offset + __outer_idx * __inner_size + __thread_id;
 
-  const auto __thr_offset = __flat_offset + __thread_id;
-  __src.__ptr += __thr_offset;
-  __dst.__ptr += __thr_offset;
   if (__remaining >= _TileSize)
   {
     _CCCL_PRAGMA_UNROLL_FULL()
     for (int __i = 0; __i < _TileSize; __i += __block_size)
     {
-      const auto __coord = __coord_iter(__i);
+      const auto __coord = __coord_iter(__base_idx + __i);
       __dst(__coord)     = __src(__coord);
     }
   }
@@ -103,9 +98,9 @@ __global__ void __copy_contiguous_kernel(
     _CCCL_PRAGMA_UNROLL_FULL()
     for (int __i = 0; __i < _TileSize; __i += __block_size)
     {
-      if (__thr_offset + __i < __remaining)
+      if (__tile_offset + __thread_id + __i < __remaining)
       {
-        const auto __coord = __coord_iter(__i);
+        const auto __coord = __coord_iter(__base_idx + __i);
         __dst(__coord)     = __src(__coord);
       }
     }
@@ -156,8 +151,8 @@ _CCCL_HOST_API void __launch_copy_contiguous_kernel(
   const auto __inner_size            = __src.__extents[0];
   const auto __outer_size            = cudax::__total_size(__src) / __inner_size;
   const auto __num_inner_tiles       = ::cuda::ceil_div(__inner_size, __tile_size);
-  const auto __grid_size             = __num_inner_tiles * __outer_size;
-  const auto __config = ::cuda::make_config(::cuda::block_dims<__block_size>(), ::cuda::grid_dims(__grid_size));
+  const auto __config =
+    ::cuda::make_config(::cuda::block_dims<__block_size>(), ::cuda::grid_dims(dim3(__num_inner_tiles, __outer_size)));
 
   const __tensor_coord_iterator<_ExtentT, _Rank> __coord_iter(__src.__extents);
   const auto __kernel = ::cuda::experimental::__copy_contiguous_kernel<
@@ -183,8 +178,7 @@ _CCCL_HOST_API void __launch_copy_contiguous_kernel(
     __dst.__strides,
     __dst_accessor,
     __coord_iter,
-    __inner_size,
-    __num_inner_tiles);
+    __inner_size);
 }
 } // namespace cuda::experimental
 

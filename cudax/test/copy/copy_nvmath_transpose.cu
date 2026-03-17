@@ -10,15 +10,15 @@
 
 #include <cuda/std/detail/__config>
 
-#include <cuda/std/cstdint>
-
-#include "copy_common.cuh"
-
 // GCC -Warray-bounds false positive for high-rank (20+) __raw_tensor instantiations
 #if _CCCL_COMPILER(GCC)
 _CCCL_DIAG_PUSH
 _CCCL_DIAG_SUPPRESS_GCC("-Warray-bounds")
 #endif // _CCCL_COMPILER(GCC)
+
+#include <cuda/std/cstdint>
+
+#include "copy_common.cuh"
 
 using data_t = int8_t;
 
@@ -158,4 +158,3 @@ TEST_CASE("copy d2d nvmath transpose_inbalanced", "[copy][d2d][nvmath][transpose
   cuda::std::array<int, 2> dst_strides{1000033, 1};
   test_copy_stride_relaxed<data_t>(alloc, 0, shape, src_strides, alloc, 0, dst_strides);
 }
-

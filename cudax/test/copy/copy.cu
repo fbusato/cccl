@@ -54,7 +54,7 @@ TEST_CASE("copy d2d 2D row-major to column-major", "[copy][d2d][2d][basic]")
 {
   constexpr int M = 4;
   constexpr int N = 8;
-  auto data = make_iota<int>(M * N);
+  auto data       = make_iota<int>(M * N);
   thrust::host_vector<int> expected(M * N);
   for (int i = 0; i < M; ++i)
   {
@@ -72,7 +72,7 @@ TEST_CASE("copy d2d 2D column-major to row-major", "[copy][d2d][2d][basic]")
 {
   constexpr int M = 4;
   constexpr int N = 8;
-  auto data = make_iota<int>(M * N);
+  auto data       = make_iota<int>(M * N);
   thrust::host_vector<int> expected(M * N);
   for (int i = 0; i < M; ++i)
   {
@@ -191,7 +191,7 @@ TEST_CASE("copy d2d 3D strided permutation", "[copy][d2d][3d][stride][permutatio
   constexpr int D0 = 2;
   constexpr int D1 = 3;
   constexpr int D2 = 4;
-  auto input = make_iota<int>(D0 * D1 * D2);
+  auto input       = make_iota<int>(D0 * D1 * D2);
   cuda::std::array<int, 3> shape{D0, D1, D2};
   cuda::std::array<int, 3> src_strides{D1 * D2, D2, 1};
   cuda::std::array<int, 3> dst_strides{1, D2 * D0, D0};
@@ -221,7 +221,7 @@ TEST_CASE("copy d2d 3D strided different stride order", "[copy][d2d][3d][stride]
   constexpr int D0 = 2;
   constexpr int D1 = 3;
   constexpr int D2 = 4;
-  auto input = make_iota<int>(D0 * D1 * D2);
+  auto input       = make_iota<int>(D0 * D1 * D2);
   cuda::std::array<int, 3> shape{D0, D1, D2};
   cuda::std::array<int, 3> src_strides{D1 * D2, D2, 1};
   cuda::std::array<int, 3> dst_strides{8, 16, 1};
@@ -305,7 +305,7 @@ TEST_CASE("copy d2d 2D transposition non-tile-divisible", "[copy][d2d][2d][bound
 {
   constexpr int M = 13;
   constexpr int N = 17;
-  auto data = make_iota<float>(M * N);
+  auto data       = make_iota<float>(M * N);
   thrust::host_vector<float> expected(M * N);
   for (int r = 0; r < M; ++r)
   {
@@ -323,7 +323,7 @@ TEST_CASE("copy d2d 2D large transposition", "[copy][d2d][2d][large][transpose]"
 {
   constexpr int M = 100;
   constexpr int N = 200;
-  auto data = make_iota<int>(M * N);
+  auto data       = make_iota<int>(M * N);
   thrust::host_vector<int> expected(M * N);
   for (int r = 0; r < M; ++r)
   {
