@@ -4,6 +4,50 @@ cccl_get_nvbench_helper()
 
 set(benches_root "${CMAKE_CURRENT_LIST_DIR}")
 
+set(
+  CCCL_NVCOMP_ROOT_HINTS
+  "$ENV{NVCOMP_ROOT}"
+  "/usr/local/lib/python3.12/dist-packages/nvidia/libnvcomp"
+)
+
+find_package(nvcomp CONFIG QUIET)
+if (NOT TARGET nvcomp::nvcomp)
+  find_package(
+    nvcomp
+    CONFIG
+    QUIET
+    HINTS
+      ${CCCL_NVCOMP_ROOT_HINTS}
+    PATH_SUFFIXES
+      lib64/cmake/nvcomp
+      lib/cmake/nvcomp
+      cmake/nvcomp
+  )
+endif()
+
+find_path(
+  CCCL_NVCOMP_INCLUDE_DIR
+  NAMES nvcomp.h nvcomp/nvcomp.h
+  HINTS
+    ENV NVCOMP_ROOT
+    ${CCCL_NVCOMP_ROOT_HINTS}
+  PATH_SUFFIXES
+    include
+    include/nvcomp
+)
+
+find_library(
+  CCCL_NVCOMP_LIBRARY
+  NAMES nvcomp libnvcomp
+  HINTS
+    ENV NVCOMP_ROOT
+    ${CCCL_NVCOMP_ROOT_HINTS}
+  PATH_SUFFIXES
+    .
+    lib
+    lib64
+)
+
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
   message(FATAL_ERROR "CUB benchmarks must be built in release mode.")
 endif()
@@ -80,6 +124,20 @@ function(add_bench target_name bench_name bench_src)
       cccl.nvbench_helper
       nvbench::main
   )
+
+  get_filename_component(bench_file "${bench_src}" NAME)
+  if (bench_file STREQUAL "crc.cu")
+    if (TARGET nvcomp::nvcomp)
+      target_link_libraries(${bench_target} PRIVATE nvcomp::nvcomp)
+      target_compile_definitions(${bench_target} PRIVATE CCCL_BENCHMARK_HAS_NVCOMP=1)
+    elseif (CCCL_NVCOMP_INCLUDE_DIR AND CCCL_NVCOMP_LIBRARY)
+      target_include_directories(${bench_target} PRIVATE ${CCCL_NVCOMP_INCLUDE_DIR})
+      target_link_libraries(${bench_target} PRIVATE ${CCCL_NVCOMP_LIBRARY})
+      target_compile_definitions(${bench_target} PRIVATE CCCL_BENCHMARK_HAS_NVCOMP=1)
+    else()
+      target_compile_definitions(${bench_target} PRIVATE CCCL_BENCHMARK_HAS_NVCOMP=0)
+    endif()
+  endif()
 endfunction()
 
 function(add_bench_dir bench_dir)
