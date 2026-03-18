@@ -122,12 +122,12 @@ struct __tensor_coord_iterator
   [[nodiscard]] static _CCCL_HOST_API ::cuda::std::array<_ExtentT, _Rank>
   __to_extent_array(const ::cuda::std::array<_UExtentT, _Rank>& __in) noexcept
   {
-    ::cuda::std::array<_ExtentT, _Rank> __out{};
+    ::cuda::std::array<_ExtentT, _Rank> __out_array{};
     for (::cuda::std::size_t __i = 0; __i < _Rank; ++__i)
     {
-      __out[__i] = static_cast<_ExtentT>(__in[__i]);
+      __out_array[__i] = static_cast<_ExtentT>(__in[__i]);
     }
-    return __out;
+    return __out_array;
   }
 
   //! @brief Constructs the iterator from tensor extents.
