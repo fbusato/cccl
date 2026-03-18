@@ -127,41 +127,6 @@ __reshape_vectorized(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __te
   return __result;
 }
 
-//! @brief Converts a @ref __raw_tensor to an mdspan with @c layout_stride.
-//!
-//! The resulting mdspan uses @c dextents<_StrideT, _Rank> for fully dynamic extents and
-//! @c layout_stride for the layout policy. The caller must supply the compile-time @p _Rank
-//! which must equal the tensor's runtime rank.
-//!
-//! @tparam _Rank Compile-time rank for the resulting mdspan (must equal `__tensor.__rank`)
-//! @param[in] __tensor Raw tensor descriptor
-//! @return mdspan with @c dextents<_StrideT, _Rank> and @c layout_stride
-template <::cuda::std::size_t _Rank, typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_t _MaxRank>
-[[nodiscard]]
-_CCCL_HOST_API ::cuda::std::mdspan<_Tp, ::cuda::std::dextents<_StrideT, _Rank>, ::cuda::std::layout_stride>
-__to_mdspan(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor) noexcept
-{
-  static_assert(_Rank <= _MaxRank, "_Rank must not exceed _MaxRank");
-  _CCCL_ASSERT(__tensor.__rank == _Rank, "tensor rank must match _Rank");
-  using __extents_t = ::cuda::std::dextents<_ExtentT, _Rank>;
-  using __mapping_t = ::cuda::std::layout_stride::mapping<__extents_t>;
-  if constexpr (_Rank == 0)
-  {
-    return {__tensor.__data, __mapping_t{}};
-  }
-  else
-  {
-    ::cuda::std::array<_ExtentT, _Rank> __exts{};
-    ::cuda::std::array<_StrideT, _Rank> __strs{};
-    for (::cuda::std::size_t __i = 0; __i < _Rank; ++__i)
-    {
-      __exts[__i] = __tensor.__extents[__i];
-      __strs[__i] = __tensor.__strides[__i];
-    }
-    return {__tensor.__data, __mapping_t(__extents_t(__exts), __strs)};
-  }
-}
-
 //! @brief Compute the total number of elements in a raw tensor.
 //!
 //! @param[in] __tensor Raw tensor descriptor
