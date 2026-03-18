@@ -40,6 +40,7 @@
 
 #  include <cuda/experimental/__copy/copy_contiguous.cuh>
 #  include <cuda/experimental/__copy/copy_optimized.cuh>
+#  include <cuda/experimental/__copy/copy_shared_memory.cuh>
 #  include <cuda/experimental/__copy/dispatch_by_vector.cuh>
 #  include <cuda/experimental/__copy/tensor_copy_utils.cuh>
 #  include <cuda/experimental/__copy/vector_access.cuh>
@@ -207,11 +208,11 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
         cudax::__dispatch_by_vector_size(__src_normalized, __dst_normalized, __op);
       }
     }
-    // (4) transpose case, TODO: next PR
-    // if (cudax::__use_shared_mem_kernel(__src_normalized, __dst_normalized))
-    //{
-    //  cudax::copy_shared_mem(__src_normalized, __dst_normalized, __stream);
-    //}
+    // (4) transpose case
+    if (cudax::__use_shared_mem_kernel(__src_normalized, __dst_normalized))
+    {
+      cudax::__launch_copy_shared_mem_kernel(__src_normalized, __dst_normalized, __stream);
+    }
     // (5) generic case (fallback)
     else
     {

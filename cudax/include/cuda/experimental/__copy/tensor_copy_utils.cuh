@@ -145,6 +145,37 @@ _CCCL_HOST_API _ExtentT __total_size(const __raw_tensor<_ExtentT, _StrideT, _Tp,
   return __total_size;
 }
 
+//! @brief Count the number of leading contiguous dimensions in a raw tensor.
+//!
+//! Starting from dimension 0, counts consecutive dimensions where `stride[0] == 1`
+//! and `stride[i] == stride[i-1] * extent[i-1]` for each subsequent dimension.
+//!
+//! @param[in] __tensor Raw tensor descriptor
+//! @return Number of leading contiguous dimensions (0 if stride[0] != 1 or rank is 0)
+template <typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_t _MaxRank>
+[[nodiscard]] _CCCL_HOST_API ::cuda::std::size_t
+__num_contiguous_dimensions(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor) noexcept
+{
+  using __raw_tensor_t = __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>;
+  using __rank_t       = typename __raw_tensor_t::__rank_t;
+  if (__tensor.__rank == 0 || __tensor.__strides[0] != 1)
+  {
+    return 0;
+  }
+  __rank_t __count       = 1;
+  auto __expected_stride = static_cast<_StrideT>(__tensor.__extents[0]);
+  for (__rank_t __i = 1; __i < __tensor.__rank; ++__i)
+  {
+    if (__tensor.__strides[__i] != __expected_stride)
+    {
+      break;
+    }
+    __expected_stride *= static_cast<_StrideT>(__tensor.__extents[__i]);
+    ++__count;
+  }
+  return __count;
+}
+
 //! @brief Conservative check whether two mdspans may access overlapping memory.
 //!
 //! Uses each mapping's @c required_span_size() to compute the half-open byte range
