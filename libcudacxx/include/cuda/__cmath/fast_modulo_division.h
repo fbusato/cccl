@@ -77,7 +77,7 @@ public:
       const auto __k = __num_bits + __shift; // k: [N, 2*N-2]
       // __multiplier: ceil(2^k / divisor)
       //   computed as 2^k / divisor + (remainder != 0)
-      const auto __pow2_div = __divmod_pow2(__k, __u_divisor); 
+      const auto __pow2_div = __divmod_pow2(__k, __u_divisor);
       __multiplier          = __pow2_div.first + (__pow2_div.second != 0);
     }
     else
@@ -192,13 +192,13 @@ private:
     // If the result is >= __divisor, the divisor is subtracted and 1-bit is recorded in the quotient.
     for (int __bit = __power; __bit >= 0; --__bit)
     {
-      // __carry only matters for unsigned types with large divisors (MSB set: >= 2^(N-1))
-      const bool __carry = (__remainder >> (__num_bits - 1)) != 0; // __remainder / 2^N != 0
+      // __carry_flag only matters for unsigned types with large divisors (MSB set: >= 2^(N-1))
+      const bool __carry_flag = (__remainder >> (__num_bits - 1)) != 0; // __remainder / 2^N != 0
       __remainder <<= 1;
       __remainder |= (__bit == __power); // append the remainder bit
-      const bool __quotient_bit = __carry || (__remainder >= __divisor);
+      const bool __quotient_bit = __carry_flag || (__remainder >= __divisor);
       __quotient <<= 1; // shift
-      __quotient |= (__quotient_bit); // append the quotient bit
+      __quotient |= unsigned{__quotient_bit}; // append the quotient bit
       if (__quotient_bit)
       {
         __remainder -= __divisor;
