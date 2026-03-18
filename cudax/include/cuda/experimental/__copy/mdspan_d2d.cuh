@@ -142,8 +142,10 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     using __dst_extent_t = ::cuda::std::common_type_t<typename _ExtentsOut::index_type, int>;
     using __common_extent_t =
       ::cuda::std::conditional_t<(sizeof(__src_extent_t) < sizeof(__dst_extent_t)), __src_extent_t, __dst_extent_t>;
-    using __src_stride_t = ::cuda::std::common_type_t<cudax::__mdspan_stride_t<_ExtentsIn, _LayoutPolicyIn>, int>;
-    using __dst_stride_t = ::cuda::std::common_type_t<cudax::__mdspan_stride_t<_ExtentsOut, _LayoutPolicyOut>, int>;
+    using __src_stride_t =
+      ::cuda::std::common_type_t<cudax::__mdspan_stride_t<_LayoutPolicyIn, decltype(__src.mapping())>, int>;
+    using __dst_stride_t =
+      ::cuda::std::common_type_t<cudax::__mdspan_stride_t<_LayoutPolicyOut, decltype(__dst.mapping())>, int>;
 
     constexpr auto __max_rank = ::cuda::std::max(_ExtentsIn::rank(), _ExtentsOut::rank());
     const auto __src_raw      = cudax::__to_raw_tensor<__common_extent_t, __src_stride_t, __max_rank>(__src);
