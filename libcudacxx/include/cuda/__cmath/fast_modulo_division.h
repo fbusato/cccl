@@ -182,6 +182,8 @@ private:
     _CCCL_ASSERT(__divisor > 0, "divisor must be positive");
     __unsigned_t __quotient  = 0;
     __unsigned_t __remainder = 0;
+    // Algorithm: restoring binary division
+    // Reference: https://marz.utk.edu/my-courses/cosc130/lectures/binary-arithmetic/
     // The dividend 2^power may exceed the range of __unsigned_t. The algorithm processes the dividend bit-by-bit from
     // MSB to LSB without materializing it.
     // Since 2^power has exactly one set bit, the loop contributes to 1 only when the current bit index equals __power,
@@ -190,6 +192,7 @@ private:
     // If the result is >= __divisor, the divisor is subtracted and 1-bit is recorded in the quotient.
     for (int __bit = __power; __bit >= 0; --__bit)
     {
+      // __carry only matters for unsigned types with large divisors (MSB set: >= 2^(N-1))
       const bool __carry = (__remainder >> (__num_bits - 1)) != 0; // __remainder / 2^N != 0
       __remainder <<= 1;
       __remainder |= (__bit == __power); // append the remainder bit
