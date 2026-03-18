@@ -33,7 +33,7 @@ Template parameters
 
 - ``ElementType``: The element type of the resulting ``mdspan``. Must match the ``DLTensor::dtype``.
 - ``Rank``: The number of dimensions. Must match ``DLTensor::ndim``.
-- ``LayoutPolicy``: The layout policy for the resulting ``mdspan``. Defaults to ``cuda::std::layout_stride_relaxed``. Supported layouts are:
+- ``LayoutPolicy``: The layout policy for the resulting ``mdspan``. Defaults to ``cuda::layout_stride_relaxed``. Supported layouts are:
 
   - ``cuda::std::layout_right`` (C-contiguous, row-major)
   - ``cuda::std::layout_left`` (Fortran-contiguous, column-major)
