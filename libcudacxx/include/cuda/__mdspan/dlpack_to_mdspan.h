@@ -60,11 +60,10 @@ __get_layout_right_stride(const ::cuda::std::int64_t* __shapes, ::cuda::std::siz
   ::cuda::std::int64_t __stride = 1;
   for (auto __i = __pos + 1; __i < __rank; ++__i)
   {
-    if (::cuda::mul_overflow(__stride, __shapes[__i]))
+    if (::cuda::mul_overflow(__stride, __stride, __shapes[__i]))
     {
       _CCCL_THROW(::std::invalid_argument, "shape overflow");
     }
-    __stride *= __shapes[__i];
   }
   return __stride;
 }
@@ -76,11 +75,10 @@ __get_layout_left_stride(const ::cuda::std::int64_t* __shapes, ::cuda::std::size
   ::cuda::std::int64_t __stride = 1;
   for (::cuda::std::size_t __i = 0; __i < __pos; ++__i)
   {
-    if (::cuda::mul_overflow(__stride, __shapes[__i]))
+    if (::cuda::mul_overflow(__stride, __stride, __shapes[__i]))
     {
       _CCCL_THROW(::std::invalid_argument, "shape overflow");
     }
-    __stride *= __shapes[__i];
   }
   return __stride;
 }
