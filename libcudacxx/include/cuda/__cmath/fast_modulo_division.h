@@ -77,7 +77,7 @@ public:
       const auto __k = __num_bits + __shift; // k: [N, 2*N-2]
       // __multiplier: ceil(2^k / divisor)
       //   computed as 2^k / divisor + (remainder != 0)
-      const auto __pow2_div = __divmod_pow2(__k, __u_divisor); //
+      const auto __pow2_div = __divmod_pow2(__k, __u_divisor); 
       __multiplier          = __pow2_div.first + (__pow2_div.second != 0);
     }
     else
