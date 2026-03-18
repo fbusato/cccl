@@ -22,13 +22,13 @@
 
 #if _CCCL_HAS_DLPACK()
 
-#  include <cuda/__cmath/mul_hi.h>
 #  include <cuda/__internal/dlpack.h>
 #  include <cuda/__mdspan/host_device_mdspan.h>
 #  include <cuda/__mdspan/layout_stride_relaxed.h>
 #  include <cuda/__mdspan/mdspan_to_dlpack.h>
 #  include <cuda/__mdspan/traits.h>
 #  include <cuda/__memory/is_aligned.h>
+#  include <cuda/__numeric/mul_overflow.h>
 #  include <cuda/mdspan>
 #  include <cuda/std/__cstddef/types.h>
 #  include <cuda/std/__exception/exception_macros.h>
@@ -60,12 +60,11 @@ __get_layout_right_stride(const ::cuda::std::int64_t* __shapes, ::cuda::std::siz
   ::cuda::std::int64_t __stride = 1;
   for (auto __i = __pos + 1; __i < __rank; ++__i)
   {
-    // TODO: replace with mul_overflow
-    if (const auto __hi = ::cuda::mul_hi(__stride, __shapes[__i]); __hi != 0 && __hi != -1)
+    if (::cuda::mul_overflow(__stride, __shapes[__i]))
     {
       _CCCL_THROW(::std::invalid_argument, "shape overflow");
     }
-    __stride *= __shapes[__i]; // TODO: check for overflow
+    __stride *= __shapes[__i];
   }
   return __stride;
 }
@@ -77,8 +76,7 @@ __get_layout_left_stride(const ::cuda::std::int64_t* __shapes, ::cuda::std::size
   ::cuda::std::int64_t __stride = 1;
   for (::cuda::std::size_t __i = 0; __i < __pos; ++__i)
   {
-    // TODO: replace with mul_overflow
-    if (const auto __hi = ::cuda::mul_hi(__stride, __shapes[__i]); __hi != 0 && __hi != -1)
+    if (::cuda::mul_overflow(__stride, __shapes[__i]))
     {
       _CCCL_THROW(::std::invalid_argument, "shape overflow");
     }
@@ -172,6 +170,7 @@ __to_mdspan(const ::DLTensor& __tensor)
   {
     _CCCL_THROW(::std::invalid_argument, "DLTensor data must be non-null");
   }
+  // (1) Evaluate Data Pointer
   const auto __datatype_size = __tensor.dtype.bits * __tensor.dtype.lanes / 8;
   __element_type* __data     = nullptr;
   if constexpr (::cuda::__is_layout_stride_relaxed_v<_LayoutPolicy>)
@@ -192,6 +191,7 @@ __to_mdspan(const ::DLTensor& __tensor)
   {
     _CCCL_THROW(::std::invalid_argument, "DLTensor data must be aligned to the data type");
   }
+  // Rank 0 case
   if constexpr (_Rank == 0)
   {
     if constexpr (::cuda::__is_layout_stride_relaxed_v<_LayoutPolicy>)
@@ -206,7 +206,7 @@ __to_mdspan(const ::DLTensor& __tensor)
   }
   else // Rank > 0
   {
-    // Compute Extents
+    // (2) Evaluate Extents
     if (__tensor.shape == nullptr)
     {
       _CCCL_THROW(::std::invalid_argument, "DLTensor shape must be non-null");
@@ -220,7 +220,7 @@ __to_mdspan(const ::DLTensor& __tensor)
       }
       __extents_array[__i] = __tensor.shape[__i];
     }
-    // Compute Strides
+    // (3) Evaluate Strides
     ::cuda::__validate_dlpack_strides<_LayoutPolicy>(__tensor, _Rank);
     if constexpr (::cuda::__is_layout_stride_v<_LayoutPolicy> || ::cuda::__is_layout_stride_relaxed_v<_LayoutPolicy>)
     {
