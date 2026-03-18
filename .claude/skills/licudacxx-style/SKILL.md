@@ -20,7 +20,7 @@ All non-public symbols must be C++ reserved identifiers:
 
 ## Variables
 
-- All variables that are not modified must use `const`. This includes variables initialized by casts (`static_cast`, `reinterpret_cast`, `bit_cast`), function return values, and loop-invariant computations.
+- All variables that are not modified must use `const`. This includes variables initialized by casts (`static_cast`, `reinterpret_cast`, `bit_cast`), function return values, and loop-invariant computations. The only exception is function parameters.
 - All variables that can be evaluated at compile-time must use `constexpr`.
 - Consider using plural names for array, span, list, e.g. `int values[4]` instead of `int value[4]`.
 
