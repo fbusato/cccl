@@ -116,16 +116,16 @@ struct __tensor_coord_iterator
 
   //! @brief Convert an array of _UExtentT elements to an array of _ExtentT elements.
   //!
-  //! @param[in] __in Source array with elements of type _UExtentT
+  //! @param[in] __in_array Source array with elements of type _UExtentT
   //! @return Array with elements statically cast to _ExtentT
   template <typename _UExtentT>
   [[nodiscard]] static _CCCL_HOST_API ::cuda::std::array<_ExtentT, _Rank>
-  __to_extent_array(const ::cuda::std::array<_UExtentT, _Rank>& __in) noexcept
+  __to_extent_array(const ::cuda::std::array<_UExtentT, _Rank>& __in_array) noexcept
   {
     ::cuda::std::array<_ExtentT, _Rank> __out_array{};
     for (::cuda::std::size_t __i = 0; __i < _Rank; ++__i)
     {
-      __out_array[__i] = static_cast<_ExtentT>(__in[__i]);
+      __out_array[__i] = static_cast<_ExtentT>(__in_array[__i]);
     }
     return __out_array;
   }
@@ -141,22 +141,22 @@ struct __tensor_coord_iterator
 
   //! @brief Returns the multi-dimensional coordinates for the given linear index.
   //!
-  //! @param[in] __index Linear tile index
+  //! @param[in] __in_arraydex Linear tile index
   //! @return Array of coordinates into the tensor
-  [[nodiscard]] _CCCL_API ::cuda::std::array<_ExtentT, _Rank> operator()(_ExtentT __index) const noexcept
+  [[nodiscard]] _CCCL_API ::cuda::std::array<_ExtentT, _Rank> operator()(_ExtentT __in_arraydex) const noexcept
   {
     if constexpr (_Rank == 1)
     {
-      return ::cuda::std::array<_ExtentT, _Rank>{{__index}};
+      return ::cuda::std::array<_ExtentT, _Rank>{{__in_arraydex}};
     }
     else
     {
       ::cuda::std::array<_ExtentT, _Rank> __coords;
-      __coords[0] = __index % __extents_[0]; // __extent_products_[0] == 1
+      __coords[0] = __in_arraydex % __extents_[0]; // __extent_products_[0] == 1
       _CCCL_PRAGMA_UNROLL_FULL()
       for (int __i = 1; __i < _Rank; ++__i)
       {
-        __coords[__i] = (__index / __extent_products_[__i]) % __extents_[__i];
+        __coords[__i] = (__in_arraydex / __extent_products_[__i]) % __extents_[__i];
       }
       return __coords;
     }
