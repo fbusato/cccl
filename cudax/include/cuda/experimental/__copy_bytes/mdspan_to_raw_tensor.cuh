@@ -82,12 +82,12 @@ __to_raw_tensor(const ::cuda::std::mdspan<_Tp, _Extents, _LayoutPolicy, _Accesso
   static_assert(_MaxRank >= _Extents::rank(), "_MaxRank must be at least _Extents::rank()");
   using __raw_tensor_t = __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>;
   using __rank_t       = typename _Extents::rank_type;
-  auto* __data_ptr     = __mdspan.data_handle();
+  auto* __data         = __mdspan.data_handle();
   if constexpr (::cuda::__is_layout_stride_relaxed_v<_LayoutPolicy>)
   {
-    __data_ptr += __mdspan.mapping().offset();
+    __data += __mdspan.mapping().offset();
   }
-  __raw_tensor_t __result{__data_ptr, 0, {}, {}};
+  __raw_tensor_t __result{__data, 0, {}, {}};
   if constexpr (_Extents::rank() > 0)
   {
     __rank_t __r = 0;
