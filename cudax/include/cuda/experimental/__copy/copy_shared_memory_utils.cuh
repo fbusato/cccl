@@ -77,7 +77,13 @@ __num_contiguous_dimensions(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank
   return ::cuda::devices[__dev_id];
 }
 
-inline constexpr ::cuda::std::size_t __max_tile_size = 32; // warp-size
+//! Maximum extent of a single tile dimension, set to the warp size so that the innermost tile dimension maps to a full
+//! warp of coalesced accesses.
+inline constexpr ::cuda::std::size_t __max_tile_size = 32;
+
+//! Maximum tensor rank for which the shared-memory transpose kernel is instantiated. Higher ranks cause excessive
+//! register pressure (many rank-sized arrays and fully-unrolled loops).
+inline constexpr ::cuda::std::size_t __max_shared_mem_kernel_rank = 8;
 
 //! @brief Decide whether the shared-memory tiled transpose kernel is profitable.
 //!
@@ -108,6 +114,7 @@ __use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank
   {
     return false;
   }
+
   // * source has at least one dimension with extent not equal to 1 -> otherwise, shared memory makes no sense
   const auto __ext_begin          = __src.__extents.cbegin();
   const bool __has_non_one_extent = ::cuda::std::any_of(__ext_begin, __ext_begin + __src.__rank, [](auto __extent) {
@@ -117,6 +124,7 @@ __use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank
   {
     return false;
   }
+
   // * there are at least two contiguous destination dimensions -> otherwise, direct copy is better
   // * the tile is large enough to benefits from coalesced memory accesses
   const auto __current_dev            = ::cuda::experimental::__current_device();
@@ -136,6 +144,7 @@ __use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank
   {
     return false;
   }
+
   // * there are enough tiles to keep the GPU busy (at least one full wave across all SMs)
   size_t __num_tiles = 1;
   for (__rank_t __r = 0; __r < __dst.__rank; ++__r)

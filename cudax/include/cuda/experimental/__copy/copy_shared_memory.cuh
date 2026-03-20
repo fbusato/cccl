@@ -314,7 +314,7 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
   const auto __config = ::cuda::make_config(
     ::cuda::block_dims(__thread_block_size),
     ::cuda::grid_dims(__grid_size),
-    ::cuda::dynamic_shared_memory<__value_type[]>(__tile_total_size, ::cuda::non_portable));
+    ::cuda::dynamic_shared_memory<__value_type[]>(__tile_total_size));
   const auto __kernel = cudax::__copy_shared_mem_kernel<
     decltype(__config),
     _MaxRank,

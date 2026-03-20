@@ -211,23 +211,24 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
         return;
       }
     }
-    // (4) transpose case
-    if (cudax::__use_shared_mem_kernel(__src_normalized, __dst_normalized))
+    // (4) transpose case (rank capped to avoid excessive register pressure in the kernel)
+    if constexpr (__max_rank <= cudax::__max_shared_mem_kernel_rank)
     {
-      cudax::__launch_copy_shared_mem_kernel(
-        __src_normalized, __dst_normalized, __stream, __src.accessor(), __dst.accessor());
+      if (cudax::__use_shared_mem_kernel(__src_normalized, __dst_normalized))
+      {
+        cudax::__launch_copy_shared_mem_kernel(
+          __src_normalized, __dst_normalized, __stream, __src.accessor(), __dst.accessor());
+        return;
+      }
     }
     // (5) generic case (fallback)
-    else
-    {
-      cudax::__copy_optimized(
-        __src_normalized,
-        __dst_normalized,
-        cudax::__total_size(__src_normalized),
-        __stream,
-        __src.accessor(),
-        __dst.accessor());
-    }
+    cudax::__copy_optimized(
+      __src_normalized,
+      __dst_normalized,
+      cudax::__total_size(__src_normalized),
+      __stream,
+      __src.accessor(),
+      __dst.accessor());
   }
 }
 } // namespace cuda::experimental
