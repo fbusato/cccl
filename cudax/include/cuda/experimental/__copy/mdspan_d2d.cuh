@@ -214,7 +214,8 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     // (4) transpose case
     if (cudax::__use_shared_mem_kernel(__src_normalized, __dst_normalized))
     {
-      cudax::__launch_copy_shared_mem_kernel(__src_normalized, __dst_normalized, __stream);
+      cudax::__launch_copy_shared_mem_kernel(
+        __src_normalized, __dst_normalized, __stream, __src.accessor(), __dst.accessor());
     }
     // (5) generic case (fallback)
     else

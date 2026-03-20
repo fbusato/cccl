@@ -141,22 +141,22 @@ struct __tensor_coord_iterator
 
   //! @brief Returns the multi-dimensional coordinates for the given linear index.
   //!
-  //! @param[in] __in_arraydex Linear tile index
+  //! @param[in] __index Linear tile index
   //! @return Array of coordinates into the tensor
-  [[nodiscard]] _CCCL_API ::cuda::std::array<_ExtentT, _Rank> operator()(_ExtentT __in_arraydex) const noexcept
+  [[nodiscard]] _CCCL_API ::cuda::std::array<_ExtentT, _Rank> operator()(_ExtentT __index) const noexcept
   {
     if constexpr (_Rank == 1)
     {
-      return ::cuda::std::array<_ExtentT, _Rank>{{__in_arraydex}};
+      return ::cuda::std::array<_ExtentT, _Rank>{{__index}};
     }
     else
     {
       ::cuda::std::array<_ExtentT, _Rank> __coords;
-      __coords[0] = __in_arraydex % __extents_[0]; // __extent_products_[0] == 1
+      __coords[0] = __index % __extents_[0]; // __extent_products_[0] == 1
       _CCCL_PRAGMA_UNROLL_FULL()
       for (int __i = 1; __i < _Rank; ++__i)
       {
-        __coords[__i] = (__in_arraydex / __extent_products_[__i]) % __extents_[__i];
+        __coords[__i] = (__index / __extent_products_[__i]) % __extents_[__i];
       }
       return __coords;
     }
