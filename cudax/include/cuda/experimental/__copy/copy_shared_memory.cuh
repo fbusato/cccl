@@ -36,7 +36,7 @@
 #include <cuda/experimental/__copy/tensor_iterator.cuh>
 #include <cuda/experimental/__copy_bytes/abs_integer.cuh>
 #include <cuda/experimental/__copy_bytes/types.cuh>
-//
+
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
@@ -64,44 +64,49 @@ namespace cuda::experimental
 //! @param[in]  __tile_sizes            Per-dimension tile extents
 //! @param[in]  __extents               Per-dimension tensor extents (for partial-tile bounds)
 //! @param[in]  __src_strides           Per-dimension source strides (for partial-tile access)
-template <typename _Config, ::cuda::std::size_t _MaxRank, typename _Tp, typename _Ep, typename _Sp>
+template <typename _Config,
+          ::cuda::std::size_t _MaxRank,
+          typename _Tp,
+          typename _ExtentT,
+          typename _StrideTIn,
+          typename _StrideTOut>
 __global__ void __copy_shared_mem_kernel(
   _CCCL_GRID_CONSTANT const _Config __config,
   _CCCL_GRID_CONSTANT const _Tp* const _CCCL_RESTRICT __src_ptr,
   _CCCL_GRID_CONSTANT _Tp* const _CCCL_RESTRICT __dst_ptr,
-  _CCCL_GRID_CONSTANT const __tensor_coord_iterator<_Ep, _MaxRank> __grid_iter,
-  _CCCL_GRID_CONSTANT const ::cuda::std::array<_Sp, _MaxRank> __grid_tile_src_strides,
-  _CCCL_GRID_CONSTANT const ::cuda::std::array<_Sp, _MaxRank> __grid_tile_dst_strides,
+  _CCCL_GRID_CONSTANT const __tensor_coord_iterator<_ExtentT, _MaxRank> __grid_iter,
+  _CCCL_GRID_CONSTANT const ::cuda::std::array<_StrideTIn, _MaxRank> __grid_tile_src_strides,
+  _CCCL_GRID_CONSTANT const ::cuda::std::array<_StrideTOut, _MaxRank> __grid_tile_dst_strides,
   _CCCL_GRID_CONSTANT const __tensor_coord_iterator<unsigned, _MaxRank> __src_perm_iter,
-  _CCCL_GRID_CONSTANT const ::cuda::std::array<_Sp, _MaxRank> __src_perm_src_strides,
+  _CCCL_GRID_CONSTANT const ::cuda::std::array<_StrideTIn, _MaxRank> __src_perm_src_strides,
   _CCCL_GRID_CONSTANT const ::cuda::std::array<int, _MaxRank> __src_perm_smem_strides,
   _CCCL_GRID_CONSTANT const __tensor_coord_iterator<unsigned, _MaxRank> __tile_iter,
-  _CCCL_GRID_CONSTANT const ::cuda::std::array<_Sp, _MaxRank> __dst_strides,
+  _CCCL_GRID_CONSTANT const ::cuda::std::array<_StrideTOut, _MaxRank> __dst_strides,
   _CCCL_GRID_CONSTANT const int __tile_total_size,
   _CCCL_GRID_CONSTANT const ::cuda::std::array<unsigned, _MaxRank> __tile_sizes,
-  _CCCL_GRID_CONSTANT const ::cuda::std::array<::cuda::std::make_unsigned_t<_Ep>, _MaxRank> __extents,
-  _CCCL_GRID_CONSTANT const ::cuda::std::array<_Sp, _MaxRank> __src_strides)
+  _CCCL_GRID_CONSTANT const ::cuda::std::array<::cuda::std::make_unsigned_t<_ExtentT>, _MaxRank> __extents,
+  _CCCL_GRID_CONSTANT const ::cuda::std::array<_StrideTIn, _MaxRank> __src_strides)
 {
   extern __shared__ char __smem_bytes[];
   auto* __smem = reinterpret_cast<_Tp*>(__smem_bytes);
 
   const auto __tid          = ::cuda::gpu_thread.rank_as<int>(::cuda::block, __config);
   const auto __block_stride = ::cuda::gpu_thread.count_as<int>(::cuda::block, __config);
-  const auto __grid_idx     = ::cuda::block.index_as<_Ep>(::cuda::grid).x;
+  const auto __grid_idx     = ::cuda::block.index_as<_ExtentT>(::cuda::grid).x;
 
   // Grid tile decomposition: map linearized block index to src/dst base offsets
-  const auto __grid_coords = __grid_iter(static_cast<_Ep>(__grid_idx));
-  _Sp __src_base           = 0;
-  _Sp __dst_base           = 0;
+  const auto __grid_coords = __grid_iter(static_cast<_ExtentT>(__grid_idx));
+  _StrideTIn __src_base    = 0;
+  _StrideTOut __dst_base   = 0;
   _CCCL_PRAGMA_UNROLL_FULL()
   for (int __k = 0; __k < int{_MaxRank}; ++__k)
   {
-    __src_base += static_cast<_Sp>(__grid_coords[__k]) * __grid_tile_src_strides[__k];
-    __dst_base += static_cast<_Sp>(__grid_coords[__k]) * __grid_tile_dst_strides[__k];
+    __src_base += static_cast<_StrideTIn>(__grid_coords[__k]) * __grid_tile_src_strides[__k];
+    __dst_base += static_cast<_StrideTOut>(__grid_coords[__k]) * __grid_tile_dst_strides[__k];
   }
 
   // Partial tile detection
-  using _UEp          = ::cuda::std::make_unsigned_t<_Ep>;
+  using _UEp          = ::cuda::std::make_unsigned_t<_ExtentT>;
   bool __is_full_tile = true;
   _CCCL_PRAGMA_UNROLL_FULL()
   for (int __k = 0; __k < int{_MaxRank}; ++__k)
@@ -138,9 +143,13 @@ __global__ void __copy_shared_mem_kernel(
       __dst_pt(__coords)  = __smem[__i];
     }
   }
+#if 1
   else
   {
     // === Boundary direct-copy (no shared memory) ===
+    const __partial_tensor __src_pt{__src_ptr + __src_base, __src_strides, ::cuda::std::default_accessor<const _Tp>{}};
+    const __partial_tensor __dst_pt{__dst_ptr + __dst_base, __dst_strides, ::cuda::std::default_accessor<_Tp>{}};
+
     ::cuda::std::array<unsigned, _MaxRank> __actual_sizes{};
     int __actual_total = 1;
     _CCCL_PRAGMA_UNROLL_FULL()
@@ -151,9 +160,6 @@ __global__ void __copy_shared_mem_kernel(
         static_cast<unsigned>(::cuda::std::min(static_cast<_UEp>(__tile_sizes[__k]), __extents[__k] - __block_start));
       __actual_total *= __actual_sizes[__k];
     }
-
-    const __partial_tensor __src_pt{__src_ptr + __src_base, __src_strides, ::cuda::std::default_accessor<const _Tp>{}};
-    const __partial_tensor __dst_pt{__dst_ptr + __dst_base, __dst_strides, ::cuda::std::default_accessor<_Tp>{}};
 
     for (int __i = __tid; __i < __actual_total; __i += __block_stride)
     {
@@ -168,6 +174,7 @@ __global__ void __copy_shared_mem_kernel(
       __dst_pt(__coords) = __src_pt(__coords);
     }
   }
+#endif
 }
 
 #if !_CCCL_COMPILER(NVRTC)
@@ -193,9 +200,15 @@ _CCCL_HOST_API inline device_ref __current_device()
 //! @param[in] __src Source raw tensor descriptor
 //! @param[in] __dst Destination raw tensor descriptor
 //! @return true if the shared-memory kernel should be used
-template <typename _Ep, typename _Sp, typename _TpSrc, typename _TpDst, ::cuda::std::size_t _MaxRank>
-[[nodiscard]] _CCCL_HOST_API bool __use_shared_mem_kernel(
-  const __raw_tensor<_Ep, _Sp, _TpSrc, _MaxRank>& __src, const __raw_tensor<_Ep, _Sp, _TpDst, _MaxRank>& __dst)
+template <typename _ExtentT,
+          typename _StrideTIn,
+          typename _StrideTOut,
+          typename _TpIn,
+          typename _TpOut,
+          ::cuda::std::size_t _MaxRank>
+[[nodiscard]] _CCCL_HOST_API bool
+__use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank>& __src,
+                        const __raw_tensor<_ExtentT, _StrideTOut, _TpOut, _MaxRank>& __dst)
 {
   using ::cuda::std::size_t;
   const size_t __num_contiguous_dst = ::cuda::experimental::__num_contiguous_dimensions(__dst);
@@ -212,7 +225,7 @@ template <typename _Ep, typename _Sp, typename _TpSrc, typename _TpDst, ::cuda::
   for (size_t __r = 0; __r < __num_contiguous_dst; ++__r, ++__tile_rank)
   {
     const auto __tile_size_r = ::cuda::std::min(static_cast<size_t>(__dst.__extents[__r]), __max_tile_size);
-    if (__size_product * __tile_size_r * sizeof(_TpDst) > __max_shared_mem_bytes)
+    if (__size_product * __tile_size_r * sizeof(_TpOut) > __max_shared_mem_bytes)
     {
       break;
     }
@@ -229,9 +242,9 @@ template <typename _Ep, typename _Sp, typename _TpSrc, typename _TpDst, ::cuda::
 //! @param[in]  __tensor         Destination raw tensor descriptor
 //! @param[out] __tile_total_size Total number of elements in one tile (output)
 //! @return Raw tensor describing the tile extents and contiguous strides
-template <typename _Ep, typename _Sp, typename _Tp, ::cuda::std::size_t _MaxRank>
-[[nodiscard]] _CCCL_HOST_API __raw_tensor<int, int, _Tp, _MaxRank>
-__find_shared_mem_tiling(const __raw_tensor<_Ep, _Sp, _Tp, _MaxRank>& __tensor, ::cuda::std::size_t& __tile_total_size)
+template <typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_t _MaxRank>
+[[nodiscard]] _CCCL_HOST_API __raw_tensor<int, int, _Tp, _MaxRank> __find_shared_mem_tiling(
+  const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor, ::cuda::std::size_t& __tile_total_size)
 {
   using ::cuda::std::size_t;
   constexpr int __warp_size        = 32;
@@ -243,7 +256,7 @@ __find_shared_mem_tiling(const __raw_tensor<_Ep, _Sp, _Tp, _MaxRank>& __tensor, 
   auto& __tile_extents = __tiling.__extents;
   auto& __tile_strides = __tiling.__strides;
 
-  const size_t __num_contiguous_dst = ::cuda::experimental::__num_contiguous_dst_dimensions(__tensor);
+  const size_t __num_contiguous_dst = ::cuda::experimental::__num_contiguous_dimensions(__tensor);
   int __size_product                = 1;
   __tile_rank                       = 0;
   for (size_t __r = 0; __r < __num_contiguous_dst; ++__r, ++__tile_rank)
@@ -299,16 +312,21 @@ __find_shared_mem_tiling(const __raw_tensor<_Ep, _Sp, _Tp, _MaxRank>& __tensor, 
 //! @param[in]  __src    Source raw tensor descriptor
 //! @param[out] __dst    Destination raw tensor descriptor
 //! @param[in]  __stream CUDA stream for asynchronous execution
-template <typename _Ep, typename _Sp, typename _TpSrc, typename _TpDst, ::cuda::std::size_t _MaxRank>
+template <typename _ExtentT,
+          typename _StrideTIn,
+          typename _StrideTOut,
+          typename _TpIn,
+          typename _TpOut,
+          ::cuda::std::size_t _MaxRank>
 _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
-  const __raw_tensor<_Ep, _Sp, _TpSrc, _MaxRank>& __src,
-  const __raw_tensor<_Ep, _Sp, _TpDst, _MaxRank>& __dst,
+  const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank>& __src,
+  const __raw_tensor<_ExtentT, _StrideTOut, _TpOut, _MaxRank>& __dst,
   ::cuda::stream_ref __stream)
 {
   namespace cudax = ::cuda::experimental;
   using ::cuda::std::size_t;
-  using _UEp         = ::cuda::std::make_unsigned_t<_Ep>;
-  using __value_type = ::cuda::std::remove_cv_t<_TpSrc>;
+  using _UEp         = ::cuda::std::make_unsigned_t<_ExtentT>;
+  using __value_type = ::cuda::std::remove_cv_t<_TpIn>;
   _CCCL_ASSERT(__src.__rank >= 2, "Rank must be at least 2 for shared memory transpose");
   _CCCL_ASSERT(__src.__rank == __dst.__rank, "Source and destination ranks must be equal");
   _CCCL_ASSERT(__src.__extents == __dst.__extents, "Source and destination extents must be identical");
@@ -334,15 +352,15 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
 
   //--------------------------------------------------------------------------------------------------------------------
   // Grid sizes and strides for block index decomposition
-  ::cuda::std::array<_Ep, _MaxRank> __grid_tile_sizes{};
-  ::cuda::std::array<_Sp, _MaxRank> __grid_tile_src_strides{};
-  ::cuda::std::array<_Sp, _MaxRank> __grid_tile_dst_strides{};
+  ::cuda::std::array<_ExtentT, _MaxRank> __grid_tile_sizes{};
+  ::cuda::std::array<_StrideTIn, _MaxRank> __grid_tile_src_strides{};
+  ::cuda::std::array<_StrideTOut, _MaxRank> __grid_tile_dst_strides{};
   size_t __grid_size = 1;
   for (size_t __i = 0; __i < __rank; ++__i)
   {
-    __grid_tile_sizes[__i]       = ::cuda::ceil_div(__src.__extents[__i], static_cast<_Ep>(__tile_sizes[__i]));
-    __grid_tile_src_strides[__i] = static_cast<_Sp>(__tile_sizes[__i]) * __src.__strides[__i];
-    __grid_tile_dst_strides[__i] = static_cast<_Sp>(__tile_sizes[__i]) * __dst.__strides[__i];
+    __grid_tile_sizes[__i]       = ::cuda::ceil_div(__src.__extents[__i], static_cast<_ExtentT>(__tile_sizes[__i]));
+    __grid_tile_src_strides[__i] = static_cast<_StrideTIn>(__tile_sizes[__i]) * __src.__strides[__i];
+    __grid_tile_dst_strides[__i] = static_cast<_StrideTOut>(__tile_sizes[__i]) * __dst.__strides[__i];
     __grid_size *= __grid_tile_sizes[__i];
   }
   for (size_t __i = __rank; __i < _MaxRank; ++__i)
@@ -357,14 +375,14 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
   {
     __src_perm[__i] = __i;
   }
-  ::cuda::std::stable_sort(__src_perm.begin(), __src_perm.begin() + __rank, [&](size_t __a, size_t __b) {
+  ::cuda::std::stable_sort(__src_perm.begin(), __src_perm.begin() + __rank, [&](auto __a, auto __b) {
     return cudax::__abs_integer(__src.__strides[__a]) < cudax::__abs_integer(__src.__strides[__b]);
   });
 
   //--------------------------------------------------------------------------------------------------------------------
   // Reordered arrays for loading src to shared memory (src-coalesced thread decomposition)
   ::cuda::std::array<unsigned, _MaxRank> __src_perm_sizes{};
-  ::cuda::std::array<_Sp, _MaxRank> __src_perm_src_strides{};
+  ::cuda::std::array<_StrideTIn, _MaxRank> __src_perm_src_strides{};
   ::cuda::std::array<int, _MaxRank> __src_perm_smem_strides{};
   ::cuda::std::array<int, _MaxRank> __canonical_strides{};
   __canonical_strides[0] = 1;
@@ -386,7 +404,7 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
 
   //--------------------------------------------------------------------------------------------------------------------
   // Construct coordinate iterators on the host (precomputed fast modulo/division)
-  const __tensor_coord_iterator<_Ep, _MaxRank> __grid_iter(__grid_tile_sizes);
+  const __tensor_coord_iterator<_ExtentT, _MaxRank> __grid_iter(__grid_tile_sizes);
   const __tensor_coord_iterator<unsigned, _MaxRank> __src_perm_iter(__src_perm_sizes);
   const __tensor_coord_iterator<unsigned, _MaxRank> __tile_iter(__tile_sizes);
 
@@ -396,7 +414,8 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
     ::cuda::block_dims(static_cast<unsigned>(__thread_block_size)),
     ::cuda::grid_dims(__grid_size),
     ::cuda::dynamic_shared_memory<__value_type[]>(__tile_total_size, ::cuda::non_portable));
-  const auto __kernel = cudax::__copy_shared_mem_kernel<decltype(__config), _MaxRank, __value_type, _Ep, _Sp>;
+  const auto __kernel =
+    cudax::__copy_shared_mem_kernel<decltype(__config), _MaxRank, __value_type, _ExtentT, _StrideTIn, _StrideTOut>;
 
   ::cuda::launch(
     __stream,

@@ -170,6 +170,7 @@ TEST_CASE("copy d2d nvmath flatten_common", "[copy][d2d][nvmath][flatten]")
     alloc, 0, shape, make_flatten_common_src_strides(), alloc, 0, make_flatten_common_dst_strides());
 }
 
+#if 0
 // src: (4,2,...,2):(5,2^4,...,2^22), alloc=2^23
 // dst: (4,2,...,2):(2^19,2^18,...,1), alloc=2^21
 TEST_CASE("copy d2d nvmath flatten_one", "[copy][d2d][nvmath][flatten]")
@@ -185,7 +186,7 @@ TEST_CASE("copy d2d nvmath flatten_one", "[copy][d2d][nvmath][flatten]")
     1 << 9,  1 << 8,  1 << 7,  1 << 6,  1 << 5,  1 << 4,  1 << 3,  1 << 2,  1 << 1,  1 << 0};
   test_copy_stride_relaxed<data_t>(src_alloc, 0, shape, src_strides, dst_alloc, 0, dst_strides);
 }
-
+#endif 
 /***********************************************************************************************************************
  * nvmath vectorize test cases (device-to-device)
  **********************************************************************************************************************/

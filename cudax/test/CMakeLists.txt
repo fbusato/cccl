@@ -94,6 +94,7 @@ cudax_add_catch2_test(test_target copy
     copy/copy_llm.cu
     copy/copy_nvmath.cu
     copy/copy_nvmath_transpose.cu
+    copy/copy_shared_memory.cu
 )
 
 cudax_add_catch2_test(test_target cuco

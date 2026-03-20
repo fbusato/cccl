@@ -178,9 +178,10 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
         __tensor_size,
         ::cuda::proclaim_copyable_arguments(::cuda::std::identity{}),
         __stream.get());
+      return;
     }
     // (2) inner size is large
-    else if (__both_stride1 && __inner_extent_bytes >= __bytes_in_flight) // TODO: tunable bytes in flight
+    if (__both_stride1 && __inner_extent_bytes >= __bytes_in_flight) // TODO: tunable bytes in flight
     {
       // (2a) vectorized case
       if constexpr (__are_vectorizable)
@@ -196,9 +197,10 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
         cudax::__launch_copy_contiguous_kernel(
           __src_normalized, __dst_normalized, __stream, __src.accessor(), __dst.accessor());
       }
+      return;
     }
     // (3) inner size is not large -> try vectorized case
-    else if (__both_stride1)
+    if (__both_stride1)
     {
       if constexpr (__are_vectorizable)
       {
@@ -206,6 +208,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
           cudax::__copy_optimized(__src, __dst, cudax::__total_size(__src), __stream);
         };
         cudax::__dispatch_by_vector_size(__src_normalized, __dst_normalized, __op);
+        return;
       }
     }
     // (4) transpose case
