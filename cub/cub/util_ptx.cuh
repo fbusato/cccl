@@ -91,8 +91,7 @@ BFE(UnsignedBits source, unsigned int bit_start, unsigned int num_bits)
  * Warp synchronous shfl_up
  */
 //! deprecated [Since 3.0]
-CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_up()")
-_CCCL_DEVICE _CCCL_FORCEINLINE unsigned int
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_up()") _CCCL_DEVICE _CCCL_FORCEINLINE unsigned int
 SHFL_UP_SYNC(unsigned int word, int src_offset, int flags, unsigned int member_mask)
 {
   asm volatile("shfl.sync.up.b32 %0, %1, %2, %3, %4;"
@@ -105,8 +104,7 @@ SHFL_UP_SYNC(unsigned int word, int src_offset, int flags, unsigned int member_m
  * Warp synchronous shfl_down
  */
 //! deprecated [Since 3.0]
-CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_down()")
-_CCCL_DEVICE _CCCL_FORCEINLINE unsigned int
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_down()") _CCCL_DEVICE _CCCL_FORCEINLINE unsigned int
 SHFL_DOWN_SYNC(unsigned int word, int src_offset, int flags, unsigned int member_mask)
 {
   asm volatile("shfl.sync.down.b32 %0, %1, %2, %3, %4;"
@@ -213,8 +211,8 @@ _CCCL_HOST_DEVICE _CCCL_FORCEINLINE unsigned int WarpMask([[maybe_unused]] unsig
  */
 //! deprecated [Since 3.0]
 template <int LOGICAL_WARP_THREADS, typename T>
-CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_up()")
-_CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleUp(T input, int src_offset, int first_thread, unsigned int member_mask)
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_up()") _CCCL_DEVICE _CCCL_FORCEINLINE T
+ShuffleUp(T input, int src_offset, int first_thread, unsigned int member_mask)
 {
   /// The 5-bit SHFL mask for logically splitting warps into sub-segments starts 8-bits up
   constexpr int SHFL_C = (32 - LOGICAL_WARP_THREADS) << 8;
@@ -293,8 +291,8 @@ _CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleUp(T input, int src_offset, int first_th
  */
 //! deprecated [Since 3.0]
 template <int LOGICAL_WARP_THREADS, typename T>
-CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_down()")
-_CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleDown(T input, int src_offset, int last_thread, unsigned int member_mask)
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_down()") _CCCL_DEVICE _CCCL_FORCEINLINE T
+ShuffleDown(T input, int src_offset, int last_thread, unsigned int member_mask)
 {
   /// The 5-bit SHFL mask for logically splitting warps into sub-segments starts 8-bits up
   static constexpr int SHFL_C = (32 - LOGICAL_WARP_THREADS) << 8;
@@ -372,8 +370,8 @@ _CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleDown(T input, int src_offset, int last_t
  */
 //! deprecated [Since 3.0]
 template <int LOGICAL_WARP_THREADS, typename T>
-CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_idx()")
-_CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleIndex(T input, int src_lane, unsigned int member_mask)
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_idx()") _CCCL_DEVICE _CCCL_FORCEINLINE T
+ShuffleIndex(T input, int src_lane, unsigned int member_mask)
 {
   using ShuffleWord = typename UnitWord<T>::ShuffleWord;
 
