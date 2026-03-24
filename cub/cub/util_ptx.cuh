@@ -90,6 +90,8 @@ BFE(UnsignedBits source, unsigned int bit_start, unsigned int num_bits)
 /**
  * Warp synchronous shfl_up
  */
+//! deprecated [Since 3.0]
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_up()")
 _CCCL_DEVICE _CCCL_FORCEINLINE unsigned int
 SHFL_UP_SYNC(unsigned int word, int src_offset, int flags, unsigned int member_mask)
 {
@@ -102,6 +104,8 @@ SHFL_UP_SYNC(unsigned int word, int src_offset, int flags, unsigned int member_m
 /**
  * Warp synchronous shfl_down
  */
+//! deprecated [Since 3.0]
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_down()")
 _CCCL_DEVICE _CCCL_FORCEINLINE unsigned int
 SHFL_DOWN_SYNC(unsigned int word, int src_offset, int flags, unsigned int member_mask)
 {
@@ -207,7 +211,9 @@ _CCCL_HOST_DEVICE _CCCL_FORCEINLINE unsigned int WarpMask([[maybe_unused]] unsig
  * @param[in] member_mask
  *   32-bit mask of participating warp lanes
  */
+//! deprecated [Since 3.0]
 template <int LOGICAL_WARP_THREADS, typename T>
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_up()")
 _CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleUp(T input, int src_offset, int first_thread, unsigned int member_mask)
 {
   /// The 5-bit SHFL mask for logically splitting warps into sub-segments starts 8-bits up
@@ -285,7 +291,9 @@ _CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleUp(T input, int src_offset, int first_th
  * @param[in] member_mask
  *   32-bit mask of participating warp lanes
  */
+//! deprecated [Since 3.0]
 template <int LOGICAL_WARP_THREADS, typename T>
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_down()")
 _CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleDown(T input, int src_offset, int last_thread, unsigned int member_mask)
 {
   /// The 5-bit SHFL mask for logically splitting warps into sub-segments starts 8-bits up
@@ -362,7 +370,9 @@ _CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleDown(T input, int src_offset, int last_t
  * @param[in] member_mask
  *   32-bit mask of participating warp lanes
  */
+//! deprecated [Since 3.0]
 template <int LOGICAL_WARP_THREADS, typename T>
+CCCL_DEPRECATED_BECAUSE("Use cuda::device::warp_shuffle_idx()")
 _CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleIndex(T input, int src_lane, unsigned int member_mask)
 {
   using ShuffleWord = typename UnitWord<T>::ShuffleWord;
