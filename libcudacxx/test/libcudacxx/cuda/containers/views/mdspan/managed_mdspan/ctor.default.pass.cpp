@@ -20,6 +20,7 @@
 //               and acc_ for the values of map_ and acc_ after the invocation of this constructor.
 //
 // Effects: Value-initializes ptr_, map_, and acc_.
+#define _CCCL_DISABLE_MDSPAN_ACCESSOR_DETECT_INVALIDITY
 
 #include <cuda/mdspan>
 #include <cuda/std/cassert>
@@ -77,10 +78,10 @@ __host__ __device__ constexpr void mixin_extents(const H& handle, const L& layou
 {
   [[maybe_unused]] constexpr size_t D = cuda::std::dynamic_extent;
   test_mdspan_types<hc, mc, ac>(handle, construct_mapping(layout, cuda::std::extents<int>()), acc);
-  test_mdspan_types<hc, mc, ac>(handle, construct_mapping(layout, cuda::std::extents<char, D>(7)), acc);
+  test_mdspan_types<hc, mc, ac>(handle, construct_mapping(layout, cuda::std::extents<signed char, D>(7)), acc);
   test_mdspan_types<hc, mc, ac>(handle, construct_mapping(layout, cuda::std::extents<unsigned, 7>()), acc);
   test_mdspan_types<hc, mc, ac>(handle, construct_mapping(layout, cuda::std::extents<size_t, D, 4, D>(2, 3)), acc);
-  test_mdspan_types<hc, mc, ac>(handle, construct_mapping(layout, cuda::std::extents<char, D, 7, D>(0, 3)), acc);
+  test_mdspan_types<hc, mc, ac>(handle, construct_mapping(layout, cuda::std::extents<signed char, D, 7, D>(0, 3)), acc);
   test_mdspan_types<hc, mc, ac>(
     handle, construct_mapping(layout, cuda::std::extents<int64_t, D, 7, D, 4, D, D>(1, 2, 3, 2)), acc);
 }
@@ -94,7 +95,7 @@ __host__ __device__ constexpr void mixin_layout(const H& handle, const A& acc)
   // Use weird layout, make sure it has the properties we want to test
   [[maybe_unused]] constexpr size_t D = cuda::std::dynamic_extent;
   static_assert(!cuda::std::is_default_constructible<
-                  typename layout_wrapping_integral<4>::template mapping<cuda::std::extents<char, D>>>::value,
+                  typename layout_wrapping_integral<4>::template mapping<cuda::std::extents<signed char, D>>>::value,
                 "");
   mixin_extents<hc, false, ac>(handle, layout_wrapping_integral<4>(), acc);
 }

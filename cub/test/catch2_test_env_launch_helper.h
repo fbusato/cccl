@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <cub/util_device.cuh>
+
 #include <thrust/system/cuda/detail/core/triple_chevron_launch.h>
 
 #include <cuda/std/optional>
@@ -81,11 +83,15 @@ struct kernel_launcher_t : thrust::cuda_cub::detail::triple_chevron
   template <class K, class... Args>
   CUB_RUNTIME_FUNCTION cudaError_t doit(K kernel, Args const&... args) const
   {
-    NV_IF_TARGET(NV_IS_HOST, (auto& kernels = get_stream_registry_factory_state()->m_kernels; if (!kernels.empty()) {
-                   if (cuda::std::find(kernels.begin(), kernels.end(), reinterpret_cast<void*>(kernel))
-                       == kernels.end())
+    NV_IF_TARGET(NV_IS_HOST, ({
+                   auto& kernels = get_stream_registry_factory_state()->m_kernels;
+                   if (!kernels.empty())
                    {
-                     FAIL("Kernel is not allowed");
+                     if (cuda::std::find(kernels.begin(), kernels.end(), reinterpret_cast<void*>(kernel))
+                         == kernels.end())
+                     {
+                       FAIL("Kernel is not allowed: " << c2h::type_name<K>());
+                     }
                    }
                  }));
     return thrust::cuda_cub::detail::triple_chevron::doit(kernel, args...);
@@ -145,6 +151,51 @@ struct stream_registry_factory_t
     // Get max grid dimension
     return cudaDeviceGetAttribute(&max_grid_dim_x, cudaDevAttrMaxGridDimX, device_ordinal);
   }
+
+  CUB_RUNTIME_FUNCTION cudaError_t MemsetAsync(void* dst, unsigned char value, size_t num_bytes, cudaStream_t stream)
+  {
+    return cudaMemsetAsync(dst, value, num_bytes, stream);
+  }
+
+  CUB_RUNTIME_FUNCTION cudaError_t
+  MemcpyAsync(void* dst, const void* src, size_t num_bytes, cudaMemcpyKind kind, cudaStream_t stream)
+  {
+    return cudaMemcpyAsync(dst, src, num_bytes, kind, stream);
+  }
+
+  CUB_RUNTIME_FUNCTION cudaError_t MaxSharedMemory(int& max_shared_memory) const
+  {
+    int device = 0;
+    auto error = cudaGetDevice(&device);
+    if (error != cudaSuccess)
+    {
+      return error;
+    }
+
+    return cudaDeviceGetAttribute(&max_shared_memory, cudaDevAttrMaxSharedMemoryPerBlock, device);
+  }
+
+  template <typename Kernel>
+  CUB_RUNTIME_FUNCTION cudaError_t max_dynamic_smem_size_for(int& max_dynamic_smem_size, Kernel kernel_ptr)
+  {
+    NV_IF_ELSE_TARGET(NV_IS_HOST, //
+                      ({ return cub::MaxPotentialDynamicSmemBytes(max_dynamic_smem_size, kernel_ptr); }),
+                      ({
+                        cudaFuncAttributes func_attrs{};
+                        if (const auto error = cudaFuncGetAttributes(&func_attrs, kernel_ptr))
+                        {
+                          return error;
+                        }
+                        max_dynamic_smem_size = func_attrs.maxDynamicSharedSizeBytes;
+                        return cudaSuccess;
+                      }))
+  }
+
+  template <typename Kernel>
+  CUB_RUNTIME_FUNCTION cudaError_t set_max_dynamic_smem_size_for(Kernel kernel_ptr, int smem_size)
+  {
+    return cudaFuncSetAttribute(kernel_ptr, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size);
+  }
 };
 
 struct stream_scope
@@ -185,7 +236,7 @@ struct device_memory_resource : cub::detail::device_memory_resource
     return nullptr;
   }
 
-  void deallocate_sync(void* /* ptr */, size_t /* bytes */)
+  void deallocate_sync(void* /* ptr */, size_t /* bytes */, size_t /* alignment */)
   {
     FAIL("CUB shouldn't use synchronous deallocation");
   }
@@ -206,6 +257,11 @@ struct device_memory_resource : cub::detail::device_memory_resource
     return cub::detail::device_memory_resource::allocate(stream, bytes);
   }
 
+  void deallocate(const cuda::stream_ref stream, void* ptr, size_t bytes, size_t /* alignment */)
+  {
+    deallocate(stream, ptr, bytes);
+  }
+
   void deallocate(const cuda::stream_ref stream, void* ptr, size_t bytes)
   {
     REQUIRE(target_stream == stream.get());
@@ -216,17 +272,28 @@ struct device_memory_resource : cub::detail::device_memory_resource
     }
     cub::detail::device_memory_resource::deallocate(stream, ptr, bytes);
   }
+
+  bool operator==(const device_memory_resource& rhs) const
+  {
+    return target_stream == rhs.target_stream && bytes_allocated == rhs.bytes_allocated
+        && bytes_deallocated == rhs.bytes_deallocated;
+  }
+  bool operator!=(const device_memory_resource& rhs) const
+  {
+    return !(*this == rhs);
+  }
 };
+static_assert(::cuda::mr::resource<device_memory_resource>);
 
 struct throwing_memory_resource
 {
-  void* allocate(size_t /* bytes */, size_t /* alignment */)
+  void* allocate_sync(size_t /* bytes */, size_t /* alignment */)
   {
     FAIL("CUB shouldn't use synchronous allocation");
     return nullptr;
   }
 
-  void deallocate(void* /* ptr */, size_t /* bytes */)
+  void deallocate_sync(void* /* ptr */, size_t /* bytes */, size_t /* alignment */)
   {
     FAIL("CUB shouldn't use synchronous deallocation");
   }
@@ -241,11 +308,26 @@ struct throwing_memory_resource
     throw "test";
   }
 
-  void deallocate(const cuda::stream_ref /* stream */, void* /* ptr */, size_t /* bytes */)
+  void deallocate(cuda::stream_ref /* stream */, void* /* ptr */, size_t /* bytes */, size_t /* alignment*/)
   {
     throw "test";
   }
+
+  void deallocate(cuda::stream_ref /* stream */, void* /* ptr */, size_t /* bytes */)
+  {
+    throw "test";
+  }
+
+  bool operator==(const throwing_memory_resource&) const
+  {
+    return true;
+  }
+  bool operator!=(const throwing_memory_resource&) const
+  {
+    return false;
+  }
 };
+static_assert(::cuda::mr::resource<throwing_memory_resource>);
 
 struct device_side_memory_resource
 {
@@ -253,12 +335,12 @@ struct device_side_memory_resource
   size_t* bytes_allocated   = nullptr;
   size_t* bytes_deallocated = nullptr;
 
-  __host__ __device__ void* allocate(size_t /* bytes */, size_t /* alignment */)
+  __host__ __device__ void* allocate_sync(size_t /* bytes */, size_t /* alignment */)
   {
     cuda::std::terminate();
   }
 
-  __host__ __device__ void deallocate(void* /* ptr */, size_t /* bytes */)
+  __host__ __device__ void deallocate_sync(void* /* ptr */, size_t /* bytes */, size_t /* alignment */)
   {
     cuda::std::terminate();
   }
@@ -284,7 +366,26 @@ struct device_side_memory_resource
       *bytes_deallocated += bytes;
     }
   }
+
+  __host__ __device__ void
+  deallocate(const cuda::stream_ref /* stream */, void* /* ptr */, size_t bytes, size_t /* alignment */)
+  {
+    if (bytes_deallocated)
+    {
+      *bytes_deallocated += bytes;
+    }
+  }
+
+  bool operator==(const device_side_memory_resource& rhs) const
+  {
+    return ptr == rhs.ptr && bytes_allocated == rhs.bytes_allocated && bytes_deallocated == rhs.bytes_deallocated;
+  }
+  bool operator!=(const device_side_memory_resource& rhs) const
+  {
+    return !(*this == rhs);
+  }
 };
+static_assert(::cuda::mr::resource<device_side_memory_resource>);
 
 template <size_t... Is, class TplT, class EnvT>
 auto replace_back(cuda::std::integer_sequence<size_t, Is...>, TplT tpl, EnvT env)

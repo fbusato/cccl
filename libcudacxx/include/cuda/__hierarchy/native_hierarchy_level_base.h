@@ -27,11 +27,9 @@
 #  include <cuda/__hierarchy/hierarchy_level_base.h>
 #  include <cuda/__hierarchy/hierarchy_query_result.h>
 #  include <cuda/__hierarchy/traits.h>
-#  include <cuda/std/__algorithm/max.h>
 #  include <cuda/std/__concepts/concept_macros.h>
 #  include <cuda/std/__cstddef/types.h>
 #  include <cuda/std/__mdspan/extents.h>
-#  include <cuda/std/__type_traits/common_type.h>
 #  include <cuda/std/__type_traits/is_integer.h>
 
 #  include <cuda/std/__cccl/prologue.h>
@@ -48,7 +46,7 @@ _CCCL_DIAG_SUPPRESS_NVHPC(nodiscard_doesnt_apply)
 #  endif // _CCCL_CUDA_COMPILER(NVCC)
 
 template <class _Level>
-struct __native_hierarchy_level_base : hierarchy_level_base<_Level>
+struct _CCCL_DECLSPEC_EMPTY_BASES __native_hierarchy_level_base : hierarchy_level_base<_Level>
 {
   template <class _InLevel>
   using __default_md_query_type = unsigned;
@@ -62,6 +60,7 @@ struct __native_hierarchy_level_base : hierarchy_level_base<_Level>
   using __base_type::dims_as;
   using __base_type::extents;
   using __base_type::extents_as;
+  using __base_type::static_count;
   using __base_type::static_dims;
 
 #  if _CCCL_CUDA_COMPILATION()
@@ -69,6 +68,11 @@ struct __native_hierarchy_level_base : hierarchy_level_base<_Level>
   using __base_type::index_as;
   using __base_type::rank;
   using __base_type::rank_as;
+
+#    if defined(_CUDAX_HIERARCHY)
+  using __base_type::is_part_of;
+  using __base_type::is_root_rank;
+#    endif // _CUDAX_HIERARCHY
 
   _CCCL_TEMPLATE(class _InLevel)
   _CCCL_REQUIRES(__is_native_hierarchy_level_v<_InLevel>)
@@ -89,6 +93,13 @@ struct __native_hierarchy_level_base : hierarchy_level_base<_Level>
   [[nodiscard]] _CCCL_DEVICE_API static auto extents(const _InLevel& __level) noexcept
   {
     return _Level::template extents_as<__default_md_query_type<_InLevel>>(__level);
+  }
+
+  _CCCL_TEMPLATE(class _InLevel)
+  _CCCL_REQUIRES(__is_native_hierarchy_level_v<_InLevel>)
+  [[nodiscard]] _CCCL_DEVICE_API static constexpr auto static_count(const _InLevel& __level) noexcept
+  {
+    return __base_type::__static_count_impl(__level);
   }
 
   _CCCL_TEMPLATE(class _InLevel)

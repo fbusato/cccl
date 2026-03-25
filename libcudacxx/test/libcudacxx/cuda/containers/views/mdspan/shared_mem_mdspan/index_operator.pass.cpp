@@ -23,10 +23,12 @@
 //
 // Preconditions:
 //   * extents_type::index-cast(i) is a multidimensional index in extents_.
+#define _CCCL_DISABLE_MDSPAN_ACCESSOR_DETECT_INVALIDITY
 
 #include <cuda/mdspan>
 #include <cuda/std/cassert>
 #include <cuda/std/cstdint>
+#include <cuda/std/type_traits>
 
 #include "../ConvertibleToIntegral.h"
 #include "../CustomTestLayouts.h"
@@ -47,11 +49,10 @@ __device__ constexpr auto& access(MDS mds, int64_t i0)
 template <
   class MDS,
   class... Indices,
-  class  = cuda::std::enable_if_t<
-     cuda::std::__all_v<cuda::std::is_same_v<decltype(cuda::std::declval<MDS>()[cuda::std::declval<Indices>()...]),
-                                             typename MDS::reference>>,
-     int> = 0>
-__device__ constexpr bool check_operator_constraints(MDS m, Indices... idxs)
+  class = cuda::std::enable_if_t<
+    cuda::std::is_same_v<decltype(cuda::std::declval<MDS>()[cuda::std::declval<Indices>()...]), typename MDS::reference>>,
+  int>
+= 0 > __device__ constexpr bool check_operator_constraints(MDS m, Indices... idxs)
 {
   unused(m[idxs...]);
   return true;
@@ -159,11 +160,11 @@ __device__ void test_layout()
   test_iteration(construct_mapping(Layout(), cuda::std::extents<unsigned, D>(7)));
   test_iteration(construct_mapping(Layout(), cuda::std::extents<unsigned, 7>()));
   test_iteration(construct_mapping(Layout(), cuda::std::extents<unsigned, 7, 8>()));
-  test_iteration(construct_mapping(Layout(), cuda::std::extents<char, D, D, D, D>(1, 1, 1, 1)));
+  test_iteration(construct_mapping(Layout(), cuda::std::extents<signed char, D, D, D, D>(1, 1, 1, 1)));
 
 #if _CCCL_HAS_MULTIARG_OPERATOR_BRACKETS()
   test_iteration(construct_mapping(Layout(), cuda::std::extents<int>()));
-  __shared__ int data[1];
+  __shared__ int data[16];
   // Check operator constraint for number of arguments
   static_assert(check_operator_constraints(
     cuda::shared_memory_mdspan(data, construct_mapping(Layout(), cuda::std::extents<int, D>(1))), 0));
@@ -288,6 +289,6 @@ __global__ void test()
 
 int main(int, char**)
 {
-  NV_IF_TARGET(NV_IS_HOST, (test<<<1, 1, 1024 * sizeof(int)>>>();))
+  NV_IF_TARGET(NV_IS_HOST, (test<<<1, 1>>>(); assert(cudaDeviceSynchronize() == cudaSuccess);))
   return 0;
 }

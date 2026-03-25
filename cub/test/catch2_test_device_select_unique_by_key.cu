@@ -91,15 +91,6 @@ DECLARE_LAUNCH_WRAPPER(cub::DeviceSelect::UniqueByKey, select_unique_by_key);
 
 // %PARAM% TEST_LAUNCH lid 0:1:2
 
-struct equal_to_default_t
-{
-  template <typename T>
-  __host__ __device__ bool operator()(const T& a) const
-  {
-    return a == T{};
-  }
-};
-
 using all_types =
   c2h::type_list<std::uint8_t,
                  std::uint16_t,
@@ -228,7 +219,7 @@ struct project_first
   template <typename Tuple>
   __host__ __device__ bool operator()(const Tuple& lhs, const Tuple& rhs) const
   {
-    return equality_op(thrust::get<0>(lhs), thrust::get<0>(rhs));
+    return equality_op(cuda::std::get<0>(lhs), cuda::std::get<0>(rhs));
   }
 };
 

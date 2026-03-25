@@ -21,6 +21,7 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/__fwd/iterator.h>
 #include <cuda/std/__concepts/equality_comparable.h>
 #include <cuda/std/__concepts/totally_ordered.h>
 #include <cuda/std/__iterator/concepts.h>
@@ -88,7 +89,7 @@ _CCCL_BEGIN_NAMESPACE_CUDA
 //!
 //! // values is now {10, -1, -1, -1, 50, 60, -1, 80}
 //! @endcode
-template <class _Iter, class _Index = _Iter>
+template <class _Iter, class _Index>
 class permutation_iterator
 {
 private:
@@ -266,6 +267,7 @@ public:
     return __tmp;
   }
 
+#ifndef _CCCL_DOXYGEN_INVOKED // Doxygen has issues with constexpr friend operators
   //! @brief Advances a @c permutation_iterator by a given number of elements
   //! @param __iter The original @c permutation_iterator
   //! @param __n The number of elements to advance
@@ -292,16 +294,6 @@ public:
     return permutation_iterator{__iter.__iter_, __iter.__index_ + __n};
   }
 
-  //! @brief Advances the @c permutation_iterator by a given number of elements
-  //! @param __n The number of elements to advance
-  //! @return Equivalent to ``index + __n``
-  _CCCL_EXEC_CHECK_DISABLE
-  _CCCL_API constexpr permutation_iterator& operator+=(difference_type __n) noexcept(noexcept(__index_ += __n))
-  {
-    __index_ += __n;
-    return *this;
-  }
-
   //! @brief Decrements a @c permutation_iterator by a given number of elements
   //! @param __iter The original @c permutation_iterator
   //! @param __n The number of elements to decrement
@@ -313,6 +305,17 @@ public:
     && ::cuda::std::is_nothrow_copy_constructible_v<_Iter> && ::cuda::std::is_nothrow_copy_constructible_v<_Index>)
   {
     return permutation_iterator{__iter.__iter_, __iter.__index_ - __n};
+  }
+#endif // !_CCCL_DOXYGEN_INVOKED
+
+  //! @brief Advances the @c permutation_iterator by a given number of elements
+  //! @param __n The number of elements to advance
+  //! @return Equivalent to ``index + __n``
+  _CCCL_EXEC_CHECK_DISABLE
+  _CCCL_API constexpr permutation_iterator& operator+=(difference_type __n) noexcept(noexcept(__index_ += __n))
+  {
+    __index_ += __n;
+    return *this;
   }
 
   //! @brief Decrements the @c permutation_iterator by a given number of elements
@@ -428,10 +431,12 @@ public:
 #endif // !_LIBCUDACXX_HAS_SPACESHIP_OPERATOR()
 };
 
+#ifndef _CCCL_DOXYGEN_INVOKED
 _CCCL_TEMPLATE(class _Iter, class _Index)
 _CCCL_REQUIRES(
   ::cuda::std::__has_random_access_traversal<_Iter> _CCCL_AND ::cuda::std::__has_random_access_traversal<_Index>)
 _CCCL_HOST_DEVICE permutation_iterator(_Iter, _Index) -> permutation_iterator<_Iter, _Index>;
+#endif // _CCCL_DOXYGEN_INVOKED
 
 //! @brief Creates an @c permutation_iterator from a base iterator and an iterator to an integral index
 //! @param __iter The iterator

@@ -9,6 +9,8 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/logical.h>
 
+#include <cuda/functional>
+
 #include <algorithm>
 
 #include "catch2_test_launch_helper.h"
@@ -19,9 +21,9 @@ struct predicate_op_wrapper_t
 {
   PredOpT if_pred;
   template <typename FlagT, typename ItemT>
-  __host__ __device__ bool operator()(thrust::tuple<FlagT, ItemT> tuple) const
+  __host__ __device__ bool operator()(cuda::std::tuple<FlagT, ItemT> tuple) const
   {
-    const auto flag = thrust::get<0>(tuple);
+    const auto flag = cuda::std::get<0>(tuple);
     return static_cast<bool>(if_pred(flag));
   }
 };
@@ -65,15 +67,6 @@ struct is_even_t<custom_t>
   __host__ __device__ bool operator()(custom_t elem) const
   {
     return !(elem.key % 2);
-  }
-};
-
-struct equal_to_default_t
-{
-  template <typename T>
-  __host__ __device__ bool operator()(const T& a) const
-  {
-    return a == T{};
   }
 };
 
@@ -220,7 +213,7 @@ C2H_TEST("DeviceSelect::FlaggedIf does not change input and is stable",
 
   // Ensure that we did not overwrite other elements
   const auto boundary = out.begin() + num_selected_out[0];
-  REQUIRE(thrust::all_of(c2h::device_policy, boundary, out.end(), equal_to_default_t{}));
+  REQUIRE(thrust::all_of(c2h::device_policy, boundary, out.end(), cuda::equal_to_value{input_type{}}));
 
   out.resize(num_selected_out[0]);
   REQUIRE(reference_out == out);

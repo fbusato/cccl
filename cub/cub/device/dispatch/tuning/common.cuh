@@ -13,6 +13,13 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cub/util_type.cuh>
+
+#include <thrust/type_traits/is_contiguous_iterator.h>
+#include <thrust/type_traits/is_trivially_relocatable.h>
+
+#include <cuda/__functional/maximum.h>
+#include <cuda/__functional/minimum.h>
 #include <cuda/std/__functional/operations.h>
 #include <cuda/std/__type_traits/is_signed.h>
 
@@ -24,6 +31,7 @@ namespace detail
 // libcu++
 enum class type_t
 {
+  boolean,
   int8,
   int16,
   int32,
@@ -44,6 +52,8 @@ inline constexpr auto classify_type = type_t::other;
 
 template <>
 inline constexpr auto classify_type<char> = ::cuda::std::is_signed_v<char> ? type_t::int8 : type_t::uint8;
+template <>
+inline constexpr auto classify_type<bool> = type_t::boolean;
 template <>
 inline constexpr auto classify_type<signed char> = type_t::int8;
 template <>
@@ -85,6 +95,8 @@ inline constexpr auto classify_type<double> = type_t::float64;
 enum class op_kind_t
 {
   plus,
+  min,
+  max,
   other
 };
 
@@ -93,5 +105,85 @@ inline constexpr auto classify_op = op_kind_t::other;
 
 template <typename T>
 inline constexpr auto classify_op<::cuda::std::plus<T>> = op_kind_t::plus;
+
+template <typename T>
+inline constexpr auto classify_op<::cuda::minimum<T>> = op_kind_t::min;
+
+template <typename T>
+inline constexpr auto classify_op<::cuda::maximum<T>> = op_kind_t::max;
+
+struct iterator_info
+{
+  int value_type_size;
+  int value_type_alignment;
+  bool value_type_is_trivially_relocatable;
+  bool is_contiguous;
+};
+
+template <typename It>
+[[nodiscard]] _CCCL_API constexpr auto make_iterator_info() -> iterator_info
+{
+  using vt = it_value_t<It>;
+  return iterator_info{
+    static_cast<int>(size_of<vt>),
+    static_cast<int>(align_of<vt>),
+    THRUST_NS_QUALIFIER::is_trivially_relocatable_v<vt>,
+    THRUST_NS_QUALIFIER::is_contiguous_iterator_v<It>};
+}
+
+enum class primitive_key
+{
+  no,
+  yes
+};
+enum class primitive_length
+{
+  no,
+  yes
+};
+enum class key_size
+{
+  _1,
+  _2,
+  _4,
+  _8,
+  _16,
+  unknown
+};
+enum class length_size
+{
+  _4,
+  unknown
+};
+
+template <class T>
+_CCCL_API constexpr primitive_key is_primitive_key()
+{
+  return is_primitive<T>::value ? primitive_key::yes : primitive_key::no;
+}
+
+template <class T>
+_CCCL_API constexpr primitive_length is_primitive_length()
+{
+  return is_primitive<T>::value ? primitive_length::yes : primitive_length::no;
+}
+
+template <class KeyT>
+_CCCL_API constexpr key_size classify_key_size()
+{
+  return sizeof(KeyT) == 1 ? key_size::_1
+       : sizeof(KeyT) == 2 ? key_size::_2
+       : sizeof(KeyT) == 4 ? key_size::_4
+       : sizeof(KeyT) == 8 ? key_size::_8
+       : sizeof(KeyT) == 16
+         ? key_size::_16
+         : key_size::unknown;
+}
+
+template <class LengthT>
+_CCCL_API constexpr length_size classify_length_size()
+{
+  return sizeof(LengthT) == 4 ? length_size::_4 : length_size::unknown;
+}
 } // namespace detail
 CUB_NAMESPACE_END

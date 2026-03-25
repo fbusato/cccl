@@ -41,10 +41,6 @@
 #include <cuda/experimental/__stf/internal/void_interface.cuh>
 #include <cuda/experimental/__stf/localization/composite_slice.cuh>
 
-// XXX there is currently a dependency on this header for places.h
-// Until we find a solution we need to include this
-#include <cuda/experimental/__stf/places/exec/green_context.cuh>
-
 #include <atomic>
 #include <fstream>
 #include <sstream>
@@ -187,6 +183,11 @@ protected:
     virtual cudaGraph_t graph() const
     {
       return nullptr;
+    }
+
+    virtual bool is_graph_ctx() const
+    {
+      return false;
     }
 
     void set_graph_cache_policy(::std::function<bool()> fn)
@@ -618,6 +619,18 @@ protected:
     {
       ctx_resources.add(mv(resource));
     }
+
+    // Export all resources by moving them to a new ctx_resource_set
+    ctx_resource_set export_resources()
+    {
+      return ctx_resources.export_resources();
+    }
+
+    // Import all resources from another ctx_resource_set
+    void import_resources(ctx_resource_set&& other)
+    {
+      ctx_resources.import_resources(mv(other));
+    }
   };
 
 public:
@@ -706,6 +719,20 @@ public:
     pimpl->add_resource(mv(resource));
   }
 
+  //! Export all resources by moving them to a new ctx_resource_set
+  //! The current context will have no resources after this operation
+  ctx_resource_set export_resources()
+  {
+    return pimpl->export_resources();
+  }
+
+  //! Import all resources from another ctx_resource_set
+  //! The other set will be left empty after this operation
+  void import_resources(ctx_resource_set&& other)
+  {
+    pimpl->import_resources(mv(other));
+  }
+
   /* Customize the allocator used by all logical data */
   void set_allocator(block_allocator_untyped custom)
   {
@@ -773,6 +800,11 @@ public:
   cudaGraph_t graph() const
   {
     return pimpl->graph();
+  }
+
+  bool is_graph_ctx() const
+  {
+    return pimpl->is_graph_ctx();
   }
 
   void set_graph_cache_policy(::std::function<bool()> policy)
@@ -913,7 +945,8 @@ public:
   // execution place
   auto pick_dstream()
   {
-    return default_exec_place().get_stream_pool(async_resources(), true).next();
+    exec_place p = default_exec_place();
+    return p.get_stream_pool(true).next(p);
   }
   cudaStream_t pick_stream()
   {

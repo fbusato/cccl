@@ -1,11 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-// Because CUB cannot inspect the transformation function, we cannot add any tunings based on the results of this
-// benchmark. Its main use is to detect regressions.
-
+// %RANGE% TUNE_BIF_BIAS bif -16:16:4
+// %RANGE% TUNE_ALGORITHM alg 0:4:1
 // %RANGE% TUNE_THREADS tpb 128:1024:128
-// %RANGE% TUNE_ALGORITHM alg 0:2:1
+
+// for TUNE_ALGORITHM == 1 (vectorized), this is the number of vectors per thread, which is similar in spirit
+// %RANGE% TUNE_UNROLL_FACTOR unrl 1:4:1
+
+// those parameters only apply if TUNE_ALGORITHM == 0 (prefetch)
+// %RANGE% TUNE_PREFETCH_MULT pref 1:3:1
+
+// those parameters only apply if TUNE_ALGORITHM == 1 (vectorized)
+// %RANGE% TUNE_VEC_SIZE_POW2 vsp2 1:6:1
+
+#if !TUNE_BASE && TUNE_ALGORITHM != 0 && (TUNE_PREFETCH_MULT != 1)
+#  error "Non-prefetch algorithms require prefetch multiple to be 1 since they ignore the parameters"
+#endif // !TUNE_BASE && TUNE_ALGORITHM != 0 && (TUNE_PREFETCH_MULT != 1)
+
+#if !TUNE_BASE && TUNE_ALGORITHM != 1 && (TUNE_VEC_SIZE_POW2 != 1)
+#  error "Non-vectorized algorithms require vector size to be 1 since they ignore the parameters"
+#endif // !TUNE_BASE && TUNE_ALGORITHM != 1 && (TUNE_VEC_SIZE_POW2 != 1)
 
 #include "common.h"
 
@@ -17,7 +32,7 @@ using element_types =
                      std::int16_t,
                      float,
                      double
-#  ifdef NVBENCH_HELPER_HAS_I128
+#  if _CCCL_HAS_INT128()
                      ,
                      __int128
 #  endif
@@ -25,9 +40,9 @@ using element_types =
 #endif
 
 // BabelStream uses 2^25, H200 can fit 2^31 int128s
-// 2^20 chars / 2^16 int128 saturate V100 (min_bif =12 * SM count =80)
-// 2^21 chars / 2^17 int128 saturate A100 (min_bif =16 * SM count =108)
-// 2^23 chars / 2^19 int128 saturate H100/H200 HBM3 (min_bif =32or48 * SM count =132)
+// 2^20 chars / 2^16 int128 saturate V100 (min_bytes_in_flight =12 * SM count =80)
+// 2^21 chars / 2^17 int128 saturate A100 (min_bytes_in_flight =16 * SM count =108)
+// 2^23 chars / 2^19 int128 saturate H100/H200 HBM3 (min_bytes_in_flight =32or48 * SM count =132)
 // inline auto array_size_powers = std::vector<nvbench::int64_t>{28};
 inline auto array_size_powers = nvbench::range(16, 32, 4);
 

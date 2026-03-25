@@ -22,7 +22,7 @@ function(cudax_add_catch2_test target_name_var test_name) # ARGN=test sources
     PRIVATE #
       cudax.compiler_interface
       cccl.c2h.main
-      CUDA::cudart
+      CUDA::cudart_static
   )
   target_compile_options(
     ${test_target}
@@ -81,8 +81,17 @@ cudax_add_catch2_test(test_target containers
     containers/uninitialized_buffer.cu
 )
 
+cudax_add_catch2_test(test_target copy_bytes
+    copy_bytes/mdspan_d2h_h2d.cu
+    copy_bytes/mdspan_d2h_h2d_relaxed.cu
+)
+
 cudax_add_catch2_test(test_target cuco
     cuco/utility/test_hashers.cu
+)
+
+cudax_add_catch2_test(test_target cuco_hyperloglog ${cudax_target}
+  cuco/hyperloglog/test_hyperloglog.cu
 )
 
 cudax_add_catch2_test(test_target green_context
@@ -106,8 +115,8 @@ cudax_add_catch2_test(test_target algorithm
     algorithm/copy.cu
 )
 
-cudax_add_catch2_test(test_target simd
-    simd/simd.cu
+cudax_add_catch2_test(test_target hierarchy_groups
+    hierarchy/group.cu
 )
 
 if (cudax_ENABLE_CUFILE)

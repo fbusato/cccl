@@ -88,7 +88,8 @@ template <class _Property>
 using __iproperty = typename __with_property<_Property>::template __iproperty<>;
 
 template <class... _Properties>
-using __iproperty_set = ::cuda::__iset<__iproperty<_Properties>...>;
+using __iproperty_set =
+  ::cuda::__iset<__iproperty<_Properties>..., __iproperty<::cuda::mr::dynamic_accessibility_property>>;
 
 // Wrap the calls of the allocate and deallocate member functions
 // because of NVBUG#4967486
@@ -193,6 +194,8 @@ struct __with_try_get_property
     }
   }
 };
+
+_CCCL_BEGIN_NAMESPACE_ABI_VER4_BUMP
 
 template <class... _Properties>
 struct _CCCL_DECLSPEC_EMPTY_BASES any_resource;
@@ -358,6 +361,17 @@ private:
     return *this;
   }
 };
+
+_CCCL_END_NAMESPACE_ABI_VER4_BUMP
+
+template <class... _Properties>
+inline constexpr bool __disable_default_dynamic_accessibility_property<any_resource<_Properties...>> = true;
+template <class... _Properties>
+inline constexpr bool __disable_default_dynamic_accessibility_property<resource_ref<_Properties...>> = true;
+template <class... _Properties>
+inline constexpr bool __disable_default_dynamic_accessibility_property<any_synchronous_resource<_Properties...>> = true;
+template <class... _Properties>
+inline constexpr bool __disable_default_dynamic_accessibility_property<synchronous_resource_ref<_Properties...>> = true;
 
 _CCCL_TEMPLATE(class... _Properties, class _Resource)
 _CCCL_REQUIRES(mr::synchronous_resource_with<_Resource, _Properties...>)
@@ -772,7 +786,7 @@ public:
 };
 
 //! @rst
-//! .. _cudax-memory-resource-any-resource:
+//! .. _libcudacxx-memory-resource-any-resource:
 //!
 //! Type erased wrapper around a `synchronous_resource`
 //! ----------------------------------------------------
@@ -791,7 +805,7 @@ template <class... _Properties>
 using any_synchronous_resource = basic_any_resource<_ResourceKind::_Synchronous, _Properties...>;
 
 //! @rst
-//! .. _cudax-memory-resource-any-async-resource:
+//! .. _libcudacxx-memory-resource-any-async-resource:
 //!
 //! Type erased wrapper around an `resource`
 //! ----------------------------------------------
@@ -826,13 +840,13 @@ using resource_ref = basic_resource_ref<_ResourceKind::_Asynchronous, _Propertie
 #  endif // _CCCL_DOXYGEN_INVOKED
 
 //! @rst
-//! .. _cudax-memory-resource-make-any-resource:
+//! .. _libcudacxx-memory-resource-make-any-resource:
 //!
 //! Factory function for `any_synchronous_resource` objects
 //! -------------------------------------------------------
 //!
 //! ``make_any_synchronous_resource`` constructs an :ref:`any_synchronous_resource
-//! <cudax-memory-resource-any-resource>` object that wraps a newly constructed
+//! <libcudacxx-memory-resource-any-resource>` object that wraps a newly constructed
 //! instance of the given resource type. The resource type must satisfy the
 //! ``cuda::mr::synchronous_resource`` concept and provide all of the properties specified
 //! in the template parameter pack.
@@ -853,13 +867,13 @@ auto make_any_synchronous_resource(_Args&&... __args) -> any_synchronous_resourc
 }
 
 //! @rst
-//! .. _cudax-memory-resource-make-any-async-resource:
+//! .. _libcudacxx-memory-resource-make-any-async-resource:
 //!
 //! Factory function for `any_resource` objects
 //! -------------------------------------------------
 //!
 //! ``make_any_resource`` constructs an :ref:`any_resource
-//! <cudax-memory-resource-any-async-resource>` object that wraps a newly
+//! <libcudacxx-memory-resource-any-async-resource>` object that wraps a newly
 //! constructed instance of the given resource type. The resource type must
 //! satisfy the ``cuda::mr::resource`` concept and provide all of the
 //! properties specified in the template parameter pack.

@@ -24,25 +24,30 @@
 #include <cuda/__device/device_ref.h>
 #include <cuda/__driver/driver_api.h>
 #include <cuda/std/__exception/cuda_error.h>
+#include <cuda/std/__exception/exception_macros.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 
 #include <cuda/std/__cccl/prologue.h>
+
+_CCCL_DIAG_PUSH
+_CCCL_DIAG_SUPPRESS_CLANG("-Wmissing-braces")
+// clang complains about missing braces in CUmemLocation constructor but GCC complains if we add them
 
 _CCCL_BEGIN_NAMESPACE_CUDA
 
 #if _CCCL_HAS_CTK() && !_CCCL_COMPILER(NVRTC)
 
-#  define _CCCL_THROW_OR_RETURN(_STATUS, _MSG)                                          \
-    if ((_STATUS) != ::cudaSuccess)                                                     \
-    {                                                                                   \
-      if constexpr (_IsNothrow)                                                         \
-      {                                                                                 \
-        return false;                                                                   \
-      }                                                                                 \
-      else                                                                              \
-      {                                                                                 \
-        ::cuda::__throw_cuda_error((_STATUS), (_MSG), _CCCL_BUILTIN_PRETTY_FUNCTION()); \
-      }                                                                                 \
+#  define _CCCL_THROW_OR_RETURN(_STATUS, _MSG)                                               \
+    if ((_STATUS) != ::cudaSuccess)                                                          \
+    {                                                                                        \
+      if constexpr (_IsNothrow)                                                              \
+      {                                                                                      \
+        return false;                                                                        \
+      }                                                                                      \
+      else                                                                                   \
+      {                                                                                      \
+        _CCCL_THROW(::cuda::cuda_error, (_STATUS), (_MSG), _CCCL_BUILTIN_PRETTY_FUNCTION()); \
+      }                                                                                      \
     }
 
 template <bool _IsNothrow>
@@ -140,10 +145,6 @@ _CCCL_HOST_API inline bool __is_host_accessible_nothrow(const void* __p) noexcep
 {
   return ::cuda::__is_host_accessible(__p, ::cuda::std::true_type{});
 }
-
-_CCCL_DIAG_PUSH
-_CCCL_DIAG_SUPPRESS_CLANG("-Wmissing-braces")
-// clang complains about missing braces in CUmemLocation constructor but GCC complains if we add them
 
 /**
  * @brief Checks if a pointer is a device pointer.
@@ -265,13 +266,13 @@ _CCCL_HOST_API inline bool __is_device_accessible_nothrow(const void* __p, devic
   return ::cuda::__is_device_accessible(__p, __device, ::cuda::std::true_type{});
 }
 
-_CCCL_DIAG_POP
-
 #  undef _CCCL_THROW_OR_RETURN
 
 #endif // _CCCL_HAS_CTK() && !_CCCL_COMPILER(NVRTC)
 
 _CCCL_END_NAMESPACE_CUDA
+
+_CCCL_DIAG_POP
 
 #include <cuda/std/__cccl/epilogue.h>
 
