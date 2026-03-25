@@ -74,7 +74,7 @@ Function call:
 
 - Commented code without a description is not allowed.
 - Use Doxygen-style `//! @brief comments`.
-- All functions, except `_impl` functions, must have complete Doxygen documentation: `//! @brief`, `//! @param[in/out/in,out]` for every parameter, and `//! @return` for non-void functions.
+- When a function is documented with Doxygen, it must include: `//! @brief`, `//! @param[in/out/in,out]` for every parameter, and `//! @return` for non-void functions.
 - The `@brief/@param/@return` description must accurately reflect the current functionality of the function.
 
 ## General guidelines
