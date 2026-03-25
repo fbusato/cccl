@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -27,18 +27,18 @@
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/remove_cvref.h>
 
+#include <cuda/experimental/__simd/basic_mask.h>
 #include <cuda/experimental/__simd/concepts.h>
 #include <cuda/experimental/__simd/declaration.h>
 #include <cuda/experimental/__simd/fixed_size_impl.h>
 #include <cuda/experimental/__simd/reference.h>
 #include <cuda/experimental/__simd/scalar_impl.h>
-#include <cuda/experimental/__simd/simd_mask.h>
 #include <cuda/experimental/__simd/traits.h>
 #include <cuda/experimental/__simd/utility.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::experimental::datapar
+namespace cuda::experimental::simd
 {
 // P1928R15: basic_vec is the primary SIMD vector type (renamed from basic_simd)
 template <typename _Tp, typename _Abi>
@@ -450,7 +450,7 @@ public:
 
 // template<size_t Bytes, class Abi>
 // basic_vec(basic_mask<Bytes, Abi>) -> ...;
-} // namespace cuda::experimental::datapar
+} // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>
 

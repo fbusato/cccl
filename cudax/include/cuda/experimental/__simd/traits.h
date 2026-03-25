@@ -26,11 +26,10 @@
 #include <cuda/std/__type_traits/integral_constant.h>
 
 #include <cuda/experimental/__simd/declaration.h>
-#include <cuda/experimental/__simd/utility.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::experimental::datapar
+namespace cuda::experimental::simd
 {
 struct element_aligned_tag
 {
@@ -74,9 +73,6 @@ inline constexpr bool is_abi_tag_v = false;
 template <typename _Tp>
 struct is_abi_tag : ::cuda::std::bool_constant<is_abi_tag_v<_Tp>>
 {};
-
-template <>
-inline constexpr bool is_abi_tag_v<simd_abi::scalar> = true;
 
 template <int _Np>
 inline constexpr bool is_abi_tag_v<simd_abi::fixed_size<_Np>> = true;
@@ -198,7 +194,7 @@ struct mask_element_size<basic_mask<_Bytes, _Abi>> : ::cuda::std::integral_const
 
 template <typename _Tp>
 inline constexpr ::cuda::std::size_t mask_element_size_v = mask_element_size<_Tp>::value;
-} // namespace cuda::experimental::datapar
+} // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>
 

@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _CUDAX___SIMD_DECLARATION_H
-#define _CUDAX___SIMD_DECLARATION_H
+#ifndef _CUDAX___SIMD_EXPOSITION_H
+#define _CUDAX___SIMD_EXPOSITION_H
 
 #include <cuda/std/detail/__config>
 
@@ -22,39 +22,35 @@
 #endif // no system header
 
 #include <cuda/std/__cstddef/types.h>
+#include <cuda/std/__type_traits/is_arithmetic.h>
+#include <cuda/std/__type_traits/is_const.h>
+#include <cuda/std/__type_traits/is_same.h>
+#include <cuda/std/__type_traits/is_volatile.h>
+#include <cuda/std/__type_traits/make_nbit_int.h>
 
 #include <cuda/experimental/__simd/abi.h>
-#include <cuda/experimental/__simd/exposition.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental::simd
 {
-// template <typename _Tp, typename _Abi>
-// struct __simd_storage;
-//
-// template <typename _Tp, typename _Abi>
-// struct __simd_operations;
-//
-// template <::cuda::std::size_t _Bytes, typename _Abi>
-// struct __mask_storage;
-//
-template <::cuda::std::size_t _Bytes, typename _Abi>
-struct __mask_operations;
+// [simd.expos], exposition-only helpers
 
-template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
-class basic_vec;
+template <::cuda::std::size_t _Bytes>
+using __integer_from = ::cuda::std::__make_nbit_int_t<_Bytes * 8, true>;
 
-template <::cuda::std::size_t _Bytes, typename _Abi = simd_abi::native<__integer_from<_Bytes>>>
-class basic_mask;
+template <typename _Tp>
+constexpr bool __is_vectorizable_v =
+  ::cuda::std::is_arithmetic_v<_Tp> && !::cuda::std::is_const_v<_Tp> && !::cuda::std::is_volatile_v<_Tp>
+  && !::cuda::std::is_same_v<_Tp, bool>;
 
-template <typename _Tp, __simd_size_type _Np = __simd_size_v<_Tp, simd_abi::native<_Tp>>>
-using vec = basic_vec<_Tp, simd_abi::__deduce_abi_t<_Tp, _Np>>;
+template <typename _Tp, typename _Abi>
+constexpr __simd_size_type __simd_size_v = 0;
 
-template <typename _Tp, __simd_size_type _Np = __simd_size_v<_Tp, simd_abi::native<_Tp>>>
-using mask = basic_mask<sizeof(_Tp), simd_abi::__deduce_abi_t<_Tp, _Np>>;
+template <typename _Tp, __simd_size_type _Np>
+constexpr __simd_size_type __simd_size_v<_Tp, simd_abi::fixed_size<_Np>> = _Np;
 } // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>
 
-#endif // _CUDAX___SIMD_DECLARATION_H
+#endif // _CUDAX___SIMD_EXPOSITION_H

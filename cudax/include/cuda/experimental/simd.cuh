@@ -11,7 +11,7 @@
 #ifndef __CUDAX_SIMD___
 #define __CUDAX_SIMD___
 
-#include <cuda/experimental/__simd/simd.h>
-#include <cuda/experimental/__simd/simd_mask.h>
+#include <cuda/experimental/__simd/basic_mask.h>
+#include <cuda/experimental/__simd/basic_vec.h>
 
 #endif // __CUDAX_SIMD___

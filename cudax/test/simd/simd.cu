@@ -17,7 +17,7 @@
 
 #include <testing.cuh>
 
-namespace dp = cuda::experimental::datapar;
+namespace dp = cuda::experimental::simd;
 
 namespace
 {
@@ -65,9 +65,9 @@ using simd_array_t = ::cuda::std::array<typename Simd::value_type, Simd::size()>
 C2H_CCCLRT_TEST("simd.traits", "[simd][traits]")
 {
   using abi_t    = dp::simd_abi::fixed_size<4>;
-  using simd_t   = dp::simd<int, 4>;
-  using mask_t   = dp::simd_mask<int, 4>;
-  using other_t  = dp::simd<float, 4>;
+  using simd_t   = dp::vec<int, 4>;
+  using mask_t   = dp::mask<int, 4>;
+  using other_t  = dp::vec<float, 4>;
   using rebind_t = dp::rebind_simd_t<float, simd_t>;
 
   STATIC_REQUIRE(dp::is_abi_tag_v<abi_t>);
@@ -76,10 +76,10 @@ C2H_CCCLRT_TEST("simd.traits", "[simd][traits]")
   STATIC_REQUIRE(dp::__simd_size_v<float, abi_t> == 4);
   STATIC_REQUIRE(dp::__simd_size_v<void, abi_t> == 0);
 
-  STATIC_REQUIRE(dp::is_simd_v<simd_t>);
-  STATIC_REQUIRE(!dp::is_simd_v<int>);
-  STATIC_REQUIRE(dp::is_simd_mask_v<mask_t>);
-  STATIC_REQUIRE(!dp::is_simd_mask_v<simd_t>);
+  STATIC_REQUIRE(dp::is_vec_v<simd_t>);
+  STATIC_REQUIRE(!dp::is_vec_v<int>);
+  STATIC_REQUIRE(dp::is_mask_v<mask_t>);
+  STATIC_REQUIRE(!dp::is_mask_v<simd_t>);
 
   STATIC_REQUIRE(dp::is_simd_flag_type_v<dp::element_aligned_tag>);
   STATIC_REQUIRE(dp::is_simd_flag_type_v<dp::vector_aligned_tag>);
@@ -99,7 +99,7 @@ C2H_CCCLRT_TEST("simd.traits", "[simd][traits]")
 C2H_CCCLRT_TEST("simd.construction_and_memory", "[simd][construction]")
 {
   constexpr auto size = 4;
-  using simd_t        = dp::simd<int, size>;
+  using simd_t        = dp::vec<int, size>;
   using mask_t        = simd_t::mask_type;
   using array_t       = simd_array_t<simd_t>;
 
@@ -120,13 +120,13 @@ C2H_CCCLRT_TEST("simd.construction_and_memory", "[simd][construction]")
   loaded.copy_from(roundtrip, dp::overaligned<64>);
   expect_equal(loaded, array_t{0, 2, 4, 6});
 
-  dp::simd<float, 4> widened(generated);
+  dp::vec<float, 4> widened(generated);
   expect_equal(widened, ::cuda::std::array<float, size>{0.0f, 2.0f, 4.0f, 6.0f});
 
-  mask_t from_simd = static_cast<mask_t>(generated);
+  mask_t from_simd = (generated != simd_t(0));
   expect_equal(from_simd, ::cuda::std::array<bool, size>{false, true, true, true});
 
-  dp::simd<int, 4> assigned = simd_t(linear_index_gen{});
+  dp::vec<int, 4> assigned = simd_t(linear_index_gen{});
   assigned                  = generated;
   expect_equal(assigned, array_t{0, 2, 4, 6});
 
@@ -141,7 +141,7 @@ C2H_CCCLRT_TEST("simd.construction_and_memory", "[simd][construction]")
 
 C2H_CCCLRT_TEST("simd.arithmetic_and_comparisons", "[simd][arithmetic]")
 {
-  using simd_t  = dp::simd<int, 4>;
+  using simd_t  = dp::vec<int, 4>;
   using mask_t  = simd_t::mask_type;
   using array_t = simd_array_t<simd_t>;
 
@@ -216,22 +216,22 @@ C2H_CCCLRT_TEST("simd.arithmetic_and_comparisons", "[simd][arithmetic]")
   expect_equal(shift_compound, array_t{1, 1, 1, 1});
 
   mask_t eq_mask = (lhs == lhs);
-  CUDAX_REQUIRE(eq_mask.all());
+  CUDAX_REQUIRE(dp::all_of(eq_mask));
   mask_t lt_mask = (lhs < 2);
-  CUDAX_REQUIRE(lt_mask.count() == 2);
+  CUDAX_REQUIRE(dp::reduce_count(lt_mask) == 2);
 
   mask_t scalar_first_lt = (2 <= lhs);
-  CUDAX_REQUIRE(scalar_first_lt.count() == 2);
+  CUDAX_REQUIRE(dp::reduce_count(scalar_first_lt) == 2);
 
   mask_t scalar_eq_rhs = (lhs == 1);
-  CUDAX_REQUIRE(scalar_eq_rhs.count() == 1);
+  CUDAX_REQUIRE(dp::reduce_count(scalar_eq_rhs) == 1);
 
   mask_t scalar_eq_lhs = (1 == lhs);
-  CUDAX_REQUIRE(scalar_eq_lhs.count() == 1);
+  CUDAX_REQUIRE(dp::reduce_count(scalar_eq_lhs) == 1);
 
   mask_t ge_mask = (lhs >= 1);
-  CUDAX_REQUIRE(ge_mask.any());
-  CUDAX_REQUIRE(!ge_mask.none());
+  CUDAX_REQUIRE(dp::any_of(ge_mask));
+  CUDAX_REQUIRE(!dp::none_of(ge_mask));
 
   auto negated = -lhs;
   expect_equal(negated, array_t{0, -1, -2, -3});
@@ -242,69 +242,91 @@ C2H_CCCLRT_TEST("simd.arithmetic_and_comparisons", "[simd][arithmetic]")
 
 C2H_CCCLRT_TEST("simd.mask", "[simd][mask]")
 {
-  using mask_t           = dp::simd_mask<int, 4>;
-  using simd_t           = dp::simd<int, 4>;
+  using mask_t           = dp::mask<int, 4>;
+  using simd_t           = dp::vec<int, 4>;
   using mask_array_t     = ::cuda::std::array<bool, mask_t::size()>;
   using simd_array_typed = simd_array_t<simd_t>;
 
   mask_t alternating(alternating_mask_gen{});
   expect_equal(alternating, mask_array_t{true, false, true, false});
-  CUDAX_REQUIRE(alternating.count() == 2);
-  CUDAX_REQUIRE(alternating.any());
-  CUDAX_REQUIRE(!alternating.all());
-  CUDAX_REQUIRE(!alternating.none());
+  CUDAX_REQUIRE(dp::reduce_count(alternating) == 2);
+  CUDAX_REQUIRE(dp::any_of(alternating));
+  CUDAX_REQUIRE(!dp::all_of(alternating));
+  CUDAX_REQUIRE(!dp::none_of(alternating));
 
   mask_t inverted = !alternating;
   expect_equal(inverted, mask_array_t{false, true, false, true});
 
   mask_t zero = alternating & inverted;
-  CUDAX_REQUIRE(zero.none());
+  CUDAX_REQUIRE(dp::none_of(zero));
 
   mask_t combined = alternating | inverted;
-  CUDAX_REQUIRE(combined.all());
-
-  bool buffer[mask_t::size()] = {};
-  alternating.copy_to(buffer);
-  mask_t loaded(buffer);
-  CUDAX_REQUIRE(loaded == alternating);
-
-  mask_t copied(false);
-  copied.copy_from(buffer);
-  CUDAX_REQUIRE(copied == alternating);
-
-  alignas(64) bool aligned_buffer[mask_t::size()] = {true, true, false, false};
-  mask_t from_aligned(false);
-  from_aligned.copy_from(aligned_buffer, dp::overaligned<64>);
-  alignas(64) bool aligned_roundtrip[mask_t::size()] = {};
-  from_aligned.copy_to(aligned_roundtrip, dp::overaligned<64>);
-  mask_t roundtrip_check(aligned_roundtrip);
-  CUDAX_REQUIRE(roundtrip_check == from_aligned);
+  CUDAX_REQUIRE(dp::all_of(combined));
 
   auto vec_from_mask = static_cast<simd_t>(alternating);
   expect_equal(vec_from_mask, simd_array_typed{1, 0, 1, 0});
 
-  mask_t mutated = alternating;
-  mutated[1]     = true;
-  mutated[3]     = true;
-  CUDAX_REQUIRE(mutated.all());
-
   mask_t xor_mask = alternating ^ inverted;
-  CUDAX_REQUIRE(xor_mask.all());
+  CUDAX_REQUIRE(dp::all_of(xor_mask));
 
   mask_t assigned = alternating;
   assigned ^= inverted;
-  CUDAX_REQUIRE(assigned.all());
+  CUDAX_REQUIRE(dp::all_of(assigned));
 
   assigned &= combined;
-  CUDAX_REQUIRE(assigned.all());
+  CUDAX_REQUIRE(dp::all_of(assigned));
+
+  mask_t or_test(false);
+  or_test |= alternating;
+  CUDAX_REQUIRE(dp::all_of(or_test == alternating));
 
   mask_t broadcast_true(true);
-  CUDAX_REQUIRE(broadcast_true.all());
+  CUDAX_REQUIRE(dp::all_of(broadcast_true));
+
+  mask_t broadcast_false(false);
+  CUDAX_REQUIRE(dp::none_of(broadcast_false));
+
+  // Element-wise comparison operators
+  mask_t eq_result = (alternating == alternating);
+  CUDAX_REQUIRE(dp::all_of(eq_result));
+
+  mask_t ne_result = (alternating != inverted);
+  CUDAX_REQUIRE(dp::all_of(ne_result));
+
+  mask_t a(true);
+  mask_t b(false);
+  CUDAX_REQUIRE(dp::all_of(a >= b));
+  CUDAX_REQUIRE(dp::all_of(b <= a));
+  CUDAX_REQUIRE(dp::all_of(a > b));
+  CUDAX_REQUIRE(dp::all_of(b < a));
+  CUDAX_REQUIRE(dp::all_of(a >= a));
+  CUDAX_REQUIRE(dp::all_of(a <= a));
+  CUDAX_REQUIRE(dp::none_of(a > a));
+  CUDAX_REQUIRE(dp::none_of(a < a));
+
+  // Unsigned integer constructor
+  mask_t from_bits(static_cast<unsigned>(0b1010));
+  expect_equal(from_bits, mask_array_t{false, true, false, true});
+
+  // Unary operators returning basic_vec
+  mask_t pos_input(true);
+  auto plus_result = +pos_input;
+  CUDAX_REQUIRE(dp::all_of(plus_result == simd_t(1)));
+
+  auto minus_result = -pos_input;
+  CUDAX_REQUIRE(dp::all_of(minus_result == simd_t(-1)));
+
+  // Logical operators
+  mask_t logical_and = alternating && inverted;
+  CUDAX_REQUIRE(dp::none_of(logical_and));
+
+  mask_t logical_or = alternating || inverted;
+  CUDAX_REQUIRE(dp::all_of(logical_or));
 }
 
 C2H_CCCLRT_TEST("simd.reference", "[simd][reference]")
 {
-  using simd_t  = dp::simd<int, 4>;
+  using simd_t  = dp::vec<int, 4>;
   using array_t = simd_array_t<simd_t>;
 
   simd_t values(linear_index_gen{});

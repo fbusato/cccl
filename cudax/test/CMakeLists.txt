@@ -119,6 +119,10 @@ cudax_add_catch2_test(test_target hierarchy_groups
     hierarchy/group.cu
 )
 
+cudax_add_catch2_test(test_target simd
+    simd/simd.cu
+)
+
 if (cudax_ENABLE_CUFILE)
   cudax_add_catch2_test(test_target cufile.driver_attributes
       cufile/driver_attributes.cu

@@ -32,7 +32,7 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::experimental::datapar
+namespace cuda::experimental::simd
 {
 namespace simd_abi
 {
@@ -374,7 +374,7 @@ struct __mask_operations<_Bytes, simd_abi::__fixed_size<_Np>>
 #undef _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP
 #undef _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP
 #undef _CUDAX_SIMD_FIXED_SIZE_BINARY_CMP_OP
-} // namespace cuda::experimental::datapar
+} // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>
 

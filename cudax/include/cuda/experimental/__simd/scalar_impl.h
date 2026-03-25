@@ -27,10 +27,11 @@
 #include <cuda/std/__type_traits/is_integral.h>
 
 #include <cuda/experimental/__simd/declaration.h>
+#include <cuda/experimental/__simd/traits.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::experimental::datapar
+namespace cuda::experimental::simd
 {
 namespace simd_abi
 {
@@ -38,7 +39,12 @@ struct __scalar
 {
   static constexpr ::cuda::std::size_t __simd_size = 1;
 };
+
+using scalar = __scalar;
 } // namespace simd_abi
+
+template <>
+inline constexpr bool is_abi_tag_v<simd_abi::scalar> = true;
 
 template <typename _Tp>
 struct __simd_storage<_Tp, simd_abi::__scalar>
@@ -307,7 +313,7 @@ struct __mask_operations<_Bytes, simd_abi::__scalar>
     return static_cast<bool>(__s.__data) ? 1 : 0;
   }
 };
-} // namespace cuda::experimental::datapar
+} // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>
 

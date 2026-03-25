@@ -30,7 +30,7 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::experimental::datapar
+namespace cuda::experimental::simd
 {
 template <typename _Storage, typename _Vp>
 class __simd_reference
@@ -209,7 +209,7 @@ _CCCL_API void swap(__simd_reference<_Storage, _Vp>&& __a, _Vp& __b) noexcept
   ::cuda::std::move(__a) = ::cuda::std::move(__b);
   __b                    = ::cuda::std::move(__tmp);
 }
-} // namespace cuda::experimental::datapar
+} // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>
 

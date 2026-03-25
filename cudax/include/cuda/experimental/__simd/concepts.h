@@ -31,7 +31,7 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::experimental::datapar
+namespace cuda::experimental::simd
 {
 template <typename _To, typename _From>
 bool constexpr __is_value_preserving_broadcast_impl()
@@ -203,7 +203,7 @@ _CCCL_CONCEPT __has_greater = _CCCL_REQUIRES_EXPR((_Tp), _Tp __t)((__t > __t));
 
 template <typename _Tp>
 _CCCL_CONCEPT __has_less = _CCCL_REQUIRES_EXPR((_Tp), _Tp __t)((__t < __t));
-} // namespace cuda::experimental::datapar
+} // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>
 
