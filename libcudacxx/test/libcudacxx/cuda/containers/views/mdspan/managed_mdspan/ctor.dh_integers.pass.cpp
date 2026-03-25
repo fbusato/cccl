@@ -29,6 +29,7 @@
 //   - direct-non-list-initializes map_ with extents_type(static_cast<index_type>(cuda::std::move(exts))...), and
 //   - value-initializes acc_.
 
+#define _CCCL_DISABLE_MDSPAN_ACCESSOR_DETECT_INVALIDITY
 #include <cuda/mdspan>
 #include <cuda/std/array>
 #include <cuda/std/cassert>
@@ -103,17 +104,19 @@ __host__ __device__ constexpr void mixin_extents(const H& handle, const L& layou
   [[maybe_unused]] constexpr size_t D = cuda::std::dynamic_extent;
   // construct from just dynamic extents
   test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<int>()), acc);
-  test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<char, D>(7)), acc, 7);
+  test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<signed char, D>(7)), acc, 7);
   test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<unsigned, 7>()), acc);
   test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<size_t, D, 4, D>(2, 3)), acc, 2, 3);
-  test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<char, D, 7, D>(0, 3)), acc, 0, 3);
+  test_mdspan_types<mec, ac>(
+    handle, construct_mapping(layout, cuda::std::extents<signed char, D, 7, D>(0, 3)), acc, 0, 3);
   test_mdspan_types<mec, ac>(
     handle, construct_mapping(layout, cuda::std::extents<int64_t, D, 7, D, 4, D, D>(1, 2, 3, 2)), acc, 1, 2, 3, 2);
 
   // construct from all extents
   test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<unsigned, 7>()), acc, 7);
   test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<size_t, D, 4, D>(2, 3)), acc, 2, 4, 3);
-  test_mdspan_types<mec, ac>(handle, construct_mapping(layout, cuda::std::extents<char, D, 7, D>(0, 3)), acc, 0, 7, 3);
+  test_mdspan_types<mec, ac>(
+    handle, construct_mapping(layout, cuda::std::extents<signed char, D, 7, D>(0, 3)), acc, 0, 7, 3);
   test_mdspan_types<mec, ac>(
     handle, construct_mapping(layout, cuda::std::extents<int64_t, D, 7, D, 4, D, D>(1, 2, 3, 2)), acc, 1, 7, 2, 4, 3, 2);
 }

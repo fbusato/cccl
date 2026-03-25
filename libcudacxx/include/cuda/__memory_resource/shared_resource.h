@@ -38,7 +38,7 @@
 _CCCL_BEGIN_NAMESPACE_CUDA_MR
 
 //! @rst
-//! .. _cudax-memory-resource-shared-resource:
+//! .. _libcudacxx-memory-resource-shared-resource:
 //!
 //! Resource wrapper to share ownership of a resource
 //! --------------------------------------------------
@@ -50,7 +50,9 @@ _CCCL_BEGIN_NAMESPACE_CUDA_MR
 //! @tparam _Resource The resource type to hold.
 //! @endrst
 template <class _Resource>
-struct shared_resource : ::cuda::mr::__copy_default_queries<_Resource>
+struct shared_resource
+    : ::cuda::mr::__copy_default_queries<_Resource>
+    , ::cuda::forward_property<shared_resource<_Resource>, _Resource>
 {
   static_assert(::cuda::mr::synchronous_resource<_Resource>, "");
 
@@ -130,10 +132,53 @@ struct shared_resource : ::cuda::mr::__copy_default_queries<_Resource>
   }
 
   //! @brief Swaps a \c shared_resource with another one.
-  //! @param __other The other \c shared_resource.
+  //! @param __left A \c shared_resource.
+  //! @param __right Another \c shared_resource.
   friend void swap(shared_resource& __left, shared_resource& __right) noexcept
   {
     __left.swap(__right);
+  }
+
+  //! @brief Returns a reference to the stored resource.
+  //! @return A reference to the stored resource.
+  [[nodiscard]] _Resource& get() noexcept
+  {
+    return __control_block->__resource;
+  }
+
+  //! @brief Returns a const reference to the stored resource.
+  //! @return A const reference to the stored resource.
+  [[nodiscard]] const _Resource& get() const noexcept
+  {
+    return __control_block->__resource;
+  }
+
+  //! @brief Returns a pointer to the stored resource.
+  //! @return A pointer to the stored resource.
+  [[nodiscard]] _Resource* operator->() noexcept
+  {
+    return &__control_block->__resource;
+  }
+
+  //! @brief Returns a const pointer to the stored resource.
+  //! @return A const pointer to the stored resource.
+  [[nodiscard]] const _Resource* operator->() const noexcept
+  {
+    return &__control_block->__resource;
+  }
+
+  //! @brief Returns a reference to the stored resource.
+  //! @return A reference to the stored resource.
+  [[nodiscard]] _Resource& operator*() noexcept
+  {
+    return __control_block->__resource;
+  }
+
+  //! @brief Returns a const reference to the stored resource.
+  //! @return A const reference to the stored resource.
+  [[nodiscard]] const _Resource& operator*() const noexcept
+  {
+    return __control_block->__resource;
   }
 
   //! @brief Allocate memory of size at least \p __bytes using the stored resource.
@@ -212,19 +257,6 @@ struct shared_resource : ::cuda::mr::__copy_default_queries<_Resource>
     return !(__lhs == __rhs);
   }
 
-  //! @brief Forwards the stateless properties
-  _CCCL_TEMPLATE(class _Property)
-  _CCCL_REQUIRES((!property_with_value<_Property>) _CCCL_AND(has_property<_Resource, _Property>))
-  friend void get_property(const shared_resource&, _Property) noexcept {}
-
-  //! @brief Forwards the stateful properties
-  _CCCL_TEMPLATE(class _Property)
-  _CCCL_REQUIRES(property_with_value<_Property> _CCCL_AND(has_property<_Resource, _Property>))
-  [[nodiscard]] friend __property_value_t<_Property> get_property(const shared_resource& __self, _Property) noexcept
-  {
-    return get_property(__self.__control_block->__resource, _Property{});
-  }
-
 private:
   // Use a custom shared_ptr implementation because (a) we don't need to support weak_ptr so we only
   // need one pointer, not two, and (b) this implementation can work on device also.
@@ -238,7 +270,7 @@ private:
 };
 
 //! @rst
-//! .. _cudax-memory-resource-make-shared-resource:
+//! .. _libcudacxx-memory-resource-make-shared-resource:
 //!
 //! Factory function for `shared_resource` objects
 //! -----------------------------------------------

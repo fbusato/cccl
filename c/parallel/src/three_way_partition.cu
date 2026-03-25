@@ -10,10 +10,9 @@
 
 #include <cub/detail/choose_offset.cuh> // cub::detail::choose_offset_t
 #include <cub/detail/launcher/cuda_driver.cuh> // cub::detail::CudaDriverLauncherFactory
-#include <cub/detail/ptx-json-parser.cuh>
-#include <cub/device/dispatch/dispatch_three_way_partition.cuh> // cub::DispatchThreeWayPartitionIf
+#include <cub/device/dispatch/dispatch_three_way_partition.cuh>
 #include <cub/device/dispatch/kernels/kernel_three_way_partition.cuh> // DeviceThreeWayPartition kernels
-#include <cub/device/dispatch/tuning/tuning_three_way_partition.cuh> // policy_hub
+#include <cub/device/dispatch/tuning/tuning_three_way_partition.cuh> // policy_selector
 
 #include <exception>
 #include <format>
@@ -32,12 +31,11 @@
 #include "util/types.h"
 #include <cccl/c/three_way_partition.h>
 #include <cccl/c/types.h>
-#include <nlohmann/json.hpp>
 #include <nvrtc/command_list.h>
 #include <nvrtc/ltoir_list_appender.h>
 #include <util/build_utils.h>
 
-struct device_three_way_partition_policy;
+struct device_three_way_partition_policy_selector;
 using OffsetT = ptrdiff_t;
 static_assert(std::is_same_v<cub::detail::choose_signed_offset<OffsetT>::type, OffsetT>, "OffsetT must be long");
 
@@ -47,24 +45,6 @@ static_assert(sizeof(OffsetT) == sizeof(cuda::std::int64_t));
 
 namespace three_way_partition
 {
-struct three_way_partition_runtime_tuning_policy
-{
-  cub::detail::RuntimeThreeWayPartitionAgentPolicy three_way_partition;
-
-  auto ThreeWayPartition() const
-  {
-    return three_way_partition;
-  }
-
-  using MaxPolicy = three_way_partition_runtime_tuning_policy;
-
-  template <typename F>
-  cudaError_t Invoke(int, F& op)
-  {
-    return op.template Invoke<three_way_partition_runtime_tuning_policy>(*this);
-  }
-};
-
 struct three_way_partition_kernel_source
 {
   cccl_device_three_way_partition_build_result_t& build;
@@ -97,8 +77,8 @@ std::string get_three_way_partition_kernel_name(
   std::string_view select_first_part_op_name,
   std::string_view select_second_part_op_name)
 {
-  std::string chained_policy_t;
-  check(cccl_type_name_from_nvrtc<device_three_way_partition_policy>(&chained_policy_t));
+  std::string policy_selector_t;
+  check(cccl_type_name_from_nvrtc<device_three_way_partition_policy_selector>(&policy_selector_t));
 
   constexpr std::string_view scan_tile_state_t = "cub::detail::three_way_partition::ScanTileStateT";
 
@@ -111,7 +91,7 @@ std::string get_three_way_partition_kernel_name(
   return std::format(
     "cub::detail::three_way_partition::DeviceThreeWayPartitionKernel<{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, "
     "{10}>",
-    chained_policy_t, // 0
+    policy_selector_t, // 0
     d_in_iterator_name, // 1
     d_first_part_out_iterator_name, // 2
     d_second_part_out_iterator_name, // 3
@@ -150,50 +130,54 @@ CUresult cccl_device_three_way_partition_build_ex(
   const char* libcudacxx_path,
   const char* ctk_path,
   cccl_build_config* config)
+try
 {
-  CUresult error = CUDA_SUCCESS;
+  const char* name = "device_three_way_partition";
 
-  try
-  {
-    const char* name = "device_three_way_partition";
+  const int cc = cc_major * 10 + cc_minor;
 
-    const int cc = cc_major * 10 + cc_minor;
+  const auto [d_in_iterator_name, d_in_iterator_src] =
+    get_specialization<three_way_partition_input_iterator_tag>(template_id<input_iterator_traits>(), d_in);
+  const auto [d_first_part_out_iterator_name, d_first_part_out_iterator_src] =
+    get_specialization<three_way_partition_first_part_output_iterator_tag>(
+      template_id<output_iterator_traits>(), d_first_part_out, d_first_part_out.value_type);
+  const auto [d_second_part_out_iterator_name, d_second_part_out_iterator_src] =
+    get_specialization<three_way_partition_second_part_output_iterator_tag>(
+      template_id<output_iterator_traits>(), d_second_part_out, d_second_part_out.value_type);
+  const auto [d_unselected_out_iterator_name, d_unselected_out_iterator_src] =
+    get_specialization<three_way_partition_unselected_output_iterator_tag>(
+      template_id<output_iterator_traits>(), d_unselected_out, d_unselected_out.value_type);
+  const auto [d_num_selected_out_iterator_name, d_num_selected_out_iterator_src] =
+    get_specialization<three_way_partition_num_selected_output_iterator_tag>(
+      template_id<output_iterator_traits>(), d_num_selected_out, d_num_selected_out.value_type);
 
-    const auto [d_in_iterator_name, d_in_iterator_src] =
-      get_specialization<three_way_partition_input_iterator_tag>(template_id<input_iterator_traits>(), d_in);
-    const auto [d_first_part_out_iterator_name, d_first_part_out_iterator_src] =
-      get_specialization<three_way_partition_first_part_output_iterator_tag>(
-        template_id<output_iterator_traits>(), d_first_part_out, d_first_part_out.value_type);
-    const auto [d_second_part_out_iterator_name, d_second_part_out_iterator_src] =
-      get_specialization<three_way_partition_second_part_output_iterator_tag>(
-        template_id<output_iterator_traits>(), d_second_part_out, d_second_part_out.value_type);
-    const auto [d_unselected_out_iterator_name, d_unselected_out_iterator_src] =
-      get_specialization<three_way_partition_unselected_output_iterator_tag>(
-        template_id<output_iterator_traits>(), d_unselected_out, d_unselected_out.value_type);
-    const auto [d_num_selected_out_iterator_name, d_num_selected_out_iterator_src] =
-      get_specialization<three_way_partition_num_selected_output_iterator_tag>(
-        template_id<output_iterator_traits>(), d_num_selected_out, d_num_selected_out.value_type);
+  cccl_type_info selector_result_t{sizeof(bool), alignof(bool), cccl_type_enum::CCCL_BOOLEAN};
 
-    cccl_type_info selector_result_t{sizeof(bool), alignof(bool), cccl_type_enum::CCCL_BOOLEAN};
+  const auto [select_first_part_op_name, select_first_part_op_src] =
+    get_specialization<three_way_partition_select_first_part_operation_tag>(
+      template_id<user_operation_traits>(), select_first_part_op, selector_result_t, d_in.value_type);
+  const auto [select_second_part_op_name, select_second_part_op_src] =
+    get_specialization<three_way_partition_select_second_part_operation_tag>(
+      template_id<user_operation_traits>(), select_second_part_op, selector_result_t, d_in.value_type);
 
-    const auto [select_first_part_op_name, select_first_part_op_src] =
-      get_specialization<three_way_partition_select_first_part_operation_tag>(
-        template_id<user_operation_traits>(), select_first_part_op, selector_result_t, d_in.value_type);
-    const auto [select_second_part_op_name, select_second_part_op_src] =
-      get_specialization<three_way_partition_select_second_part_operation_tag>(
-        template_id<user_operation_traits>(), select_second_part_op, selector_result_t, d_in.value_type);
+  const auto offset_t = cccl_type_enum_to_name(cccl_type_enum::CCCL_INT64);
 
-    const auto offset_t = cccl_type_enum_to_name(cccl_type_enum::CCCL_INT64);
+  const std::string key_t = cccl_type_enum_to_name(d_in.value_type.type);
 
-    const std::string key_t = cccl_type_enum_to_name(d_in.value_type.type);
+  const auto policy_sel = cub::detail::three_way_partition::policy_selector{
+    cccl_type_enum_to_cub_type(d_in.value_type.type), static_cast<int>(d_in.value_type.size), int{sizeof(OffsetT)}};
 
-    const auto policy_hub_expr = std::format(
-      R"XXX(cub::detail::three_way_partition::policy_hub<{0}, {1}>)XXX",
-      key_t, // 0
-      offset_t); // 1
+  // TODO(bgruber): drop this if tuning policies become formattable
+  std::stringstream policy_sel_str;
+  policy_sel_str << policy_sel(cuda::to_arch_id(cuda::compute_capability{cc_major, cc_minor}));
 
-    std::string final_src = std::format(
-      R"XXX(
+  const auto policy_selector_expr = std::format(
+    R"XXX(cub::detail::three_way_partition::policy_selector_from_types<{0}, {1}>)XXX",
+    key_t, // 0
+    offset_t); // 1
+
+  std::string final_src = std::format(
+    R"XXX(
 #include <cub/device/dispatch/tuning/tuning_three_way_partition.cuh>
 #include <cub/device/dispatch/kernels/kernel_three_way_partition.cuh>
 {0}
@@ -207,111 +191,109 @@ struct __align__({2}) storage_t {{
 {7}
 {8}
 {9}
-using device_three_way_partition_policy = {10}::MaxPolicy;
-
-#include <cub/detail/ptx-json/json.cuh>
-__device__ consteval auto& policy_generator() {{
-  return ptx_json::id<ptx_json::string("device_three_way_partition_policy")>()
-    = cub::detail::three_way_partition::ThreeWayPartitionPolicyWrapper<device_three_way_partition_policy::ActivePolicy>::EncodedPolicy();
-}}
+using device_three_way_partition_policy_selector = {10};
+using namespace cub;
+using namespace cub::detail;
+using namespace cub::detail::three_way_partition;
+static_assert(
+  device_three_way_partition_policy_selector()(::cuda::arch_id{{CUB_PTX_ARCH / 10}}) == {11},
+  "Host generated and JIT compiled policy mismatch");
 )XXX",
-      jit_template_header_contents, // 0
-      d_in.value_type.size, // 1
-      d_in.value_type.alignment, // 2
-      d_in_iterator_src, // 3
-      d_first_part_out_iterator_src, // 4
-      d_second_part_out_iterator_src, // 5
-      d_unselected_out_iterator_src, // 6
-      d_num_selected_out_iterator_src, // 7
-      select_first_part_op_src, // 8
-      select_second_part_op_src, // 9
-      policy_hub_expr); // 10
+    jit_template_header_contents, // 0
+    d_in.value_type.size, // 1
+    d_in.value_type.alignment, // 2
+    d_in_iterator_src, // 3
+    d_first_part_out_iterator_src, // 4
+    d_second_part_out_iterator_src, // 5
+    d_unselected_out_iterator_src, // 6
+    d_num_selected_out_iterator_src, // 7
+    select_first_part_op_src, // 8
+    select_second_part_op_src, // 9
+    policy_selector_expr, // 10
+    policy_sel_str.view()); // 11
 
-    std::string three_way_partition_init_kernel_name =
-      three_way_partition::get_three_way_partition_init_kernel_name(d_num_selected_out_iterator_name);
-    std::string three_way_partition_kernel_name = three_way_partition::get_three_way_partition_kernel_name(
-      d_in_iterator_name,
-      d_first_part_out_iterator_name,
-      d_second_part_out_iterator_name,
-      d_unselected_out_iterator_name,
-      d_num_selected_out_iterator_name,
-      select_first_part_op_name,
-      select_second_part_op_name);
-    std::string three_way_partition_init_kernel_lowered_name;
-    std::string three_way_partition_kernel_lowered_name;
+#if false // CCCL_DEBUGGING_SWITCH
+  fflush(stderr);
+  printf("\nCODE4NVRTC BEGIN\n%sCODE4NVRTC END\n", final_src.c_str());
+  fflush(stdout);
+#endif
 
-    const std::string arch = std::format("-arch=sm_{0}{1}", cc_major, cc_minor);
+  std::string three_way_partition_init_kernel_name =
+    three_way_partition::get_three_way_partition_init_kernel_name(d_num_selected_out_iterator_name);
+  std::string three_way_partition_kernel_name = three_way_partition::get_three_way_partition_kernel_name(
+    d_in_iterator_name,
+    d_first_part_out_iterator_name,
+    d_second_part_out_iterator_name,
+    d_unselected_out_iterator_name,
+    d_num_selected_out_iterator_name,
+    select_first_part_op_name,
+    select_second_part_op_name);
+  std::string three_way_partition_init_kernel_lowered_name;
+  std::string three_way_partition_kernel_lowered_name;
 
-    std::vector<const char*> args = {
-      arch.c_str(),
-      cub_path,
-      thrust_path,
-      libcudacxx_path,
-      ctk_path,
-      "-rdc=true",
-      "-dlto",
-      "-DCUB_DISABLE_CDP",
-      "-DCUB_ENABLE_POLICY_PTX_JSON",
-      "-std=c++20"};
+  const std::string arch = std::format("-arch=sm_{0}{1}", cc_major, cc_minor);
 
-    cccl::detail::extend_args_with_build_config(args, config);
+  std::vector<const char*> args = {
+    arch.c_str(),
+    cub_path,
+    thrust_path,
+    libcudacxx_path,
+    ctk_path,
+    "-rdc=true",
+    "-dlto",
+    "-DCUB_DISABLE_CDP",
+    "-std=c++20"};
 
-    constexpr size_t num_lto_args   = 2;
-    const char* lopts[num_lto_args] = {"-lto", arch.c_str()};
+  cccl::detail::extend_args_with_build_config(args, config);
 
-    // Collect all LTO-IRs to be linked.
-    nvrtc_linkable_list linkable_list;
-    nvrtc_linkable_list_appender appender{linkable_list};
+  constexpr size_t num_lto_args   = 2;
+  const char* lopts[num_lto_args] = {"-lto", arch.c_str()};
 
-    appender.append_operation(select_first_part_op);
-    appender.append_operation(select_second_part_op);
-    appender.add_iterator_definition(d_in);
-    appender.add_iterator_definition(d_first_part_out);
-    appender.add_iterator_definition(d_second_part_out);
-    appender.add_iterator_definition(d_unselected_out);
-    appender.add_iterator_definition(d_num_selected_out);
+  // Collect all LTO-IRs to be linked.
+  nvrtc_linkable_list linkable_list;
+  nvrtc_linkable_list_appender appender{linkable_list};
 
-    nvrtc_link_result result =
-      begin_linking_nvrtc_program(num_lto_args, lopts)
-        ->add_program(nvrtc_translation_unit{final_src.c_str(), name})
-        ->add_expression({three_way_partition_init_kernel_name})
-        ->add_expression({three_way_partition_kernel_name})
-        ->compile_program({args.data(), args.size()})
-        ->get_name({three_way_partition_init_kernel_name, three_way_partition_init_kernel_lowered_name})
-        ->get_name({three_way_partition_kernel_name, three_way_partition_kernel_lowered_name})
-        ->link_program()
-        ->add_link_list(linkable_list)
-        ->finalize_program();
+  appender.append_operation(select_first_part_op);
+  appender.append_operation(select_second_part_op);
+  appender.add_iterator_definition(d_in);
+  appender.add_iterator_definition(d_first_part_out);
+  appender.add_iterator_definition(d_second_part_out);
+  appender.add_iterator_definition(d_unselected_out);
+  appender.add_iterator_definition(d_num_selected_out);
 
-    cuLibraryLoadData(&build_ptr->library, result.data.get(), nullptr, nullptr, 0, nullptr, nullptr, 0);
-    check(cuLibraryGetKernel(&build_ptr->three_way_partition_init_kernel,
-                             build_ptr->library,
-                             three_way_partition_init_kernel_lowered_name.c_str()));
-    check(cuLibraryGetKernel(
-      &build_ptr->three_way_partition_kernel, build_ptr->library, three_way_partition_kernel_lowered_name.c_str()));
+  nvrtc_link_result result =
+    begin_linking_nvrtc_program(num_lto_args, lopts)
+      ->add_program(nvrtc_translation_unit{final_src.c_str(), name})
+      ->add_expression({three_way_partition_init_kernel_name})
+      ->add_expression({three_way_partition_kernel_name})
+      ->compile_program({args.data(), args.size()})
+      ->get_name({three_way_partition_init_kernel_name, three_way_partition_init_kernel_lowered_name})
+      ->get_name({three_way_partition_kernel_name, three_way_partition_kernel_lowered_name})
+      ->link_program()
+      ->add_link_list(linkable_list)
+      ->finalize_program();
 
-    nlohmann::json runtime_policy =
-      cub::detail::ptx_json::parse("device_three_way_partition_policy", {result.data.get(), result.size});
+  cuLibraryLoadData(&build_ptr->library, result.data.get(), nullptr, nullptr, 0, nullptr, nullptr, 0);
+  check(cuLibraryGetKernel(&build_ptr->three_way_partition_init_kernel,
+                           build_ptr->library,
+                           three_way_partition_init_kernel_lowered_name.c_str()));
+  check(cuLibraryGetKernel(
+    &build_ptr->three_way_partition_kernel, build_ptr->library, three_way_partition_kernel_lowered_name.c_str()));
 
-    using cub::detail::RuntimeThreeWayPartitionAgentPolicy;
-    auto three_way_partition_policy =
-      RuntimeThreeWayPartitionAgentPolicy::from_json(runtime_policy, "ThreeWayPartitionPolicy");
+  build_ptr->cc             = cc;
+  build_ptr->cubin          = (void*) result.data.release();
+  build_ptr->cubin_size     = result.size;
+  build_ptr->runtime_policy = new cub::detail::three_way_partition::policy_selector{policy_sel};
 
-    build_ptr->cc         = cc;
-    build_ptr->cubin      = (void*) result.data.release();
-    build_ptr->cubin_size = result.size;
-    build_ptr->runtime_policy =
-      new three_way_partition::three_way_partition_runtime_tuning_policy{three_way_partition_policy};
-  }
-  catch (const std::exception& exc)
-  {
-    fflush(stderr);
-    printf("\nEXCEPTION in cccl_device_three_way_partition_build(): %s\n", exc.what());
-    fflush(stdout);
-    error = CUDA_ERROR_UNKNOWN;
-  }
+  return CUDA_SUCCESS;
+}
+catch (const std::exception& exc)
+{
+  fflush(stderr);
+  printf("\nEXCEPTION in cccl_device_three_way_partition_build(): %s\n", exc.what());
+  fflush(stdout);
 
-  return error;
+  return CUDA_ERROR_UNKNOWN;
 }
 
 CUresult cccl_device_three_way_partition(
@@ -337,7 +319,7 @@ CUresult cccl_device_three_way_partition(
     CUdevice cu_device;
     check(cuCtxGetDevice(&cu_device));
 
-    auto exec_status = cub::DispatchThreeWayPartitionIf<
+    auto exec_status = cub::detail::three_way_partition::dispatch<
       indirect_arg_t, // InputIteratorT
       indirect_arg_t, // FirstOutputIteratorT
       indirect_arg_t, // SecondOutputIteratorT
@@ -346,25 +328,23 @@ CUresult cccl_device_three_way_partition(
       indirect_arg_t, // SelectFirstPartOp
       indirect_arg_t, // SelectSecondPartOp
       OffsetT, // OffsetT
-      three_way_partition::three_way_partition_runtime_tuning_policy, // PolicyHub
+      cub::detail::three_way_partition::policy_selector, // PolicySelector
       three_way_partition::three_way_partition_kernel_source, // KernelSource
-      cub::detail::CudaDriverLauncherFactory>::
-      Dispatch(
-        d_temp_storage,
-        *temp_storage_bytes,
-        d_in,
-        d_first_part_out,
-        d_second_part_out,
-        d_unselected_out,
-        d_num_selected_out,
-        select_first_part_op,
-        select_second_part_op,
-        num_items,
-        stream,
-        /* kernel_source */ {build},
-        /* launcher_factory */ cub::detail::CudaDriverLauncherFactory{cu_device, build.cc},
-        /* policy */
-        *reinterpret_cast<three_way_partition::three_way_partition_runtime_tuning_policy*>(build.runtime_policy));
+      cub::detail::CudaDriverLauncherFactory>(
+      d_temp_storage,
+      *temp_storage_bytes,
+      d_in,
+      d_first_part_out,
+      d_second_part_out,
+      d_unselected_out,
+      d_num_selected_out,
+      select_first_part_op,
+      select_second_part_op,
+      static_cast<OffsetT>(num_items),
+      stream,
+      /* policy_selector */ *static_cast<cub::detail::three_way_partition::policy_selector*>(build.runtime_policy),
+      /* kernel_source */ {build},
+      /* launcher_factory */ cub::detail::CudaDriverLauncherFactory{cu_device, build.cc});
 
     error = static_cast<CUresult>(exec_status);
   }
@@ -386,26 +366,26 @@ CUresult cccl_device_three_way_partition(
 }
 
 CUresult cccl_device_three_way_partition_cleanup(cccl_device_three_way_partition_build_result_t* bld_ptr)
+try
 {
-  try
+  if (bld_ptr == nullptr)
   {
-    if (bld_ptr == nullptr)
-    {
-      return CUDA_ERROR_INVALID_VALUE;
-    }
-    std::unique_ptr<char[]> cubin(reinterpret_cast<char*>(bld_ptr->cubin));
-    std::unique_ptr<char[]> policy(reinterpret_cast<char*>(bld_ptr->runtime_policy));
-    check(cuLibraryUnload(bld_ptr->library));
+    return CUDA_ERROR_INVALID_VALUE;
   }
-  catch (const std::exception& exc)
-  {
-    fflush(stderr);
-    printf("\nEXCEPTION in cccl_device_three_way_partition_cleanup(): %s\n", exc.what());
-    fflush(stdout);
-    return CUDA_ERROR_UNKNOWN;
-  }
+  std::unique_ptr<char[]> cubin(reinterpret_cast<char*>(bld_ptr->cubin));
+  std::unique_ptr<cub::detail::three_way_partition::policy_selector> policy(
+    static_cast<cub::detail::three_way_partition::policy_selector*>(bld_ptr->runtime_policy));
+  check(cuLibraryUnload(bld_ptr->library));
 
   return CUDA_SUCCESS;
+}
+catch (const std::exception& exc)
+{
+  fflush(stderr);
+  printf("\nEXCEPTION in cccl_device_three_way_partition_cleanup(): %s\n", exc.what());
+  fflush(stdout);
+
+  return CUDA_ERROR_UNKNOWN;
 }
 
 CUresult cccl_device_three_way_partition_build(
