@@ -29,16 +29,30 @@ benchmarks:
     # Examples:
     # - '^cub\.bench\.for_each\.base'
     # - '^cub\.bench\.reduce\.(sum|min)\.'
+    - '^cub\.bench\.reduce\.'
+    - '^cub\.bench\.scan\.'
+    - '^cub\.bench\.radix_sort\.'
+    - '^cub\.bench\.merge_sort\.'
+    - '^cub\.bench\.select\.'
+    - '^cub\.bench\.partition\.'
+    - '^cub\.bench\.run_length_encode\.'
+    - '^cub\.bench\.segmented_reduce\.'
+    - '^cub\.bench\.segmented_sort\.'
+    - '^cub\.bench\.segmented_radix_sort\.'
+    - '^cub\.bench\.topk\.'
+    - '^cub\.bench\.segmented_topk\.'
+    - '^cub\.bench\.transform_reduce\.'
+    - '^cub\.bench\.copy\.'
 
   # Select GPUs. These are limited and shared, be intentional and conservative.
   gpus:
     # - "t4"         # sm_75, 16 GB
     # - "rtx2080"    # sm_75,  8 GB
-    # - "rtxa6000"   # sm_86, 48 GB
+      - "rtxa6000"   # sm_86, 48 GB
     # - "l4"         # sm_89, 24 GB
     # - "rtx4090"    # sm_89, 24 GB
-    # - "h100"       # sm_90, 80 GB
-    # - "rtxpro6000" # sm_120
+      - "h100"       # sm_90, 80 GB
+      - "rtxpro6000" # sm_120
 
   # Extra .devcontainer/launch.sh -d args
   # launch_args: "--cuda 13.1 --host gcc14"
