@@ -36,6 +36,18 @@
 
 namespace cuda::experimental::simd
 {
+
+
+template <class _From, class _To, class = void>
+inline constexpr bool __is_non_narrowing_convertible_v = false;
+
+template <typename _From, typename _To>
+inline constexpr bool
+  __is_non_narrowing_convertible_v<_From, _To, ::cuda::std::void_t<decltype(_To{::cuda::std::declval<_From>()})>> =
+    true;
+
+
+
 template <::cuda::std::size_t _Bytes>
 constexpr bool __has_integer_from_v =
   (_Bytes == 1 || _Bytes == 2 || _Bytes == 4 || _Bytes == 8
@@ -48,21 +60,7 @@ template <typename _Tp>
 constexpr bool __is_abi_tag_v = false;
 
 template <int _Np>
-constexpr bool __is_abi_tag_v<simd_abi::fixed_size<_Np>> = true;
-
-template <class _From, class _To, class = void>
-inline constexpr bool __is_non_narrowing_convertible_v = false;
-
-template <typename _From, typename _To>
-inline constexpr bool
-  __is_non_narrowing_convertible_v<_From, _To, ::cuda::std::void_t<decltype(_To{::cuda::std::declval<_From>()})>> =
-    true;
-
-// template <typename _Tp, typename _Up>
-// inline constexpr bool __can_broadcast_v =
-//   (__is_vectorizable_v<_Up> && __is_non_narrowing_convertible_v<_Up, _Tp>)
-//   || (!__is_vectorizable_v<_Up> && ::cuda::std::is_convertible_v<_Up, _Tp>) || ::cuda::std::is_same_v<_Up, int>
-//   || (::cuda::std::is_same_v<_Up, unsigned int> && ::cuda::std::is_unsigned_v<_Tp>);
+constexpr bool __is_abi_tag_v<simd_abi::fixed_size_simple<_Np>> = true;
 
 template <typename _Tp, typename _Generator, ::cuda::std::size_t _Idx, typename = void>
 constexpr bool __is_well_formed = false;

@@ -34,6 +34,7 @@
 #include <cuda/std/cstdint>
 
 #include <cuda/experimental/__simd/declaration.h>
+#include <cuda/experimental/__simd/specializations/fixed_size_simple_mask.h>
 #include <cuda/experimental/__simd/utility.h>
 
 #include <cuda/std/__cccl/prologue.h>

@@ -64,7 +64,7 @@ using simd_array_t = ::cuda::std::array<typename Simd::value_type, Simd::size()>
 
 C2H_CCCLRT_TEST("simd.traits", "[simd][traits]")
 {
-  using abi_t    = dp::simd_abi::fixed_size<4>;
+  using abi_t    = dp::simd_abi::fixed_size_simple<4>;
   using simd_t   = dp::vec<int, 4>;
   using mask_t   = dp::mask<int, 4>;
   using other_t  = dp::vec<float, 4>;

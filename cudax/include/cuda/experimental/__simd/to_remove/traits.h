@@ -75,7 +75,7 @@ struct is_abi_tag : ::cuda::std::bool_constant<is_abi_tag_v<_Tp>>
 {};
 
 template <int _Np>
-inline constexpr bool is_abi_tag_v<simd_abi::fixed_size<_Np>> = true;
+inline constexpr bool is_abi_tag_v<simd_abi::fixed_size_simple<_Np>> = true;
 
 template <typename _Tp>
 inline constexpr bool is_vec_v = false;
@@ -98,7 +98,7 @@ template <typename _Tp>
 struct is_simd_flag_type : ::cuda::std::bool_constant<is_simd_flag_type_v<_Tp>>
 {};
 
-template <typename _Tp, typename _Abi = simd_abi::fixed_size<1>, bool = (__is_vectorizable_v<_Tp> && is_abi_tag_v<_Abi>)>
+template <typename _Tp, typename _Abi = simd_abi::fixed_size_simple<1>, bool = (__is_vectorizable_v<_Tp> && is_abi_tag_v<_Abi>)>
 struct simd_size : ::cuda::std::integral_constant<::cuda::std::size_t, _Abi::__simd_size>
 {};
 

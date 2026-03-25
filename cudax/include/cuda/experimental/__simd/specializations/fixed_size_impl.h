@@ -36,15 +36,15 @@ namespace cuda::experimental::simd
 {
 namespace simd_abi
 {
-template <int _Np>
-struct __fixed_size
+template <__simd_size_type _Np>
+struct __fixed_size_simple
 {
-  static constexpr ::cuda::std::size_t __simd_size = _Np;
+  static constexpr __simd_size_type __simd_size = _Np;
 };
 } // namespace simd_abi
 
-template <typename _Tp, int _Np>
-struct __simd_storage<_Tp, simd_abi::__fixed_size<_Np>>
+template <typename _Tp, __simd_size_type _Np>
+struct __simd_storage<_Tp, simd_abi::__fixed_size_simple<_Np>>
 {
   using value_type = _Tp;
   _Tp __data[_Np];
@@ -62,15 +62,6 @@ struct __simd_storage<_Tp, simd_abi::__fixed_size<_Np>>
     _CCCL_ASSERT(::cuda::in_range(__idx, size_t{0}, size_t{_Np}), "Index is out of bounds");
     __data[__idx] = __v;
   }
-};
-
-// P1928R15: Mask storage is now indexed by Bytes (element size) rather than type
-// Using a single bit for the mask storage could be not efficient in CUDA
-template <::cuda::std::size_t _Bytes, int _Np>
-struct __mask_storage<_Bytes, simd_abi::__fixed_size<_Np>> : public __simd_storage<bool, simd_abi::__fixed_size<_Np>>
-{
-  using value_type                                     = bool;
-  static constexpr ::cuda::std::size_t __element_bytes = _Bytes;
 };
 
 // Helper macros to generate repeated fixed-size operations.
@@ -109,11 +100,11 @@ struct __mask_storage<_Bytes, simd_abi::__fixed_size<_Np>> : public __simd_stora
 // * SIMD Arithmetic Operations
 // *********************************************************************************************************************
 
-template <typename _Tp, int _Np>
-struct __simd_operations<_Tp, simd_abi::__fixed_size<_Np>>
+template <typename _Tp, __simd_size_type _Np>
+struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
 {
-  using _SimdStorage = __simd_storage<_Tp, simd_abi::__fixed_size<_Np>>;
-  using _MaskStorage = __mask_storage<sizeof(_Tp), simd_abi::__fixed_size<_Np>>;
+  using _SimdStorage = __simd_storage<_Tp, simd_abi::__fixed_size_simple<_Np>>;
+  using _MaskStorage = __mask_storage<sizeof(_Tp), simd_abi::__fixed_size_simple<_Np>>;
 
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __broadcast(_Tp __v) noexcept
   {
@@ -241,134 +232,6 @@ struct __simd_operations<_Tp, simd_abi::__fixed_size<_Np>>
   _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_SimdStorage, __shift_left, <<)
 
   _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_SimdStorage, __shift_right, >>)
-};
-
-// *********************************************************************************************************************
-// * SIMD Mask Operations (P1928R15: indexed by Bytes instead of type)
-// *********************************************************************************************************************
-
-template <::cuda::std::size_t _Bytes, int _Np>
-struct __mask_operations<_Bytes, simd_abi::__fixed_size<_Np>>
-{
-  using _MaskStorage = __mask_storage<_Bytes, simd_abi::__fixed_size<_Np>>;
-
-  [[nodiscard]] _CCCL_API static constexpr _MaskStorage __broadcast(bool __v) noexcept
-  {
-    _MaskStorage __result;
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; ++__i)
-    {
-      __result.__set(__i, __v);
-    }
-    return __result;
-  }
-
-  template <typename _Generator, ::cuda::std::size_t... _Is>
-  [[nodiscard]] _CCCL_API static constexpr _MaskStorage
-  __generate_init(_Generator&& __g, ::cuda::std::index_sequence<_Is...>)
-  {
-    _MaskStorage __result;
-    ((__result.__set(_Is, static_cast<bool>(__g(::cuda::std::integral_constant<::cuda::std::size_t, _Is>())))), ...);
-    return __result;
-  }
-
-  template <typename _Generator>
-  [[nodiscard]] _CCCL_API static constexpr _MaskStorage __generate(_Generator&& __g)
-  {
-    return __generate_init(__g, ::cuda::std::make_index_sequence<_Np>());
-  }
-
-  _CCCL_API static constexpr void __load(_MaskStorage& __s, const bool* __mem) noexcept
-  {
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      __s.__data[__i] = __mem[__i];
-    }
-  }
-
-  _CCCL_API static constexpr void __store(const _MaskStorage& __s, bool* __mem) noexcept
-  {
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      __mem[__i] = static_cast<bool>(__s.__data[__i]);
-    }
-  }
-
-  // TODO: optimize with uint32 SWAR
-  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_MaskStorage, __bitwise_and, &&)
-
-  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_MaskStorage, __bitwise_or, ||)
-
-  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_MaskStorage, __bitwise_xor, !=)
-
-  [[nodiscard]] _CCCL_API static constexpr _MaskStorage __bitwise_not(const _MaskStorage& __s) noexcept
-  {
-    _MaskStorage __result;
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      __result.__data[__i] = !__s.__data[__i];
-    }
-    return __result;
-  }
-
-  [[nodiscard]] _CCCL_API static constexpr bool __equal_to(const _MaskStorage& __lhs, const _MaskStorage& __rhs) noexcept
-  {
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      if (__lhs.__data[__i] != __rhs.__data[__i])
-      {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  [[nodiscard]] _CCCL_API static constexpr bool __all(const _MaskStorage& __s) noexcept
-  {
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      if (!__s.__data[__i])
-      {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  [[nodiscard]] _CCCL_API static constexpr bool __any(const _MaskStorage& __s) noexcept
-  {
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      if (__s.__data[__i])
-      {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // P1928R15 requires simd-size-type (ptrdiff_t) return type
-  [[nodiscard]] _CCCL_API static constexpr ::cuda::std::ptrdiff_t __count(const _MaskStorage& __s) noexcept
-  {
-    int __cnt = 0;
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      if (__s.__data[__i])
-      {
-        ++__cnt;
-      }
-    }
-    const auto __ret = static_cast<::cuda::std::ptrdiff_t>(__cnt);
-    _CCCL_ASSUME(__ret >= 0 && __ret <= _Np);
-    return __ret;
-  }
 };
 
 #undef _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP
