@@ -30,8 +30,6 @@
 
 namespace cuda::experimental::simd
 {
-
-
 template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
 class basic_vec;
 
@@ -45,6 +43,12 @@ template <typename _Tp, __simd_size_type _Np = __simd_size_v<_Tp, simd_abi::nati
 using mask = basic_mask<sizeof(_Tp), simd_abi::__deduce_abi_t<_Tp, _Np>>;
 
 // specializations
+
+template <typename _Tp, typename _Abi>
+struct __simd_storage;
+
+template <typename _Tp, typename _Abi>
+struct __simd_operations;
 
 template <::cuda::std::size_t _Bytes, typename _Abi>
 struct __mask_storage;

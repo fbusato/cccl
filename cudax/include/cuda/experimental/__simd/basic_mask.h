@@ -45,8 +45,10 @@ namespace cuda::experimental::simd
 template <::cuda::std::size_t _Bytes, typename _Abi>
 class basic_mask : public __mask_operations<_Bytes, _Abi>
 {
-  static_assert(_Bytes >= 0, "basic_mask requires a positive number of bytes");
   static_assert(__is_abi_tag_v<_Abi>, "basic_mask requires a valid ABI tag");
+
+  template <typename, typename>
+  friend class basic_vec;
 
   using _Impl    = __mask_operations<_Bytes, _Abi>;
   using _Storage = typename _Impl::_MaskStorage;
@@ -198,7 +200,7 @@ public:
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < size; ++__i)
     {
-      __result[__i] = static_cast<_Up>((*this)[__i]);
+      __result.__s_.__set(__i, static_cast<_Up>((*this)[__i]));
     }
     return __result;
   }
@@ -211,7 +213,7 @@ public:
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < size; ++__i)
     {
-      __result[__i] = static_cast<_Up>((*this)[__i]);
+      __result.__s_.__set(__i, static_cast<_Up>((*this)[__i]));
     }
     return __result;
   }
@@ -327,6 +329,40 @@ public:
     return !__lhs && __rhs;
   }
 
+  // [simd.mask.reductions], reductions
+
+  [[nodiscard]] _CCCL_API friend constexpr bool all_of(const basic_mask& __k) noexcept
+  {
+    return _Impl::__all(__k.__s_);
+  }
+
+  [[nodiscard]] _CCCL_API friend constexpr bool any_of(const basic_mask& __k) noexcept
+  {
+    return _Impl::__any(__k.__s_);
+  }
+
+  [[nodiscard]] _CCCL_API friend constexpr bool none_of(const basic_mask& __k) noexcept
+  {
+    return !any_of(__k);
+  }
+
+  [[nodiscard]] _CCCL_API friend constexpr __simd_size_type reduce_count(const basic_mask& __k) noexcept
+  {
+    return _Impl::__count(__k.__s_);
+  }
+
+  [[nodiscard]] _CCCL_API friend constexpr __simd_size_type reduce_min_index(const basic_mask& __k)
+  {
+    _CCCL_ASSERT(any_of(__k), "No bits are set");
+    return _Impl::__min_index(__k.__s_);
+  }
+
+  [[nodiscard]] _CCCL_API friend constexpr __simd_size_type reduce_max_index(const basic_mask& __k)
+  {
+    _CCCL_ASSERT(any_of(__k), "No bits are set");
+    return _Impl::__max_index(__k.__s_);
+  }
+
   // TODO(fbusato): [simd.mask.cond], basic_mask exposition only conditional operators
   // friend constexpr basic_mask __simd_select_impl(
   //   const basic_mask&, const basic_mask&, const basic_mask&) noexcept;
@@ -336,51 +372,6 @@ public:
   //   friend constexpr vec<see below, size()> __simd_select_impl(
   //     const basic_mask&, const T0&, const T1&) noexcept;
 };
-
-// [simd.mask.reductions], reductions
-
-template <::cuda::std::size_t _Bytes, typename _Abi>
-[[nodiscard]] _CCCL_API constexpr bool all_of(const basic_mask<_Bytes, _Abi>& __k) noexcept
-{
-  using __mask_storage_t = typename __mask_operations<_Bytes, _Abi>::_MaskStorage;
-  return __mask_operations<_Bytes, _Abi>::__all(static_cast<__mask_storage_t>(__k));
-}
-
-template <::cuda::std::size_t _Bytes, typename _Abi>
-[[nodiscard]] _CCCL_API constexpr bool any_of(const basic_mask<_Bytes, _Abi>& __k) noexcept
-{
-  using __mask_storage_t = typename __mask_operations<_Bytes, _Abi>::_MaskStorage;
-  return __mask_operations<_Bytes, _Abi>::__any(static_cast<__mask_storage_t>(__k));
-}
-
-template <::cuda::std::size_t _Bytes, typename _Abi>
-[[nodiscard]] _CCCL_API constexpr bool none_of(const basic_mask<_Bytes, _Abi>& __k) noexcept
-{
-  return !::cuda::experimental::simd::any_of(__k);
-}
-
-template <::cuda::std::size_t _Bytes, typename _Abi>
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_count(const basic_mask<_Bytes, _Abi>& __k) noexcept
-{
-  using __mask_storage_t = typename __mask_operations<_Bytes, _Abi>::_MaskStorage;
-  return __mask_operations<_Bytes, _Abi>::__count(static_cast<__mask_storage_t>(__k));
-}
-
-template <::cuda::std::size_t _Bytes, typename _Abi>
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const basic_mask<_Bytes, _Abi>& __k) noexcept
-{
-  _CCCL_ASSERT(any_of(__k), "No bits are set");
-  using __mask_storage_t = typename __mask_operations<_Bytes, _Abi>::_MaskStorage;
-  return __mask_operations<_Bytes, _Abi>::__min_index(static_cast<__mask_storage_t>(__k));
-}
-
-template <::cuda::std::size_t _Bytes, typename _Abi>
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const basic_mask<_Bytes, _Abi>& __k) noexcept
-{
-  _CCCL_ASSERT(any_of(__k), "No bits are set");
-  using __mask_storage_t = typename __mask_operations<_Bytes, _Abi>::_MaskStorage;
-  return __mask_operations<_Bytes, _Abi>::__max_index(static_cast<__mask_storage_t>(__k));
-}
 
 // Scalar bool overloads
 
@@ -414,7 +405,7 @@ _CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(_Tp __x) noexcept
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(_Tp __x)
 {
   _CCCL_ASSERT(__x, "No bits are set");
   return 0;
@@ -422,8 +413,7 @@ _CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
-
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(_Tp __x) noexcept
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(_Tp __x)
 {
   _CCCL_ASSERT(__x, "No bits are set");
   return 0;

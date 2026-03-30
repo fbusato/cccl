@@ -4,12 +4,12 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _CUDAX___SIMD_FIXED_SIZE_IMPL_H
-#define _CUDAX___SIMD_FIXED_SIZE_IMPL_H
+#ifndef _CUDAX___SIMD_SPECIALIZATIONS_FIXED_SIZE_SIMPLE_VEC_H
+#define _CUDAX___SIMD_SPECIALIZATIONS_FIXED_SIZE_SIMPLE_VEC_H
 
 #include <cuda/std/detail/__config>
 
@@ -22,10 +22,7 @@
 #endif // no system header
 
 #include <cuda/__utility/in_range.h>
-#include <cuda/std/__concepts/concept_macros.h>
-#include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__type_traits/integral_constant.h>
-#include <cuda/std/__type_traits/is_integral.h>
 #include <cuda/std/__utility/integer_sequence.h>
 
 #include <cuda/experimental/__simd/declaration.h>
@@ -43,35 +40,33 @@ struct __fixed_size_simple
 };
 } // namespace simd_abi
 
+// Element-per-slot simd storage for fixed_size_simple ABI
 template <typename _Tp, __simd_size_type _Np>
 struct __simd_storage<_Tp, simd_abi::__fixed_size_simple<_Np>>
 {
   using value_type = _Tp;
   _Tp __data[_Np];
 
-  [[nodiscard]] _CCCL_API constexpr _Tp __get([[maybe_unused]] ::cuda::std::size_t __idx) const noexcept
+  [[nodiscard]] _CCCL_API constexpr _Tp __get(__simd_size_type __idx) const noexcept
   {
-    using ::cuda::std::size_t;
-    _CCCL_ASSERT(::cuda::in_range(__idx, size_t{0}, size_t{_Np}), "Index is out of bounds");
+    _CCCL_ASSERT(::cuda::in_range(__idx, __simd_size_type{0}, _Np), "Index is out of bounds");
     return __data[__idx];
   }
 
-  _CCCL_API constexpr void __set([[maybe_unused]] ::cuda::std::size_t __idx, _Tp __v) noexcept
+  _CCCL_API constexpr void __set(__simd_size_type __idx, _Tp __v) noexcept
   {
-    using ::cuda::std::size_t;
-    _CCCL_ASSERT(::cuda::in_range(__idx, size_t{0}, size_t{_Np}), "Index is out of bounds");
+    _CCCL_ASSERT(::cuda::in_range(__idx, __simd_size_type{0}, _Np), "Index is out of bounds");
     __data[__idx] = __v;
   }
 };
 
-// Helper macros to generate repeated fixed-size operations.
 #define _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_STORAGE_TYPE, _NAME, _OP) \
   [[nodiscard]] _CCCL_API static constexpr _STORAGE_TYPE _NAME(             \
     const _STORAGE_TYPE& __lhs, const _STORAGE_TYPE& __rhs) noexcept        \
   {                                                                         \
     _STORAGE_TYPE __result;                                                 \
     _CCCL_PRAGMA_UNROLL_FULL()                                              \
-    for (int __i = 0; __i < _Np; ++__i)                                     \
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)                        \
     {                                                                       \
       __result.__data[__i] = (__lhs.__data[__i] _OP __rhs.__data[__i]);     \
     }                                                                       \
@@ -84,22 +79,14 @@ struct __simd_storage<_Tp, simd_abi::__fixed_size_simple<_Np>>
   {                                                                     \
     _MaskStorage __result;                                              \
     _CCCL_PRAGMA_UNROLL_FULL()                                          \
-    for (int __i = 0; __i < _Np; ++__i)                                 \
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)                    \
     {                                                                   \
       __result.__data[__i] = (__lhs.__data[__i] _OP __rhs.__data[__i]); \
     }                                                                   \
     return __result;                                                    \
   }
 
-#define _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_STORAGE_TYPE, _NAME, _OP) \
-  _CCCL_TEMPLATE(typename _Up = _Tp)                                 \
-  _CCCL_REQUIRES(::cuda::std::is_integral_v<_Up>)                    \
-  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_STORAGE_TYPE, _NAME, _OP)
-
-// *********************************************************************************************************************
-// * SIMD Arithmetic Operations
-// *********************************************************************************************************************
-
+// Simd operations for fixed_size_simple ABI
 template <typename _Tp, __simd_size_type _Np>
 struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
 {
@@ -110,50 +97,32 @@ struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
   {
     _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; ++__i)
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
       __result.__data[__i] = __v;
     }
     return __result;
   }
 
-  template <typename _Generator, ::cuda::std::size_t... _Is>
+  template <typename _Generator, __simd_size_type... _Is>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
-  __generate_init(_Generator&& __g, ::cuda::std::index_sequence<_Is...>)
+  __generate_init(_Generator&& __g, ::cuda::std::integer_sequence<__simd_size_type, _Is...>)
   {
-    return _SimdStorage{{__g(::cuda::std::integral_constant<::cuda::std::size_t, _Is>())...}};
+    return _SimdStorage{{__g(::cuda::std::integral_constant<__simd_size_type, _Is>())...}};
   }
 
   template <typename _Generator>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __generate(_Generator&& __g)
   {
-    return __generate_init(__g, ::cuda::std::make_index_sequence<_Np>());
+    return __generate_init(__g, ::cuda::std::make_integer_sequence<__simd_size_type, _Np>());
   }
 
-  template <typename _Up>
-  _CCCL_API static constexpr void __load(_SimdStorage& __s, const _Up* __mem) noexcept
-  {
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      __s.__data[__i] = static_cast<_Tp>(__mem[__i]);
-    }
-  }
-
-  template <typename _Up>
-  _CCCL_API static constexpr void __store(const _SimdStorage& __s, _Up* __mem) noexcept
-  {
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
-    {
-      __mem[__i] = static_cast<_Up>(__s.__data[__i]);
-    }
-  }
+  // Unary operations
 
   _CCCL_API static constexpr void __increment(_SimdStorage& __s) noexcept
   {
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
       __s.__data[__i] += 1;
     }
@@ -162,7 +131,7 @@ struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
   _CCCL_API static constexpr void __decrement(_SimdStorage& __s) noexcept
   {
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
       __s.__data[__i] -= 1;
     }
@@ -172,7 +141,7 @@ struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
   {
     _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
       __result.__data[__i] = !__s.__data[__i];
     }
@@ -183,7 +152,7 @@ struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
   {
     _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
       __result.__data[__i] = ~__s.__data[__i];
     }
@@ -194,12 +163,14 @@ struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
   {
     _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (int __i = 0; __i < _Np; __i++)
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
       __result.__data[__i] = -__s.__data[__i];
     }
     return __result;
   }
+
+  // Binary arithmetic operations
 
   _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __plus, +)
 
@@ -208,6 +179,10 @@ struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
   _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __multiplies, *)
 
   _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __divides, /)
+
+  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __modulo, %)
+
+  // Comparison operations
 
   _CUDAX_SIMD_FIXED_SIZE_BINARY_CMP_OP(__equal_to, ==)
 
@@ -221,24 +196,23 @@ struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
 
   _CUDAX_SIMD_FIXED_SIZE_BINARY_CMP_OP(__greater_equal, >=)
 
-  _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_SimdStorage, __modulo, %)
+  // Bitwise and shift operations
 
-  _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_SimdStorage, __bitwise_and, &)
+  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __bitwise_and, &)
 
-  _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_SimdStorage, __bitwise_or, |)
+  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __bitwise_or, |)
 
-  _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_SimdStorage, __bitwise_xor, ^)
+  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __bitwise_xor, ^)
 
-  _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_SimdStorage, __shift_left, <<)
+  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __shift_left, <<)
 
-  _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP(_SimdStorage, __shift_right, >>)
+  _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP(_SimdStorage, __shift_right, >>)
 };
 
-#undef _CUDAX_SIMD_FIXED_SIZE_BITWISE_OP
 #undef _CUDAX_SIMD_FIXED_SIZE_BINARY_STORAGE_OP
 #undef _CUDAX_SIMD_FIXED_SIZE_BINARY_CMP_OP
 } // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>
 
-#endif // _CUDAX___SIMD_FIXED_SIZE_IMPL_H
+#endif // _CUDAX___SIMD_SPECIALIZATIONS_FIXED_SIZE_SIMPLE_VEC_H
