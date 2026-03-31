@@ -21,6 +21,7 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/__memory/is_valid_alignment.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 
@@ -40,6 +41,7 @@ template <typename _Tp, typename _Abi, typename _Up>
 struct alignment<basic_vec<_Tp, _Abi>, _Up>
     : ::cuda::std::integral_constant<::cuda::std::size_t, alignof(_Up) * __simd_size_v<_Tp, _Abi>>
 {
+  static_assert(::cuda::__is_valid_alignment(alignof(_Up) * __simd_size_v<_Tp, _Abi>), "Alignment is not valid");
   static_assert(__is_vectorizable_v<_Up>, "U must be a vectorizable type");
 };
 

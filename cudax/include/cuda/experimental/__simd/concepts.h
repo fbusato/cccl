@@ -31,6 +31,8 @@
 #include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integral.h>
 #include <cuda/std/__type_traits/remove_cvref.h>
+#include <cuda/std/__type_traits/void_t.h>
+#include <cuda/std/__utility/declval.h>
 
 #include <cuda/experimental/__simd/abi.h>
 
@@ -42,7 +44,7 @@ namespace cuda::experimental::simd
 
 template <typename _To, typename _From>
 _CCCL_CONCEPT __explicitly_convertible_to =
-  _CCCL_REQUIRES_EXPR((_To, _From))(requires(static_cast<_To>(::cuda::std::declval<_From>())));
+  _CCCL_REQUIRES_EXPR((_To, _From))((static_cast<_To>(::cuda::std::declval<_From>())));
 
 // [simd.expos], constexpr-wrapper-like concept
 
@@ -64,15 +66,21 @@ constexpr bool __is_value_preserving_v =
   || (::cuda::std::is_integral_v<_From> && ::cuda::is_floating_point_v<_To>
       && ::cuda::std::numeric_limits<_From>::digits <= ::cuda::std::numeric_limits<_To>::digits);
 
+template <typename _From, typename _ValueType, typename = void>
+constexpr bool __is_constexpr_wrapper_value_preserving_v = false;
+
+template <typename _From, typename _ValueType>
+constexpr bool __is_constexpr_wrapper_value_preserving_v<_From, _ValueType, ::cuda::std::void_t<decltype(_From::value)>> =
+  ::cuda::std::is_arithmetic_v<::cuda::std::remove_cvref_t<decltype(_From::value)>>
+  && __is_value_preserving_v<::cuda::std::remove_cvref_t<decltype(_From::value)>, _ValueType>;
+
 // [simd.ctor] implicit value constructor
 template <typename _Up, typename _ValueType, typename _From = ::cuda::std::remove_cvref_t<_Up>>
 _CCCL_CONCEPT __is_value_ctor_implicit =
   ::cuda::std::convertible_to<_Up, _ValueType>
   && ((!::cuda::std::is_arithmetic_v<_From> && !__constexpr_wrapper_like<_From>)
       || (::cuda::std::is_arithmetic_v<_From> && __is_value_preserving_v<_From, _ValueType>)
-      || (__constexpr_wrapper_like<_From>
-          && ::cuda::std::is_arithmetic_v<::cuda::std::remove_cvref_t<decltype(_From::value)>>
-          && __is_value_preserving_v<_From, _ValueType>) );
+      || (__constexpr_wrapper_like<_From> && __is_constexpr_wrapper_value_preserving_v<_From, _ValueType>) );
 
 // [conv.rank], integer conversion rank for [simd.ctor] p7
 

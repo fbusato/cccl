@@ -31,6 +31,7 @@
 #include <cuda/std/__type_traits/num_bits.h>
 #include <cuda/std/array>
 #include <cuda/std/bitset>
+#include <cuda/std/climits>
 #include <cuda/std/cstdint>
 
 #include <cuda/experimental/__simd/declaration.h>
@@ -157,45 +158,45 @@ public:
     return {_Impl::__bitwise_not(__s_), __storage_tag};
   }
 
-  template <::cuda::std::size_t _Bytes>
+  template <::cuda::std::size_t _ByteSize>
   static constexpr bool __has_integer_from_v =
-    (_Bytes == 1 || _Bytes == 2 || _Bytes == 4 || _Bytes == 8
+    (_ByteSize == 1 || _ByteSize == 2 || _ByteSize == 4 || _ByteSize == 8
 #if _CCCL_HAS_INT128()
-     || _Bytes == 16
+     || _ByteSize == 16
 #endif // _CCCL_HAS_INT128()
     );
 
-  _CCCL_TEMPLATE(::cuda::std::size_t _B = _Bytes)
-  _CCCL_REQUIRES(__has_integer_from_v<_B>)
-  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_B>, _Abi> operator+() const noexcept
+  _CCCL_TEMPLATE(::cuda::std::size_t _Bp = _Bytes)
+  _CCCL_REQUIRES(__has_integer_from_v<_Bp>)
+  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_Bp>, _Abi> operator+() const noexcept
   {
-    return static_cast<basic_vec<__integer_from<_B>, _Abi>>(*this);
+    return static_cast<basic_vec<__integer_from<_Bp>, _Abi>>(*this);
   }
 
-  _CCCL_TEMPLATE(::cuda::std::size_t _B = _Bytes)
-  _CCCL_REQUIRES((!__has_integer_from_v<_B>) )
+  _CCCL_TEMPLATE(::cuda::std::size_t _Bp = _Bytes)
+  _CCCL_REQUIRES((!__has_integer_from_v<_Bp>) )
   _CCCL_API void operator+() const noexcept = delete;
 
-  _CCCL_TEMPLATE(::cuda::std::size_t _B = _Bytes)
-  _CCCL_REQUIRES(__has_integer_from_v<_B>)
-  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_B>, _Abi> operator-() const noexcept
+  _CCCL_TEMPLATE(::cuda::std::size_t _Bp = _Bytes)
+  _CCCL_REQUIRES(__has_integer_from_v<_Bp>)
+  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_Bp>, _Abi> operator-() const noexcept
   {
-    return -static_cast<basic_vec<__integer_from<_B>, _Abi>>(*this);
+    return -static_cast<basic_vec<__integer_from<_Bp>, _Abi>>(*this);
   }
 
-  _CCCL_TEMPLATE(::cuda::std::size_t _B = _Bytes)
-  _CCCL_REQUIRES((!__has_integer_from_v<_B>) )
+  _CCCL_TEMPLATE(::cuda::std::size_t _Bp = _Bytes)
+  _CCCL_REQUIRES((!__has_integer_from_v<_Bp>) )
   _CCCL_API void operator-() const noexcept = delete;
 
-  _CCCL_TEMPLATE(::cuda::std::size_t _B = _Bytes)
-  _CCCL_REQUIRES(__has_integer_from_v<_B>)
-  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_B>, _Abi> operator~() const noexcept
+  _CCCL_TEMPLATE(::cuda::std::size_t _Bp = _Bytes)
+  _CCCL_REQUIRES(__has_integer_from_v<_Bp>)
+  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_Bp>, _Abi> operator~() const noexcept
   {
-    return ~static_cast<basic_vec<__integer_from<_B>, _Abi>>(*this);
+    return ~static_cast<basic_vec<__integer_from<_Bp>, _Abi>>(*this);
   }
 
-  _CCCL_TEMPLATE(::cuda::std::size_t _B = _Bytes)
-  _CCCL_REQUIRES((!__has_integer_from_v<_B>) )
+  _CCCL_TEMPLATE(::cuda::std::size_t _Bp = _Bytes)
+  _CCCL_REQUIRES((!__has_integer_from_v<_Bp>) )
   _CCCL_API void operator~() const noexcept = delete;
 
   // [simd.mask.conv], basic_mask conversions

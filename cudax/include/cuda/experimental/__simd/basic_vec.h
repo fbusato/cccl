@@ -69,6 +69,12 @@ public:
   using mask_type  = basic_mask<sizeof(value_type), _Abi>;
   using abi_type   = _Abi;
 
+  // operator[] is const only. We need this function to set values
+  _CCCL_API constexpr void __set(__simd_size_type __i, value_type __v) noexcept
+  {
+    __s_.__set(__i, __v);
+  }
+
   // TODO(fbusato): add simd-iterator
   // using iterator       = simd-iterator<basic_vec>;
   // using const_iterator = simd-iterator<const basic_vec>;
@@ -134,20 +140,17 @@ public:
 
   // [simd.ctor] range constructor
 
-  template <typename _Range, __simd_size_type _Size, typename = void>
-  static constexpr bool __range_static_size_matches_v = false;
-
-  template <typename _Range, __simd_size_type _Size>
-  static constexpr bool __range_static_size_matches_v<
-    _Range,
-    _Size,
-    ::cuda::std::void_t<decltype(::cuda::std::tuple_size_v<::cuda::std::remove_cvref_t<_Range>>)>> =
-    (__static_range_size_v<_Range> == _Size);
+  template <typename _Range, typename = void>
+  static constexpr bool __is_compatible_range_v = false;
 
   template <typename _Range>
-  static constexpr bool __is_compatible_range_v =
+  static constexpr bool __is_compatible_range_v<
+    _Range,
+    ::cuda::std::void_t<decltype(::cuda::std::tuple_size<::cuda::std::remove_cvref_t<_Range>>::value),
+                        ::cuda::std::ranges::range_value_t<_Range>>> =
     ::cuda::std::ranges::contiguous_range<_Range> && ::cuda::std::ranges::sized_range<_Range>
-    && __range_static_size_matches_v<_Range, size()> && __is_vectorizable_v<::cuda::std::ranges::range_value_t<_Range>>
+    && (__simd_size_type{::cuda::std::tuple_size<::cuda::std::remove_cvref_t<_Range>>::value} == size())
+    && __is_vectorizable_v<::cuda::std::ranges::range_value_t<_Range>>
     && __explicitly_convertible_to<value_type, ::cuda::std::ranges::range_value_t<_Range>>;
 
   // [simd.ctor] range constructor
@@ -509,7 +512,7 @@ basic_vec(_Range&&, _Ts...)
 // basic_vec<__integer_from<Bytes>, Abi> is equivalent to decltype(+k):
 //   * k has type basic_mask<_Bytes, _Abi>
 //   * +k calls basic_mask::operator+()
-//   * the return type is basic_vec<__integer_from<_B>, _Abi>
+//   * the return type is basic_vec<__integer_from<_Bp>, _Abi>
 // The deduced type is equivalent to decltype(+k), i.e. basic_vec<__integer_from<Bytes>, Abi>
 _CCCL_TEMPLATE(::cuda::std::size_t _Bytes, typename _Abi)
 _CCCL_REQUIRES(__has_unary_plus<basic_mask<_Bytes, _Abi>>)

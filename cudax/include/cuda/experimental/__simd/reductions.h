@@ -131,6 +131,7 @@ _CCCL_TEMPLATE(typename _Tp, typename _Abi)
 _CCCL_REQUIRES(::cuda::std::totally_ordered<_Tp>)
 [[nodiscard]] _CCCL_API constexpr _Tp reduce_min(const basic_vec<_Tp, _Abi>& __x) noexcept
 {
+  static_assert(__x.size > 0, "Vector is empty");
   auto __result = __x[0];
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 1; __i < __x.size; ++__i)
@@ -171,6 +172,7 @@ _CCCL_TEMPLATE(typename _Tp, typename _Abi)
 _CCCL_REQUIRES(::cuda::std::totally_ordered<_Tp>)
 [[nodiscard]] _CCCL_API constexpr _Tp reduce_max(const basic_vec<_Tp, _Abi>& __x) noexcept
 {
+  static_assert(__x.size > 0, "Vector is empty");
   auto __result = __x[0];
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 1; __i < __x.size; ++__i)

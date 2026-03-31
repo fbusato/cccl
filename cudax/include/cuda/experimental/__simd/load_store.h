@@ -83,7 +83,7 @@ __partial_load_from_ptr(const _Up* __ptr, __simd_size_type __count, const typena
   {
     if (__mask[__i] && __i < __count)
     {
-      __result[__i] = static_cast<_Tp>(__ptr[__i]);
+      __result.__set(__i, static_cast<_Tp>(__ptr[__i]));
     }
   }
   return __result;
