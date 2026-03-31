@@ -31,18 +31,15 @@
 
 namespace cuda::std::simd
 {
-namespace simd_abi
-{
 template <__simd_size_type _Np>
 struct __fixed_size_simple
 {
   static constexpr __simd_size_type __simd_size = _Np;
 };
-} // namespace simd_abi
 
 // Element-per-slot simd storage for fixed_size_simple ABI
 template <typename _Tp, __simd_size_type _Np>
-struct __simd_storage<_Tp, simd_abi::__fixed_size_simple<_Np>>
+struct __simd_storage<_Tp, __fixed_size_simple<_Np>>
 {
   using value_type = _Tp;
   _Tp __data[_Np];
@@ -88,10 +85,10 @@ struct __simd_storage<_Tp, simd_abi::__fixed_size_simple<_Np>>
 
 // Simd operations for fixed_size_simple ABI
 template <typename _Tp, __simd_size_type _Np>
-struct __simd_operations<_Tp, simd_abi::__fixed_size_simple<_Np>>
+struct __simd_operations<_Tp, __fixed_size_simple<_Np>>
 {
-  using _SimdStorage = __simd_storage<_Tp, simd_abi::__fixed_size_simple<_Np>>;
-  using _MaskStorage = __mask_storage<sizeof(_Tp), simd_abi::__fixed_size_simple<_Np>>;
+  using _SimdStorage = __simd_storage<_Tp, __fixed_size_simple<_Np>>;
+  using _MaskStorage = __mask_storage<sizeof(_Tp), __fixed_size_simple<_Np>>;
 
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __broadcast(_Tp __v) noexcept
   {

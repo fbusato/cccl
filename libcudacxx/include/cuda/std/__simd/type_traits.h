@@ -56,7 +56,7 @@ template <typename _Tp, typename _Up, typename _Abi>
 struct rebind<_Tp, basic_vec<_Up, _Abi>>
 {
   static_assert(__is_vectorizable_v<_Tp>, "T must be a vectorizable type");
-  using type = basic_vec<_Tp, simd_abi::__deduce_abi_t<_Tp, __simd_size_v<_Up, _Abi>>>;
+  using type = basic_vec<_Tp, __deduce_abi_t<_Tp, __simd_size_v<_Up, _Abi>>>;
 };
 
 template <typename _Tp, ::cuda::std::size_t _Bytes, typename _Abi>
@@ -66,7 +66,7 @@ struct rebind<_Tp, basic_mask<_Bytes, _Abi>>
   using __integer_t       = __integer_from<sizeof(_Tp)>;
   using __integer_bytes_t = __integer_from<_Bytes>;
 
-  using type = basic_mask<sizeof(_Tp), simd_abi::__deduce_abi_t<__integer_t, __simd_size_v<__integer_bytes_t, _Abi>>>;
+  using type = basic_mask<sizeof(_Tp), __deduce_abi_t<__integer_t, __simd_size_v<__integer_bytes_t, _Abi>>>;
 };
 
 template <typename _Tp, typename _Vp>
@@ -79,13 +79,13 @@ struct resize;
 template <__simd_size_type _Np, typename _Tp, typename _Abi>
 struct resize<_Np, basic_vec<_Tp, _Abi>>
 {
-  using type = basic_vec<_Tp, simd_abi::__deduce_abi_t<_Tp, _Np>>;
+  using type = basic_vec<_Tp, __deduce_abi_t<_Tp, _Np>>;
 };
 
 template <__simd_size_type _Np, ::cuda::std::size_t _Bytes, typename _Abi>
 struct resize<_Np, basic_mask<_Bytes, _Abi>>
 {
-  using type = basic_mask<_Bytes, simd_abi::__deduce_abi_t<__integer_from<_Bytes>, _Np>>;
+  using type = basic_mask<_Bytes, __deduce_abi_t<__integer_from<_Bytes>, _Np>>;
 };
 
 template <__simd_size_type _Np, typename _Vp>

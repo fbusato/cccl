@@ -30,8 +30,6 @@ namespace cuda::std::simd
 using __simd_size_type = ::cuda::std::ptrdiff_t;
 
 // [simd.expos.abi], simd ABI tags
-namespace simd_abi
-{
 template <__simd_size_type _Np>
 struct __fixed_size_simple; // internal ABI tag
 
@@ -43,7 +41,6 @@ using native = fixed_size_simple<1>; // implementation-defined ABI
 
 template <typename, __simd_size_type _Np>
 using __deduce_abi_t = fixed_size_simple<_Np>; // exposition-only
-} // namespace simd_abi
 } // namespace cuda::std::simd
 
 #include <cuda/std/__cccl/epilogue.h>

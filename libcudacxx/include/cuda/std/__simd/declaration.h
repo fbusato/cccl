@@ -30,17 +30,17 @@
 
 namespace cuda::std::simd
 {
-template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
+template <typename _Tp, typename _Abi = native<_Tp>>
 class basic_vec;
 
-template <::cuda::std::size_t _Bytes, typename _Abi = simd_abi::native<__integer_from<_Bytes>>>
+template <::cuda::std::size_t _Bytes, typename _Abi = native<__integer_from<_Bytes>>>
 class basic_mask;
 
-template <typename _Tp, __simd_size_type _Np = __simd_size_v<_Tp, simd_abi::native<_Tp>>>
-using vec = basic_vec<_Tp, simd_abi::__deduce_abi_t<_Tp, _Np>>;
+template <typename _Tp, __simd_size_type _Np = __simd_size_v<_Tp, native<_Tp>>>
+using vec = basic_vec<_Tp, __deduce_abi_t<_Tp, _Np>>;
 
-template <typename _Tp, __simd_size_type _Np = __simd_size_v<_Tp, simd_abi::native<_Tp>>>
-using mask = basic_mask<sizeof(_Tp), simd_abi::__deduce_abi_t<_Tp, _Np>>;
+template <typename _Tp, __simd_size_type _Np = __simd_size_v<_Tp, native<_Tp>>>
+using mask = basic_mask<sizeof(_Tp), __deduce_abi_t<_Tp, _Np>>;
 
 // specializations
 

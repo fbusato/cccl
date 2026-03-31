@@ -499,14 +499,14 @@ public:
 // [simd.ctor] deduction guide from contiguous sized range
 // Deduces vec<range_value_t<R>, static_cast<simd-size-type>(ranges::size(r))>
 //    * it is not possible to use the alias "vec" for the deduction guide
-//    * "vec" is defined as basic_vec<_Tp, simd_abi::__deduce_abi_t<_Tp, _Np>>
+//    * "vec" is defined as basic_vec<_Tp, __deduce_abi_t<_Tp, _Np>>
 //    * where _Np is __simd_size_v<_Tp, tuple_size_v<_Range>>
 _CCCL_TEMPLATE(typename _Range, typename... _Ts)
 _CCCL_REQUIRES(::cuda::std::ranges::contiguous_range<_Range> _CCCL_AND ::cuda::std::ranges::sized_range<_Range>
                  _CCCL_AND __has_static_size<_Range>)
 basic_vec(_Range&&, _Ts...)
   -> basic_vec<::cuda::std::ranges::range_value_t<_Range>,
-               simd_abi::__deduce_abi_t<::cuda::std::ranges::range_value_t<_Range>, __static_range_size_v<_Range>>>;
+               __deduce_abi_t<::cuda::std::ranges::range_value_t<_Range>, __static_range_size_v<_Range>>>;
 
 // [simd.ctor] deduction guide from basic_mask
 // basic_vec<__integer_from<Bytes>, Abi> is equivalent to decltype(+k):
