@@ -21,14 +21,12 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/__memory/is_aligned.h>
 #include <cuda/__utility/in_range.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__ranges/concepts.h>
 #include <cuda/std/__ranges/data.h>
 #include <cuda/std/__tuple_dir/tuple_size.h>
 #include <cuda/std/__type_traits/integral_constant.h>
-#include <cuda/std/__type_traits/is_constant_evaluated.h>
 #include <cuda/std/__type_traits/remove_cvref.h>
 #include <cuda/std/__type_traits/void_t.h>
 
@@ -37,7 +35,6 @@
 #include <cuda/experimental/__simd/declaration.h>
 #include <cuda/experimental/__simd/flag.h>
 #include <cuda/experimental/__simd/specializations/fixed_size_simple_vec.h>
-#include <cuda/experimental/__simd/type_traits.h>
 #include <cuda/experimental/__simd/utility.h>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -145,32 +142,13 @@ public:
     _Range,
     _Size,
     ::cuda::std::void_t<decltype(::cuda::std::tuple_size_v<::cuda::std::remove_cvref_t<_Range>>)>> =
-    (__simd_size_type{::cuda::std::tuple_size_v<::cuda::std::remove_cvref_t<_Range>>} == _Size);
+    (__static_range_size_v<_Range> == _Size);
 
   template <typename _Range>
   static constexpr bool __is_compatible_range_v =
     ::cuda::std::ranges::contiguous_range<_Range> && ::cuda::std::ranges::sized_range<_Range>
     && __range_static_size_matches_v<_Range, size()> && __is_vectorizable_v<::cuda::std::ranges::range_value_t<_Range>>
     && __explicitly_convertible_to<value_type, ::cuda::std::ranges::range_value_t<_Range>>;
-
-  template <typename _Range, typename... _Flags>
-  _CCCL_API constexpr static void
-  __assert_alignment([[maybe_unused]] const ::cuda::std::ranges::range_value_t<_Range>* __data) noexcept
-  {
-    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
-    {
-      if constexpr (__has_aligned_flag_v<_Flags...>)
-      {
-        _CCCL_ASSERT(::cuda::is_aligned(__data, alignment_v<basic_vec, ::cuda::std::ranges::range_value_t<_Range>>),
-                     "flag_aligned requires data to be aligned to alignment_v<basic_vec, range_value_t<R>>");
-      }
-      else if constexpr (__has_overaligned_flag_v<_Flags...>)
-      {
-        _CCCL_ASSERT(::cuda::is_aligned(__data, __overaligned_alignment_v<_Flags...>),
-                     "flag_overaligned<N> requires data to be aligned to N");
-      }
-    }
-  }
 
   // [simd.ctor] range constructor
   _CCCL_TEMPLATE(typename _Range, typename... _Flags)
@@ -181,7 +159,8 @@ public:
                     || __is_value_preserving_v<::cuda::std::ranges::range_value_t<_Range>, value_type>,
                   "Conversion from range_value_t<R> to value_type is not value-preserving; use flag_convert");
     const auto __data = ::cuda::std::ranges::data(__range);
-    __assert_alignment<_Range, _Flags...>(__data);
+    ::cuda::experimental::simd::
+      __assert_load_store_alignment<basic_vec, ::cuda::std::ranges::range_value_t<_Range>, _Flags...>(__data);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < size; ++__i)
     {
@@ -198,7 +177,8 @@ public:
                     || __is_value_preserving_v<::cuda::std::ranges::range_value_t<_Range>, value_type>,
                   "Conversion from range_value_t<R> to value_type is not value-preserving; use flag_convert");
     const auto __data = ::cuda::std::ranges::data(__range);
-    __assert_alignment<_Range, _Flags...>(__data);
+    ::cuda::experimental::simd::
+      __assert_load_store_alignment<basic_vec, ::cuda::std::ranges::range_value_t<_Range>, _Flags...>(__data);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < size; ++__i)
     {
@@ -513,10 +493,6 @@ public:
   //   const mask_type&, const basic_vec&, const basic_vec&) noexcept;
 };
 
-// Proxy for ranges::size(r) is a constant expression
-template <typename _Range>
-_CCCL_CONCEPT __has_static_size = _CCCL_REQUIRES_EXPR((_Range))((__simd_size_type{::cuda::std::tuple_size_v<_Range>}));
-
 // [simd.ctor] deduction guide from contiguous sized range
 // Deduces vec<range_value_t<R>, static_cast<simd-size-type>(ranges::size(r))>
 //    * it is not possible to use the alias "vec" for the deduction guide
@@ -524,11 +500,10 @@ _CCCL_CONCEPT __has_static_size = _CCCL_REQUIRES_EXPR((_Range))((__simd_size_typ
 //    * where _Np is __simd_size_v<_Tp, tuple_size_v<_Range>>
 _CCCL_TEMPLATE(typename _Range, typename... _Ts)
 _CCCL_REQUIRES(::cuda::std::ranges::contiguous_range<_Range> _CCCL_AND ::cuda::std::ranges::sized_range<_Range>
-                 _CCCL_AND __has_static_size<::cuda::std::remove_cvref_t<_Range>>)
-basic_vec(_Range&&, _Ts...) -> basic_vec<
-  ::cuda::std::ranges::range_value_t<_Range>,
-  simd_abi::__deduce_abi_t<::cuda::std::ranges::range_value_t<_Range>,
-                           __simd_size_type{::cuda::std::tuple_size_v<::cuda::std::remove_cvref_t<_Range>>}>>;
+                 _CCCL_AND __has_static_size<_Range>)
+basic_vec(_Range&&, _Ts...)
+  -> basic_vec<::cuda::std::ranges::range_value_t<_Range>,
+               simd_abi::__deduce_abi_t<::cuda::std::ranges::range_value_t<_Range>, __static_range_size_v<_Range>>>;
 
 // [simd.ctor] deduction guide from basic_mask
 // basic_vec<__integer_from<Bytes>, Abi> is equivalent to decltype(+k):
@@ -539,7 +514,6 @@ basic_vec(_Range&&, _Ts...) -> basic_vec<
 _CCCL_TEMPLATE(::cuda::std::size_t _Bytes, typename _Abi)
 _CCCL_REQUIRES(__has_unary_plus<basic_mask<_Bytes, _Abi>>)
 basic_vec(basic_mask<_Bytes, _Abi>) -> basic_vec<__integer_from<_Bytes>, _Abi>;
-
 } // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>

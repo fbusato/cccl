@@ -127,7 +127,7 @@ C2H_CCCLRT_TEST("simd.construction_and_memory", "[simd][construction]")
   expect_equal(from_simd, ::cuda::std::array<bool, size>{false, true, true, true});
 
   dp::vec<int, 4> assigned = simd_t(linear_index_gen{});
-  assigned                  = generated;
+  assigned                 = generated;
   expect_equal(assigned, array_t{0, 2, 4, 6});
 
   auto incremented = generated;
