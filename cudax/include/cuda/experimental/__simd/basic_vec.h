@@ -539,6 +539,7 @@ basic_vec(_Range&&, _Ts...) -> basic_vec<
 _CCCL_TEMPLATE(::cuda::std::size_t _Bytes, typename _Abi)
 _CCCL_REQUIRES(__has_unary_plus<basic_mask<_Bytes, _Abi>>)
 basic_vec(basic_mask<_Bytes, _Abi>) -> basic_vec<__integer_from<_Bytes>, _Abi>;
+
 } // namespace cuda::experimental::simd
 
 #include <cuda/std/__cccl/epilogue.h>

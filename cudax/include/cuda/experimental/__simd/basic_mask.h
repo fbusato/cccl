@@ -157,6 +157,14 @@ public:
     return {_Impl::__bitwise_not(__s_), __storage_tag};
   }
 
+  template <::cuda::std::size_t _Bytes>
+  static constexpr bool __has_integer_from_v =
+    (_Bytes == 1 || _Bytes == 2 || _Bytes == 4 || _Bytes == 8
+#if _CCCL_HAS_INT128()
+     || _Bytes == 16
+#endif // _CCCL_HAS_INT128()
+    );
+
   _CCCL_TEMPLATE(::cuda::std::size_t _B = _Bytes)
   _CCCL_REQUIRES(__has_integer_from_v<_B>)
   [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_B>, _Abi> operator+() const noexcept

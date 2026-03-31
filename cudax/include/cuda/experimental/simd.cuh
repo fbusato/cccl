@@ -13,5 +13,6 @@
 
 #include <cuda/experimental/__simd/basic_mask.h>
 #include <cuda/experimental/__simd/basic_vec.h>
+#include <cuda/experimental/__simd/reductions.h>
 
 #endif // __CUDAX_SIMD___

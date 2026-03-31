@@ -21,7 +21,6 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_convertible.h>
 #include <cuda/std/__type_traits/void_t.h>
@@ -34,21 +33,13 @@
 
 namespace cuda::experimental::simd
 {
-template <typename _From, typename _To, typename = void>
-inline constexpr bool __is_non_narrowing_convertible_v = false;
-
-template <typename _From, typename _To>
-inline constexpr bool
-  __is_non_narrowing_convertible_v<_From, _To, ::cuda::std::void_t<decltype(_To{::cuda::std::declval<_From>()})>> =
-    true;
-
-template <::cuda::std::size_t _Bytes>
-constexpr bool __has_integer_from_v =
-  (_Bytes == 1 || _Bytes == 2 || _Bytes == 4 || _Bytes == 8
-#if _CCCL_HAS_INT128()
-   || _Bytes == 16
-#endif // _CCCL_HAS_INT128()
-  );
+// template <typename _From, typename _To, typename = void>
+// inline constexpr bool __is_non_narrowing_convertible_v = false;
+//
+// template <typename _From, typename _To>
+// inline constexpr bool
+//   __is_non_narrowing_convertible_v<_From, _To, ::cuda::std::void_t<decltype(_To{::cuda::std::declval<_From>()})>> =
+//     true;
 
 template <typename _Tp>
 constexpr bool __is_abi_tag_v = false;
