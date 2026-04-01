@@ -34,8 +34,36 @@ The trait also propagates through composite types:
 
 ``const``, ``volatile``, and ``const volatile`` qualifications are handled transparently.
 
-Example
--------
+Custom Specialization
+---------------------
+
+Users may specialize ``cuda::is_trivially_copyable_relaxed`` for their own types whose memory representation is safe to copy
+with ``memcpy`` but that the compiler does not consider trivially copyable.
+A common case is a type that wraps extended floating-point fields and provides user-defined copy operations
+solely to add ``__host__ __device__`` annotations:
+
+.. code:: cuda
+
+    struct HalfWrapper {
+        __half value;
+    };
+
+    struct NonTriviallyCopyable {
+        __host__ __device__ NonTriviallyCopyable(const NonTriviallyCopyable&) {}
+    };
+
+    // Specializing the trait
+    template <>
+    struct cuda::is_trivially_copyable_relaxed<HalfWrapper> : cuda::std::true_type {};
+
+    template <>
+    struct cuda::is_trivially_copyable_relaxed<NonTriviallyCopyable> : cuda::std::true_type {};
+
+    static_assert(cuda::is_trivially_copyable_relaxed_v<HalfWrapper>);
+    static_assert(cuda::is_trivially_copyable_relaxed_v<NonTriviallyCopyable>);
+
+Examples
+--------
 
 .. code:: cuda
 
