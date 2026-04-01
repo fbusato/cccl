@@ -8,6 +8,7 @@ Type traits
    :maxdepth: 1
 
    type_traits/is_floating_point
+   type_traits/is_trivially_copyable_relaxed
    type_traits/vector_types
 
 .. list-table::
@@ -23,6 +24,11 @@ Type traits
      - Tells whether a type is a floating point type
      - CCCL 3.0.0
      - CUDA 13.0
+
+   * - :ref:`cuda::is_trivially_copyable_relaxed <libcudacxx-extended-api-type_traits-is_trivially_copyable_relaxed>`
+     - Relaxed trivially copyable check including extended floating-point types
+     - CCCL 3.4.0
+     - CUDA 13.4
 
    * - :ref:`Vector Type Traits <libcudacxx-extended-api-type_traits-vector_types>`
      - Type traits for CUDA vector types
