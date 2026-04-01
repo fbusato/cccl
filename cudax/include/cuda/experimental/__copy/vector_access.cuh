@@ -30,6 +30,10 @@
 #include <cuda/std/__type_traits/make_nbit_int.h>
 #include <cuda/std/climits>
 
+#if _CCCL_HAS_CTK()
+#  include <vector_types.h>
+#endif // _CCCL_HAS_CTK()
+
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
@@ -41,11 +45,15 @@ struct __vector_access
   using type = ::cuda::std::__make_nbit_uint_t<_VectorBytes * CHAR_BIT>;
 };
 
+#if _CCCL_HAS_CTK()
+
 template <>
 struct __vector_access<16>
 {
   using type = ::uint4;
 };
+
+#endif // _CCCL_HAS_CTK()
 
 #if _CCCL_CTK_AT_LEAST(13, 0)
 

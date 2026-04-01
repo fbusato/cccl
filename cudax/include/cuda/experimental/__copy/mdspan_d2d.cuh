@@ -32,11 +32,17 @@
 #  include <cuda/__mdspan/traits.h>
 #  include <cuda/__stream/stream_ref.h>
 #  include <cuda/std/__algorithm/max.h>
+#  include <cuda/std/__functional/identity.h>
 #  include <cuda/std/__host_stdlib/stdexcept>
+#  include <cuda/std/__mdspan/default_accessor.h>
 #  include <cuda/std/__memory/is_sufficiently_aligned.h>
 #  include <cuda/std/__type_traits/common_type.h>
+#  include <cuda/std/__type_traits/conditional.h>
+#  include <cuda/std/__type_traits/is_const.h>
 #  include <cuda/std/__type_traits/is_convertible.h>
 #  include <cuda/std/__type_traits/is_same.h>
+#  include <cuda/std/__type_traits/is_trivially_copyable.h>
+#  include <cuda/std/__type_traits/remove_cvref.h>
 
 #  include <cuda/experimental/__copy/copy_contiguous.cuh>
 #  include <cuda/experimental/__copy/copy_optimized.cuh>
@@ -124,6 +130,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     ::cuda::__driver::__memcpyAsync(__dst_ptr, __src_ptr, sizeof(_TpIn), __stream.get());
     return;
   }
+  // rank == 0 for both tensors is already handled above -> their size is exactly 1
   if constexpr (_ExtentsIn::rank() > 0 && _ExtentsOut::rank() > 0)
   {
     // check the preconditions for the vectorized case
@@ -172,7 +179,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     if (__tile_size == __tensor_size)
     {
       _CCCL_TRY_CUDA_API(
-        ::cub::DeviceTransform::Transform,
+        CUB_NS_QUALIFIER::DeviceTransform::Transform,
         "cub::DeviceTransform::Transform failed",
         __src_simplified.__data,
         __dst_simplified.__data,

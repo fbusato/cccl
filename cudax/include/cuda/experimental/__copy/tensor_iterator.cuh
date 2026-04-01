@@ -151,7 +151,7 @@ struct __tensor_coord_iterator
     }
     else
     {
-      ::cuda::std::array<_ExtentT, _Rank> __coords;
+      ::cuda::std::array<_ExtentT, _Rank> __coords{};
       __coords[0] = __in_arraydex % __extents_[0]; // __extent_products_[0] == 1
       _CCCL_PRAGMA_UNROLL_FULL()
       for (int __i = 1; __i < _Rank; ++__i)

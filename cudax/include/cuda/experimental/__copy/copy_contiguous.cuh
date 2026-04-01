@@ -144,12 +144,11 @@ _CCCL_HOST_API void __launch_copy_contiguous_kernel(
   const _SrcAccessor& __src_accessor = {},
   const _DstAccessor& __dst_accessor = {})
 {
-  namespace cudax                    = ::cuda::experimental;
   constexpr int __block_size         = 256;
-  constexpr auto __elems_per_thread1 = cudax::__elem_per_thread(sizeof(_TpIn));
+  constexpr auto __elems_per_thread1 = ::cuda::experimental::__elem_per_thread(sizeof(_TpIn));
   constexpr auto __tile_size         = __block_size * __elems_per_thread1;
   const auto __inner_size            = __src.__extents[0];
-  const auto __outer_size            = cudax::__total_size(__src) / __inner_size;
+  const auto __outer_size            = ::cuda::experimental::__total_size(__src) / __inner_size;
   const auto __num_inner_tiles       = ::cuda::ceil_div(__inner_size, __tile_size);
   const auto __config =
     ::cuda::make_config(::cuda::block_dims<__block_size>(), ::cuda::grid_dims(dim3(__num_inner_tiles, __outer_size)));
