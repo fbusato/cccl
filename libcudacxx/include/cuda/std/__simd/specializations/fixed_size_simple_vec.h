@@ -22,10 +22,9 @@
 #endif // no system header
 
 #include <cuda/__utility/in_range.h>
+#include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__utility/integer_sequence.h>
-
-#include <cuda/std/__simd/declaration.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -70,17 +69,17 @@ struct __simd_storage<_Tp, __fixed_size_simple<_Np>>
     return __result;                                                           \
   }
 
-#define _CUDA_STD_SIMD_FIXED_SIZE_BINARY_CMP_OP(_NAME, _OP)                \
-  [[nodiscard]] _CCCL_API static constexpr _MaskStorage _NAME(              \
-    const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept          \
-  {                                                                         \
-    _MaskStorage __result;                                                  \
-    _CCCL_PRAGMA_UNROLL_FULL()                                              \
-    for (__simd_size_type __i = 0; __i < _Np; ++__i)                        \
-    {                                                                       \
-      __result.__data[__i] = (__lhs.__data[__i] _OP __rhs.__data[__i]);     \
-    }                                                                       \
-    return __result;                                                        \
+#define _CUDA_STD_SIMD_FIXED_SIZE_BINARY_CMP_OP(_NAME, _OP)             \
+  [[nodiscard]] _CCCL_API static constexpr _MaskStorage _NAME(          \
+    const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept      \
+  {                                                                     \
+    _MaskStorage __result;                                              \
+    _CCCL_PRAGMA_UNROLL_FULL()                                          \
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)                    \
+    {                                                                   \
+      __result.__data[__i] = (__lhs.__data[__i] _OP __rhs.__data[__i]); \
+    }                                                                   \
+    return __result;                                                    \
   }
 
 // Simd operations for fixed_size_simple ABI

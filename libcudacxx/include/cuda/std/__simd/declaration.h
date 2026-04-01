@@ -22,7 +22,6 @@
 #endif // no system header
 
 #include <cuda/std/__cstddef/types.h>
-
 #include <cuda/std/__simd/abi.h>
 #include <cuda/std/__simd/exposition.h>
 

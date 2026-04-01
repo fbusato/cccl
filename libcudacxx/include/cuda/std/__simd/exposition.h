@@ -23,13 +23,12 @@
 
 #include <cuda/__type_traits/is_floating_point.h>
 #include <cuda/std/__cstddef/types.h>
+#include <cuda/std/__simd/abi.h>
 #include <cuda/std/__type_traits/is_const.h>
 #include <cuda/std/__type_traits/is_integral.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/is_volatile.h>
 #include <cuda/std/__type_traits/make_nbit_int.h>
-
-#include <cuda/std/__simd/abi.h>
 
 #include <cuda/std/__cccl/prologue.h>
 

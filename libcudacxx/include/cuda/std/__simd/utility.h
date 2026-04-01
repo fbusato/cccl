@@ -23,6 +23,9 @@
 
 #include <cuda/__memory/is_aligned.h>
 #include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__simd/abi.h>
+#include <cuda/std/__simd/flag.h>
+#include <cuda/std/__simd/type_traits.h>
 #include <cuda/std/__tuple_dir/tuple_size.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_convertible.h>
@@ -30,10 +33,6 @@
 #include <cuda/std/__type_traits/void_t.h>
 #include <cuda/std/__utility/declval.h>
 #include <cuda/std/__utility/integer_sequence.h>
-
-#include <cuda/std/__simd/abi.h>
-#include <cuda/std/__simd/flag.h>
-#include <cuda/std/__simd/type_traits.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -66,8 +65,8 @@ _CCCL_API constexpr bool __can_generate(::cuda::std::integer_sequence<__simd_siz
 }
 
 template <typename _Tp, typename _Generator, __simd_size_type _Size>
-constexpr bool __can_generate_v = ::cuda::std::simd::__can_generate<_Tp, _Generator>(
-  ::cuda::std::make_integer_sequence<__simd_size_type, _Size>());
+constexpr bool __can_generate_v =
+  ::cuda::std::simd::__can_generate<_Tp, _Generator>(::cuda::std::make_integer_sequence<__simd_size_type, _Size>());
 
 // Proxy for ranges::size(r) is a constant expression
 template <typename _Range>

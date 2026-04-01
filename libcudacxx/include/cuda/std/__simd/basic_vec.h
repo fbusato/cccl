@@ -25,17 +25,16 @@
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__ranges/concepts.h>
 #include <cuda/std/__ranges/data.h>
-#include <cuda/std/__tuple_dir/tuple_size.h>
-#include <cuda/std/__type_traits/integral_constant.h>
-#include <cuda/std/__type_traits/remove_cvref.h>
-#include <cuda/std/__type_traits/void_t.h>
-
 #include <cuda/std/__simd/basic_mask.h>
 #include <cuda/std/__simd/concepts.h>
 #include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__simd/flag.h>
 #include <cuda/std/__simd/specializations/fixed_size_simple_vec.h>
 #include <cuda/std/__simd/utility.h>
+#include <cuda/std/__tuple_dir/tuple_size.h>
+#include <cuda/std/__type_traits/integral_constant.h>
+#include <cuda/std/__type_traits/remove_cvref.h>
+#include <cuda/std/__type_traits/void_t.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -162,8 +161,8 @@ public:
                     || __is_value_preserving_v<::cuda::std::ranges::range_value_t<_Range>, value_type>,
                   "Conversion from range_value_t<R> to value_type is not value-preserving; use flag_convert");
     const auto __data = ::cuda::std::ranges::data(__range);
-    ::cuda::std::simd::
-      __assert_load_store_alignment<basic_vec, ::cuda::std::ranges::range_value_t<_Range>, _Flags...>(__data);
+    ::cuda::std::simd::__assert_load_store_alignment<basic_vec, ::cuda::std::ranges::range_value_t<_Range>, _Flags...>(
+      __data);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < size; ++__i)
     {
@@ -180,8 +179,8 @@ public:
                     || __is_value_preserving_v<::cuda::std::ranges::range_value_t<_Range>, value_type>,
                   "Conversion from range_value_t<R> to value_type is not value-preserving; use flag_convert");
     const auto __data = ::cuda::std::ranges::data(__range);
-    ::cuda::std::simd::
-      __assert_load_store_alignment<basic_vec, ::cuda::std::ranges::range_value_t<_Range>, _Flags...>(__data);
+    ::cuda::std::simd::__assert_load_store_alignment<basic_vec, ::cuda::std::ranges::range_value_t<_Range>, _Flags...>(
+      __data);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < size; ++__i)
     {

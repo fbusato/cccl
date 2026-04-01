@@ -23,11 +23,10 @@
 
 #include <cuda/__memory/is_valid_alignment.h>
 #include <cuda/std/__cstddef/types.h>
-#include <cuda/std/__type_traits/integral_constant.h>
-
 #include <cuda/std/__simd/abi.h>
 #include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__simd/exposition.h>
+#include <cuda/std/__type_traits/integral_constant.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
