@@ -14,10 +14,7 @@
 #include <nvbench/nvbench.cuh>
 
 // GCC -Warray-bounds false positive for high-rank (20+) __raw_tensor instantiations
-#if _CCCL_COMPILER(GCC)
-_CCCL_DIAG_PUSH
 _CCCL_DIAG_SUPPRESS_GCC("-Warray-bounds")
-#endif // _CCCL_COMPILER(GCC)
 
 using data_t = int;
 
