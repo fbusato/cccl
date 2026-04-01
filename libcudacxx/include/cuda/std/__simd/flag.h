@@ -55,6 +55,12 @@ constexpr bool __is_flag_type_v<__aligned_flag> = true;
 template <::cuda::std::size_t _Np>
 constexpr bool __is_flag_type_v<__overaligned_flag<_Np>> = true;
 
+template <typename _Flag>
+constexpr ::cuda::std::size_t __overaligned_value_v = 0;
+
+template <::cuda::std::size_t _Np>
+constexpr ::cuda::std::size_t __overaligned_value_v<__overaligned_flag<_Np>> = _Np;
+
 // [simd.flags.overview], class template flags
 
 template <typename... _Flags>
@@ -62,6 +68,8 @@ struct flags
 {
   static_assert((true && ... && __is_flag_type_v<_Flags>),
                 "Every flag type must be one of convert_flag, aligned_flag, or overaligned_flag<N>");
+  static_assert((0 + ... + static_cast<int>(__overaligned_value_v<_Flags> != 0)) <= 1,
+                "At most one overaligned_flag is allowed");
 
   // [simd.flags.oper], flags operators
   template <typename... _Other>
@@ -85,12 +93,6 @@ constexpr bool __has_convert_flag_v = (false || ... || ::cuda::std::is_same_v<_F
 
 template <typename... _Flags>
 constexpr bool __has_aligned_flag_v = (false || ... || ::cuda::std::is_same_v<_Flags, __aligned_flag>);
-
-template <typename _Flag>
-constexpr ::cuda::std::size_t __overaligned_value_v = 0;
-
-template <::cuda::std::size_t _Np>
-constexpr ::cuda::std::size_t __overaligned_value_v<__overaligned_flag<_Np>> = _Np;
 
 template <typename... _Flags>
 constexpr bool __has_overaligned_flag_v = (false || ... || (__overaligned_value_v<_Flags> != 0));
