@@ -16,6 +16,9 @@
 
 #include "test_macros.h"
 
+_CCCL_DIAG_PUSH
+_CCCL_DIAG_SUPPRESS_CLANG("-Wunused-local-typedef")
+
 // memcpy is not used to avoid compiler optimizations
 __host__ __device__ void test_memcpy(void* dst, const void* src, cuda::std::size_t bytes) noexcept
 {
@@ -168,8 +171,6 @@ __host__ __device__ bool tests()
   TEST_CUDA_VECTOR_TYPE(long, 2)
   TEST_CUDA_VECTOR_TYPE(long, 3)
 
-  _CCCL_DIAG_PUSH
-  _CCCL_DIAG_SUPPRESS_CLANG("-Wunused-local-typedef")
   using longlong  = long long;
   using ulonglong = unsigned long long;
   TEST_CUDA_VECTOR_TYPE(longlong, 1)
