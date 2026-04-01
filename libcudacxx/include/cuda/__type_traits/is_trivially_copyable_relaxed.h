@@ -37,8 +37,12 @@ _CCCL_BEGIN_NAMESPACE_CUDA
 //! Users are allowed to specialize this variable template for their own types
 template <typename _Tp>
 constexpr bool is_trivially_copyable_relaxed_v =
-  ::cuda::std::__is_extended_floating_point_v<::cuda::std::remove_cv_t<_Tp>>
-  || ::cuda::is_extended_fp_vector_type_v<::cuda::std::remove_cv_t<_Tp>> || ::cuda::std::is_trivially_copyable_v<_Tp>;
+  ::cuda::std::is_trivially_copyable_v<_Tp>
+  || ::cuda::std::__is_extended_floating_point_v<::cuda::std::remove_cv_t<_Tp>>
+#if _CCCL_HAS_CTK()
+  || ::cuda::is_extended_fp_vector_type_v<::cuda::std::remove_cv_t<_Tp>>
+#endif // _CCCL_HAS_CTK()
+  ;
 
 template <typename _Tp>
 constexpr bool is_trivially_copyable_relaxed_v<_Tp[]> = is_trivially_copyable_relaxed_v<_Tp>;
