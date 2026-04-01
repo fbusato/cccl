@@ -154,7 +154,7 @@ _CCCL_HOST_API void __launch_copy_contiguous_kernel(
   const auto __config =
     ::cuda::make_config(::cuda::block_dims<__block_size>(), ::cuda::grid_dims(dim3(__num_inner_tiles, __outer_size)));
 
-  const __tensor_coord_iterator<_ExtentT, _Rank> __coord_iter(__src.__extents);
+  const __tensor_coord_iterator<_ExtentT, _Rank> __coord_iter{__src.__extents};
   const auto __kernel = ::cuda::experimental::__copy_contiguous_kernel<
     decltype(__config),
     __tile_size,
