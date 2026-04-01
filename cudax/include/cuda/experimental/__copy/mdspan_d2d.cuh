@@ -108,6 +108,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
   {
     _CCCL_THROW(::std::invalid_argument, "mdspans must not overlap in memory");
   }
+
   if (__tensor_size == 1)
   {
     auto __src_ptr = __src.data_handle();
