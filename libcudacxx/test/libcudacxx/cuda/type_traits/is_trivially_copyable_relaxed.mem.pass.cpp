@@ -57,10 +57,12 @@ __host__ __device__ void test_memcpy_roundtrip(T from)
   assert(test_memcmp(&buffer, &copy, sizeof(T)) == 0);
 }
 
-#define REPEAT_1(base_type, index) base_type(input[index][0])
-#define REPEAT_2(base_type, index) REPEAT_1(base_type, index), base_type(input[index][1])
-#define REPEAT_3(base_type, index) REPEAT_2(base_type, index), base_type(input[index][2])
-#define REPEAT_4(base_type, index) REPEAT_3(base_type, index), base_type(input[index][3])
+#define CAST(base_type, val) static_cast<decltype(base_type##1 ::x)>(val)
+
+#define REPEAT_1(base_type, index) CAST(base_type, input[index][0])
+#define REPEAT_2(base_type, index) REPEAT_1(base_type, index), CAST(base_type, input[index][1])
+#define REPEAT_3(base_type, index) REPEAT_2(base_type, index), CAST(base_type, input[index][2])
+#define REPEAT_4(base_type, index) REPEAT_3(base_type, index), CAST(base_type, input[index][3])
 
 #define TEST_CUDA_VECTOR_TYPE(base_type, size)           \
   {                                                      \
@@ -178,8 +180,17 @@ __host__ __device__ bool tests()
   TEST_CUDA_VECTOR_TYPE(double, 2)
   TEST_CUDA_VECTOR_TYPE(double, 3)
 
-  using dim = unsigned int;
-  TEST_CUDA_VECTOR_TYPE(dim, 3)
+  for (dim3 i :
+       {dim3{0u, 1u, 2u},
+        dim3{1u, 2u, 3u},
+        dim3{10u, 20u, 30u},
+        dim3{100u, 200u, 300u},
+        dim3{255u, 128u, 64u},
+        dim3{1024u, 512u, 256u},
+        dim3{4096u, 2048u, 1024u}})
+  {
+    test_memcpy_roundtrip(i);
+  }
 
   // extended floating-point scalar types
 #if _CCCL_HAS_NVFP16()

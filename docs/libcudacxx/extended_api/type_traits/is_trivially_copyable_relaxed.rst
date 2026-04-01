@@ -32,7 +32,7 @@ The trait also propagates through composite types:
 - ``cuda::std::pair<T1, T2>``: relaxed trivially copyable when both ``T1`` and ``T2`` are and the object has no padding.
 - ``cuda::std::tuple<Ts...>``: relaxed trivially copyable when all ``Ts...`` are and the object has no padding.
 
-``const``, ``volatile``, and ``const volatile`` qualifications are handled transparently.
+``const`` qualification is handled transparently, while ``volatile`` is compile-time dependent.
 
 Custom Specialization
 ---------------------
@@ -87,8 +87,11 @@ Examples
    static_assert(cuda::is_trivially_copyable_relaxed_v<__nv_bfloat16>);
    static_assert(cuda::is_trivially_copyable_relaxed_v<__half2>);
 
-   // Composite types containing extended floating-point types
+   // Padding-free composite types containing extended floating-point types
    static_assert(cuda::is_trivially_copyable_relaxed_v<__half[4]>);
    static_assert(cuda::is_trivially_copyable_relaxed_v<cuda::std::array<__half, 4>>);
-   static_assert(cuda::is_trivially_copyable_relaxed_v<cuda::std::pair<__half, int>>);
-   static_assert(cuda::is_trivially_copyable_relaxed_v<cuda::std::tuple<__half, float, double>>);
+   static_assert(cuda::is_trivially_copyable_relaxed_v<cuda::std::pair<__half, __half>>);
+   static_assert(cuda::is_trivially_copyable_relaxed_v<cuda::std::tuple<__half, __half>>);
+
+   // Composites with padding are not trivially copyable relaxed
+   static_assert(!cuda::is_trivially_copyable_relaxed_v<cuda::std::pair<__half, int>>);

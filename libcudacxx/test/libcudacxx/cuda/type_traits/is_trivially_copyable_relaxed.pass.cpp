@@ -19,12 +19,8 @@ __host__ __device__ void test_is_trivially_copyable_relaxed()
 {
   static_assert(cuda::is_trivially_copyable_relaxed<T>::value);
   static_assert(cuda::is_trivially_copyable_relaxed<const T>::value);
-  static_assert(cuda::is_trivially_copyable_relaxed<volatile T>::value);
-  static_assert(cuda::is_trivially_copyable_relaxed<const volatile T>::value);
   static_assert(cuda::is_trivially_copyable_relaxed_v<T>);
   static_assert(cuda::is_trivially_copyable_relaxed_v<const T>);
-  static_assert(cuda::is_trivially_copyable_relaxed_v<volatile T>);
-  static_assert(cuda::is_trivially_copyable_relaxed_v<const volatile T>);
 }
 
 template <class T>
@@ -32,12 +28,8 @@ __host__ __device__ void test_is_not_trivially_copyable_relaxed()
 {
   static_assert(!cuda::is_trivially_copyable_relaxed<T>::value);
   static_assert(!cuda::is_trivially_copyable_relaxed<const T>::value);
-  static_assert(!cuda::is_trivially_copyable_relaxed<volatile T>::value);
-  static_assert(!cuda::is_trivially_copyable_relaxed<const volatile T>::value);
   static_assert(!cuda::is_trivially_copyable_relaxed_v<T>);
   static_assert(!cuda::is_trivially_copyable_relaxed_v<const T>);
-  static_assert(!cuda::is_trivially_copyable_relaxed_v<volatile T>);
-  static_assert(!cuda::is_trivially_copyable_relaxed_v<const volatile T>);
 }
 
 struct TrivialPod

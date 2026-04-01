@@ -28,7 +28,7 @@
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_extended_floating_point.h>
 #include <cuda/std/__type_traits/is_trivially_copyable.h>
-#include <cuda/std/__type_traits/remove_cv.h>
+#include <cuda/std/__type_traits/remove_const.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -37,10 +37,10 @@ _CCCL_BEGIN_NAMESPACE_CUDA
 //! Users are allowed to specialize this variable template for their own types
 template <typename _Tp>
 constexpr bool is_trivially_copyable_relaxed_v =
-  ::cuda::std::is_trivially_copyable_v<_Tp>
-  || ::cuda::std::__is_extended_floating_point_v<::cuda::std::remove_cv_t<_Tp>>
+  ::cuda::std::is_trivially_copyable_v<::cuda::std::remove_const_t<_Tp>>
+  || ::cuda::std::__is_extended_floating_point_v<::cuda::std::remove_const_t<_Tp>>
 #if _CCCL_HAS_CTK()
-  || ::cuda::is_extended_fp_vector_type_v<::cuda::std::remove_cv_t<_Tp>>
+  || ::cuda::is_extended_fp_vector_type_v<::cuda::std::remove_const_t<_Tp>>
 #endif // _CCCL_HAS_CTK()
   ;
 
