@@ -168,6 +168,8 @@ __host__ __device__ bool tests()
   TEST_CUDA_VECTOR_TYPE(long, 2)
   TEST_CUDA_VECTOR_TYPE(long, 3)
 
+  _CCCL_DIAG_PUSH
+  _CCCL_DIAG_SUPPRESS_CLANG("-Wunused-local-typedef")
   using longlong  = long long;
   using ulonglong = unsigned long long;
   TEST_CUDA_VECTOR_TYPE(longlong, 1)
