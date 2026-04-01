@@ -22,7 +22,6 @@
 #endif // no system header
 
 #if !_CCCL_COMPILER(NVRTC)
-
 #  include <cuda/__driver/driver_api.h>
 #  include <cuda/devices>
 #endif // !_CCCL_COMPILER(NVRTC)
