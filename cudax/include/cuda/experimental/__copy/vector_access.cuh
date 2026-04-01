@@ -78,9 +78,9 @@ using __vector_access_t = typename __vector_access<_VectorBytes>::type;
   const auto __dev    = ::cuda::devices[__dev_id];
   const auto __major  = __dev.attribute<::cudaDevAttrComputeCapabilityMajor>();
   return (__major >= 10) ? 32 : 16;
-#  else
+#  else // ^^^ _CCCL_CTK_AT_LEAST(13, 0) ^^^ / vvv _CCCL_CTK_BELOW(13, 0) vvv
   return 16;
-#  endif
+#  endif // _CCCL_CTK_BELOW(13, 0)
 }
 
 #endif // !_CCCL_COMPILER(NVRTC)
