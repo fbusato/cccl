@@ -155,6 +155,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     {
       _CCCL_THROW(::std::invalid_argument, "mdspans must have the same extents (after removing singleton dimensions)");
     }
+
     auto __src_simplified = __src_raw;
     auto __dst_simplified = __dst_raw;
     cudax::__sort_by_stride_paired(__src_simplified, __dst_simplified);
