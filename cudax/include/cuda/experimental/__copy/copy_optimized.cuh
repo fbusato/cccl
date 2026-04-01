@@ -73,6 +73,7 @@ __global__ void __copy_optimized_kernel(
   const auto __stride = ::cuda::gpu_thread.count_as<_ExtentT>(::cuda::grid, __config);
   const __partial_tensor __src{__src_ptr, __src_strides, __src_accessor};
   const __partial_tensor __dst{__dst_ptr, __dst_strides, __dst_accessor};
+
   for (auto __i = __idx; __i < __tensor_size; __i += __stride)
   {
     const auto __coord = __coord_iter(__i);
