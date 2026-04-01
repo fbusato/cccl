@@ -29,17 +29,17 @@ benchmarks:
     # Examples:
     # - '^cub\.bench\.for_each\.base'
     # - '^cub\.bench\.reduce\.(sum|min)\.'
-    - '^cub\.bench\.reduce\.'
-    - '^cub\.bench\.scan\.'
-    - '^cub\.bench\.radix_sort\.'
-    - '^cub\.bench\.merge_sort\.'
-    - '^cub\.bench\.select\.'
-    - '^cub\.bench\.partition\.'
+    - '^cub\.bench\.reduce\.(sum|min|nondeterministic|deterministic|by_key)\.'
+    - '^cub\.bench\.scan\.exclusive\.(sum|by_key)\.'
+    - '^cub\.bench\.radix_sort\.keys\.'
+    - '^cub\.bench\.merge_sort\.keys\.'
+    - '^cub\.bench\.select\.if\.'
+    - '^cub\.bench\.partition\.if\.'
     - '^cub\.bench\.run_length_encode\.'
-    - '^cub\.bench\.segmented_reduce\.'
+    - '^cub\.bench\.segmented_reduce\.sum\.'
     - '^cub\.bench\.segmented_sort\.'
     - '^cub\.bench\.segmented_radix_sort\.'
-    - '^cub\.bench\.topk\.'
+    - '^cub\.bench\.topk\.keys\.'
     - '^cub\.bench\.segmented_topk\.'
     - '^cub\.bench\.transform_reduce\.'
     - '^cub\.bench\.copy\.'
@@ -63,7 +63,7 @@ benchmarks:
   test_ref: "HEAD"
   arch: "native"
   nvbench_args: >-
-    --timeout 30
+    --timeout 100
     --skip-time 15e-6
     --stopping-criterion entropy
     --throttle-threshold 90
