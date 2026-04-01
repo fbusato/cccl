@@ -10,14 +10,14 @@ Defined in the ``<cuda/type_traits>`` header.
    namespace cuda {
 
    template <typename T>
-   struct is_trivially_copyable_relaxed;
+   constexpr bool is_trivially_copyable_relaxed_v = /* see below */;
 
    template <typename T>
-   constexpr bool is_trivially_copyable_relaxed_v = is_trivially_copyable_relaxed<T>::value;
+   using is_trivially_copyable_relaxed = cuda::std::bool_constant<is_trivially_copyable_relaxed_v<T>>;
 
    } // namespace cuda
 
-``cuda::is_trivially_copyable_relaxed<T>`` is a type trait that extends ``cuda::std::is_trivially_copyable`` to also recognize CUDA extended floating-point scalar and vector types as trivially copyable.
+``cuda::is_trivially_copyable_relaxed_v<T>`` is a variable template that extends ``cuda::std::is_trivially_copyable`` to also recognize CUDA extended floating-point scalar and vector types as trivially copyable.
 
 A type ``T`` satisfies ``cuda::is_trivially_copyable_relaxed`` if any of the following holds:
 
@@ -29,16 +29,20 @@ The trait also propagates through composite types:
 
 - C-style arrays: ``T[N]`` and ``T[]`` are relaxed trivially copyable when ``T`` is.
 - ``cuda::std::array<T, N>``: relaxed trivially copyable when ``T`` is.
-- ``cuda::std::pair<T1, T2>``: relaxed trivially copyable when both ``T1`` and ``T2`` are.
-- ``cuda::std::tuple<Ts...>``: relaxed trivially copyable when all ``Ts...`` are.
+- ``cuda::std::pair<T1, T2>``: relaxed trivially copyable when both ``T1`` and ``T2`` are and the object has no padding.
+- ``cuda::std::tuple<Ts...>``: relaxed trivially copyable when all ``Ts...`` are and the object has no padding.
 
 ``const``, ``volatile``, and ``const volatile`` qualifications are handled transparently.
 
 Custom Specialization
 ---------------------
 
-Users may specialize ``cuda::is_trivially_copyable_relaxed`` for their own types whose memory representation is safe to copy
-with ``memcpy`` but that the compiler does not consider trivially copyable.
+Users may specialize ``cuda::is_trivially_copyable_relaxed_v`` for their own types whose memory representation is safe to copy with ``memcpy`` but that the compiler does not consider trivially copyable.
+
+... warning::
+
+    Users are responsible for ensuring that the type is actually trivially copyable when specializing this variable template. Otherwise, the behavior is undefined.
+
 A common case is a type that wraps extended floating-point fields and provides user-defined copy operations
 solely to add ``__host__ __device__`` annotations:
 
@@ -52,12 +56,12 @@ solely to add ``__host__ __device__`` annotations:
         __host__ __device__ NonTriviallyCopyable(const NonTriviallyCopyable&) {}
     };
 
-    // Specializing the trait
+    // Specializing the variable template
     template <>
-    struct cuda::is_trivially_copyable_relaxed<HalfWrapper> : cuda::std::true_type {};
+    constexpr bool cuda::is_trivially_copyable_relaxed_v<HalfWrapper> = true;
 
     template <>
-    struct cuda::is_trivially_copyable_relaxed<NonTriviallyCopyable> : cuda::std::true_type {};
+    constexpr bool cuda::is_trivially_copyable_relaxed_v<NonTriviallyCopyable> = true;
 
     static_assert(cuda::is_trivially_copyable_relaxed_v<HalfWrapper>);
     static_assert(cuda::is_trivially_copyable_relaxed_v<NonTriviallyCopyable>);

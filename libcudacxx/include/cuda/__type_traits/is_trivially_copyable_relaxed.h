@@ -34,41 +34,34 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA
 
-template <typename _Tp, typename _Up = ::cuda::std::remove_cv_t<_Tp>>
-constexpr bool __is_trivially_copyable_relaxed_impl_v =
-  ::cuda::std::__is_extended_floating_point_v<_Up> || ::cuda::is_extended_fp_vector_type_v<_Up>
-  || ::cuda::std::is_trivially_copyable_v<_Up>;
+//! Users are allowed to specialize this variable template for their own types
+template <typename _Tp>
+constexpr bool is_trivially_copyable_relaxed_v =
+  ::cuda::std::__is_extended_floating_point_v<::cuda::std::remove_cv_t<_Tp>>
+  || ::cuda::is_extended_fp_vector_type_v<::cuda::std::remove_cv_t<_Tp>> || ::cuda::std::is_trivially_copyable_v<_Tp>;
 
 template <typename _Tp>
-struct is_trivially_copyable_relaxed : ::cuda::std::bool_constant<::cuda::__is_trivially_copyable_relaxed_impl_v<_Tp>>
-{};
-
-template <typename _Tp>
-struct is_trivially_copyable_relaxed<_Tp[]> : is_trivially_copyable_relaxed<_Tp>
-{};
+constexpr bool is_trivially_copyable_relaxed_v<_Tp[]> = is_trivially_copyable_relaxed_v<_Tp>;
 
 template <typename _Tp, ::cuda::std::size_t _Size>
-struct is_trivially_copyable_relaxed<_Tp[_Size]> : is_trivially_copyable_relaxed<_Tp>
-{};
+constexpr bool is_trivially_copyable_relaxed_v<_Tp[_Size]> = is_trivially_copyable_relaxed_v<_Tp>;
 
 template <typename _Tp, ::cuda::std::size_t _Size>
-struct is_trivially_copyable_relaxed<::cuda::std::array<_Tp, _Size>> : is_trivially_copyable_relaxed<_Tp>
-{};
+constexpr bool is_trivially_copyable_relaxed_v<::cuda::std::array<_Tp, _Size>> = is_trivially_copyable_relaxed_v<_Tp>;
 
-// cuda::std::pair
 template <typename _T1, typename _T2>
-struct is_trivially_copyable_relaxed<::cuda::std::pair<_T1, _T2>>
-    : ::cuda::std::bool_constant<__is_trivially_copyable_relaxed_impl_v<_T1> && __is_trivially_copyable_relaxed_impl_v<_T2>>
-{};
+constexpr bool is_trivially_copyable_relaxed_v<::cuda::std::pair<_T1, _T2>> =
+  (sizeof(::cuda::std::pair<_T1, _T2>) == sizeof(_T1) + sizeof(_T2))
+  && is_trivially_copyable_relaxed_v<_T1> && is_trivially_copyable_relaxed_v<_T2>;
 
-// cuda::std::tuple
 template <typename... _Ts>
-struct is_trivially_copyable_relaxed<::cuda::std::tuple<_Ts...>>
-    : ::cuda::std::bool_constant<(__is_trivially_copyable_relaxed_impl_v<_Ts> && ...)>
-{};
+constexpr bool is_trivially_copyable_relaxed_v<::cuda::std::tuple<_Ts...>> =
+  (sizeof...(_Ts) == 0 || sizeof(::cuda::std::tuple<_Ts...>) == (sizeof(_Ts) + ... + 0))
+  && (is_trivially_copyable_relaxed_v<_Ts> && ...);
 
+// defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>
-constexpr bool is_trivially_copyable_relaxed_v = is_trivially_copyable_relaxed<_Tp>::value;
+using is_trivially_copyable_relaxed = ::cuda::std::bool_constant<is_trivially_copyable_relaxed_v<_Tp>>;
 
 _CCCL_END_NAMESPACE_CUDA
 
