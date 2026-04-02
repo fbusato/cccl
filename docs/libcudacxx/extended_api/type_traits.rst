@@ -25,12 +25,12 @@ Type traits
      - CCCL 3.0.0
      - CUDA 13.0
 
-   * - :ref:`cuda::is_bitwise_comparable <libcudacxx-extended-api-type_traits-is_bitwise_comparable>`
-     - User-specializable bitwise comparability check
-     - CCCL 3.4.0
-     - CUDA 13.4
-
    * - :ref:`Vector Type Traits <libcudacxx-extended-api-type_traits-vector_types>`
      - Type traits for CUDA vector types
      - CCCL 3.3.0
      - CUDA 13.3
+
+   * - :ref:`cuda::is_bitwise_comparable <libcudacxx-extended-api-type_traits-is_bitwise_comparable>`
+     - User-specializable bitwise comparability check
+     - CCCL 3.4.0
+     - CUDA 13.4

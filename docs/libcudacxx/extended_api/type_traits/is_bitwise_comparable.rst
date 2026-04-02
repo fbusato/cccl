@@ -28,32 +28,40 @@ The trait also propagates through composite types:
 
 ``const``, ``volatile``, and ``const volatile`` qualifications are handled transparently.
 
-... warning::
+.. note::
 
-    ``cuda::is_bitwise_comparable_v`` cannot recognize structures (or classes) that contain extended floating-point types as bitwise comparable. Structures that contain extended floating-point types are detected as bitwise comparable by default.
+  The following conditions generally prevent a type from being bitwise comparable:
+
+  - The type contains floating-point types. ``NaN`` and ``+/-0`` values are not bitwise comparable.
+  - The type has internal padding, for example a structure with ``char`` and ``int`` members.
+  - The type has special semantics for the comparison, namely a user-defined ``operator==``.
+
+.. warning::
+
+   The type trait cannot determine if a structure (``struct`` or ``class``) contains *extended* floating-point types, and thus it recognizes the type as *bitwise comparable*. The user must manually specialize the type trait for such types.
 
 Custom Specialization
 ---------------------
 
-Users may specialize ``cuda::is_bitwise_comparable_v`` for their own types to indicate that two objects with the same value always have the same object  representation, even when the compiler cannot determine this automatically.
+Users may specialize ``cuda::is_bitwise_comparable_v`` for their own types to indicate that two object representations can be compared bitwise, even when the compiler cannot determine this automatically.
 The specialization must be provided for the unqualified type; cv-qualified forms are handled automatically.
 
 .. code:: cuda
 
-   struct MyType {
-     double value;
-   };
+  struct MyType {
+    double value;
+  };
 
-   template <>
-   constexpr bool cuda::is_bitwise_comparable_v<MyType> = true;
+  template <>
+  constexpr bool cuda::is_bitwise_comparable_v<MyType> = true;
 
-   static_assert(cuda::is_bitwise_comparable_v<MyType>);
-   static_assert(cuda::is_bitwise_comparable_v<const MyType>);
+  static_assert(cuda::is_bitwise_comparable_v<MyType>);
+  static_assert(cuda::is_bitwise_comparable_v<const MyType>);
 
 
-... warning::
+.. warning::
 
-    Users are responsible for ensuring that the type is actually bitwise comparable when specializing this variable template. Otherwise, the behavior is undefined.
+  Users are responsible for ensuring that the type is actually bitwise comparable when specializing this variable template. Otherwise, the behavior is undefined.
 
 Examples
 --------
