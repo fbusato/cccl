@@ -36,7 +36,7 @@ struct __fixed_size_simple
   static constexpr __simd_size_type __simd_size = _Np;
 };
 
-// Element-per-slot simd storage for fixed_size_simple ABI
+// Element-per-slot simd storage for fixed_size ABI
 template <typename _Tp, __simd_size_type _Np>
 struct __simd_storage<_Tp, __fixed_size_simple<_Np>>
 {
@@ -82,7 +82,7 @@ struct __simd_storage<_Tp, __fixed_size_simple<_Np>>
     return __result;                                                    \
   }
 
-// Simd operations for fixed_size_simple ABI
+// Simd operations for fixed_size ABI
 template <typename _Tp, __simd_size_type _Np>
 struct __simd_operations<_Tp, __fixed_size_simple<_Np>>
 {

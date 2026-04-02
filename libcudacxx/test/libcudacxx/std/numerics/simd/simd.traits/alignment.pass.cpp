@@ -16,8 +16,7 @@
 // template<class T, class U = typename T::value_type>
 // constexpr size_t alignment_v = alignment<T, U>::value;
 
-#include <cuda/std/__simd/basic_vec.h>
-#include <cuda/std/__simd/type_traits.h>
+#include <cuda/std/__simd_>
 #include <cuda/std/type_traits>
 
 #include "test_macros.h"
@@ -27,7 +26,7 @@ namespace simd = cuda::std::simd;
 template <typename T, int N>
 __host__ __device__ void test_default_u()
 {
-  using V = simd::basic_vec<T, simd::fixed_size_simple<N>>;
+  using V = simd::basic_vec<T, simd::fixed_size<N>>;
   static_assert(simd::alignment<V>::value == alignof(T) * N);
   static_assert(simd::alignment_v<V> == alignof(T) * N);
 }
@@ -35,7 +34,7 @@ __host__ __device__ void test_default_u()
 template <typename T, int N, typename U>
 __host__ __device__ void test_explicit_u()
 {
-  using V = simd::basic_vec<T, simd::fixed_size_simple<N>>;
+  using V = simd::basic_vec<T, simd::fixed_size<N>>;
   static_assert(simd::alignment<V, U>::value == alignof(U) * N);
   static_assert(simd::alignment_v<V, U> == alignof(U) * N);
 }

@@ -22,7 +22,7 @@
 // [simd.flags.oper], flags operators
 // template<class... Other> friend constexpr flags<Flags..., Other...> operator|(flags, flags<Other...>);
 
-#include <cuda/std/__simd/flag.h>
+#include <cuda/std/__simd_>
 #include <cuda/std/type_traits>
 
 #include "test_macros.h"

@@ -34,13 +34,13 @@ template <__simd_size_type _Np>
 struct __fixed_size_simple; // internal ABI tag
 
 template <__simd_size_type _Np>
-using fixed_size_simple = __fixed_size_simple<_Np>; // implementation-defined ABI
+using fixed_size = __fixed_size_simple<_Np>; // implementation-defined ABI
 
 template <typename>
-using native = fixed_size_simple<1>; // implementation-defined ABI
+using native = fixed_size<1>; // implementation-defined ABI
 
 template <typename, __simd_size_type _Np>
-using __deduce_abi_t = fixed_size_simple<_Np>; // exposition-only
+using __deduce_abi_t = fixed_size<_Np>; // exposition-only
 } // namespace cuda::std::simd
 
 #include <cuda/std/__cccl/epilogue.h>

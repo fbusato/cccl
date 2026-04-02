@@ -31,7 +31,7 @@
 
 namespace cuda::std::simd
 {
-// Bool-per-element mask storage for fixed_size_simple ABI
+// Bool-per-element mask storage for fixed_size ABI
 template <::cuda::std::size_t _Bytes, __simd_size_type _Np>
 struct __mask_storage<_Bytes, __fixed_size_simple<_Np>>
 {
@@ -53,7 +53,7 @@ struct __mask_storage<_Bytes, __fixed_size_simple<_Np>>
   }
 };
 
-// Mask operations for fixed_size_simple ABI with bool-per-element storage
+// Mask operations for fixed_size ABI with bool-per-element storage
 template <::cuda::std::size_t _Bytes, __simd_size_type _Np>
 struct __mask_operations<_Bytes, __fixed_size_simple<_Np>>
 {

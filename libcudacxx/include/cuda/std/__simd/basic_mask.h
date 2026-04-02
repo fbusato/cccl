@@ -27,7 +27,7 @@
 #include <cuda/std/__concepts/same_as.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__simd/declaration.h>
-#include <cuda/std/__simd/specializations/fixed_size_simple_mask.h>
+#include <cuda/std/__simd/specializations/fixed_size_mask.h>
 #include <cuda/std/__simd/utility.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_unsigned_integer.h>

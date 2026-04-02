@@ -51,7 +51,7 @@ template <typename _Tp, typename _Abi>
 constexpr __simd_size_type __simd_size_v = 0;
 
 template <typename _Tp, __simd_size_type _Np>
-constexpr __simd_size_type __simd_size_v<_Tp, fixed_size_simple<_Np>> = _Np;
+constexpr __simd_size_type __simd_size_v<_Tp, fixed_size<_Np>> = _Np;
 } // namespace cuda::std::simd
 
 #include <cuda/std/__cccl/epilogue.h>

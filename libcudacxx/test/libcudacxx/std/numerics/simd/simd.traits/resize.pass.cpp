@@ -13,8 +13,7 @@
 // template<simd-size-type N, class V> struct resize;
 // template<simd-size-type N, class V> using resize_t = typename resize<N, V>::type;
 
-#include <cuda/std/__simd/basic_vec.h>
-#include <cuda/std/__simd/type_traits.h>
+#include <cuda/std/__simd_>
 #include <cuda/std/type_traits>
 
 #include "test_macros.h"
@@ -27,9 +26,9 @@ namespace simd = cuda::std::simd;
 template <typename T, int OldN, int NewN>
 __host__ __device__ void test_resize_vec()
 {
-  using OldVec   = simd::basic_vec<T, simd::fixed_size_simple<OldN>>;
+  using OldVec   = simd::basic_vec<T, simd::fixed_size<OldN>>;
   using Result   = simd::resize_t<NewN, OldVec>;
-  using Expected = simd::basic_vec<T, simd::fixed_size_simple<NewN>>;
+  using Expected = simd::basic_vec<T, simd::fixed_size<NewN>>;
   static_assert(cuda::std::is_same_v<typename Result::value_type, T>);
   static_assert(Result::size() == NewN);
   static_assert(cuda::std::is_same_v<Result, Expected>);
@@ -49,9 +48,9 @@ __host__ __device__ void test_resize_vec_all()
 template <typename T, int OldN, int NewN>
 __host__ __device__ void test_resize_mask()
 {
-  using OldMask  = simd::basic_mask<sizeof(T), simd::fixed_size_simple<OldN>>;
+  using OldMask  = simd::basic_mask<sizeof(T), simd::fixed_size<OldN>>;
   using Result   = simd::resize_t<NewN, OldMask>;
-  using Expected = simd::basic_mask<sizeof(T), simd::fixed_size_simple<NewN>>;
+  using Expected = simd::basic_mask<sizeof(T), simd::fixed_size<NewN>>;
   static_assert(Result::size() == NewN);
   static_assert(cuda::std::is_same_v<Result, Expected>);
 }
