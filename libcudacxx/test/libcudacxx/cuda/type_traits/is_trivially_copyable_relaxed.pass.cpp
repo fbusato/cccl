@@ -7,6 +7,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cuda_bf16.h>
+#include <cuda_fp16.h>
+
 #include <cuda/std/array>
 #include <cuda/std/tuple>
 #include <cuda/std/utility>

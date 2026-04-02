@@ -7,6 +7,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cuda_bf16.h>
+#include <cuda_fp16.h>
+
 #include <cuda/std/array>
 #include <cuda/std/cassert>
 #include <cuda/std/cstring>
@@ -41,20 +44,21 @@ __host__ __device__ bool operator==(T a, T b)
   }
 }
 
-// In CUDA 12.x,  __half/__nv_bfloat16 operators are __device__ only
+// Extended FP operator== is __device__ only on CTK < 12.3, __host__ __device__ from CTK >= 12.3.
+// Provide __host__ __device__ fallbacks only when operators are explicitly disabled by the user.
 #if _CCCL_HAS_NVFP16()
 #  if defined(__CUDA_NO_HALF_OPERATORS__)
 __host__ __device__ bool operator==(__half a, __half b)
 {
   return __half2float(a) == __half2float(b);
 }
-#  endif
+#  endif // defined(__CUDA_NO_HALF_OPERATORS__)
 #  if defined(__CUDA_NO_HALF2_OPERATORS__)
 __host__ __device__ bool operator==(__half2 a, __half2 b)
 {
   return __half2float(a.x) == __half2float(b.x) && __half2float(a.y) == __half2float(b.y);
 }
-#  endif
+#  endif // defined(__CUDA_NO_HALF2_OPERATORS__)
 #endif // _CCCL_HAS_NVFP16()
 
 #if _CCCL_HAS_NVBF16()
@@ -63,13 +67,13 @@ __host__ __device__ bool operator==(__nv_bfloat16 a, __nv_bfloat16 b)
 {
   return __bfloat162float(a) == __bfloat162float(b);
 }
-#  endif
+#  endif // defined(__CUDA_NO_BFLOAT16_OPERATORS__)
 #  if defined(__CUDA_NO_BFLOAT162_OPERATORS__)
 __host__ __device__ bool operator==(__nv_bfloat162 a, __nv_bfloat162 b)
 {
   return __bfloat162float(a.x) == __bfloat162float(b.x) && __bfloat162float(a.y) == __bfloat162float(b.y);
 }
-#  endif
+#  endif // defined(__CUDA_NO_BFLOAT162_OPERATORS__)
 #endif // _CCCL_HAS_NVBF16()
 
 template <typename T>
@@ -78,7 +82,11 @@ __host__ __device__ void test_memcpy_roundtrip(T from)
   static_assert(cuda::is_trivially_copyable_relaxed_v<T>);
   T to;
   ::memcpy(static_cast<void*>(&to), static_cast<const void*>(&from), sizeof(T));
+#if _CCCL_CTK_AT_LEAST(12, 3)
   assert(from == to);
+#else
+  NV_IF_TARGET(NV_IS_DEVICE, (assert(from == to);));
+#endif
 }
 
 #define CAST(base_type, val) static_cast<decltype(base_type##1 ::x)>(val)
@@ -219,9 +227,8 @@ __host__ __device__ bool tests()
   return true;
 }
 
-// Extended floating-point types: in CUDA 12.x, __half/__nv_bfloat16 operator== is __device__ only.
-// The function is __device__ on CUDA 12.x and __host__ __device__ on CUDA 13.x.
-#if _CCCL_CTK_AT_LEAST(13, 0)
+// Extended floating-point types: operator== is __device__ only on CTK < 12.3.
+#if _CCCL_CTK_AT_LEAST(12, 3)
 __host__ __device__ void tests_nvfp()
 #else
 __device__ void tests_nvfp()
@@ -293,7 +300,7 @@ __device__ void tests_nvfp()
 int main(int, char**)
 {
   tests();
-#if _CCCL_CTK_AT_LEAST(13, 0)
+#if _CCCL_CTK_AT_LEAST(12, 3)
   tests_nvfp();
 #else
   NV_IF_TARGET(NV_IS_DEVICE, (tests_nvfp();));
