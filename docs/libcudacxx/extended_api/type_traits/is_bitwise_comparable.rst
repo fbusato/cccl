@@ -61,7 +61,7 @@ The specialization must be provided for the unqualified type; cv-qualified forms
 
 .. warning::
 
-  Users are responsible for ensuring that the type is actually bitwise comparable when specializing this variable template. Otherwise, the behavior is undefined.
+  Users are responsible for ensuring that the type is actually bitwise comparable when specializing this variable template. Otherwise, the behavior of functionalities that rely on this trait is undefined. For the reasons described above, bitwise comparison is especially problematic for floating-point types and internal padding.
 
 Examples
 --------
