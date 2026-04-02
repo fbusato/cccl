@@ -55,13 +55,11 @@ constexpr bool is_trivially_copyable_relaxed_v<::cuda::std::array<_Tp, _Size>> =
 
 template <typename _T1, typename _T2>
 constexpr bool is_trivially_copyable_relaxed_v<::cuda::std::pair<_T1, _T2>> =
-  (sizeof(::cuda::std::pair<_T1, _T2>) == sizeof(_T1) + sizeof(_T2))
-  && is_trivially_copyable_relaxed_v<_T1> && is_trivially_copyable_relaxed_v<_T2>;
+  is_trivially_copyable_relaxed_v<_T1> && is_trivially_copyable_relaxed_v<_T2>;
 
 template <typename... _Ts>
 constexpr bool is_trivially_copyable_relaxed_v<::cuda::std::tuple<_Ts...>> =
-  (sizeof...(_Ts) == 0 || sizeof(::cuda::std::tuple<_Ts...>) == (sizeof(_Ts) + ... + 0))
-  && (is_trivially_copyable_relaxed_v<_Ts> && ...);
+  (is_trivially_copyable_relaxed_v<_Ts> && ...);
 
 // defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>

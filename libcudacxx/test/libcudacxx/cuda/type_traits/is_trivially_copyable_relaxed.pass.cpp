@@ -98,16 +98,16 @@ __host__ __device__ void test()
   test_is_trivially_copyable_relaxed<cuda::std::pair<__nv_bfloat16, __nv_bfloat16>>();
 #endif // _CCCL_HAS_NVBF16()
 
-  // compositions with padding are not trivially copyable relaxed
+  // compositions with padding
 #if _CCCL_HAS_NVFP16()
-  static_assert(!cuda::is_trivially_copyable_relaxed_v<cuda::std::pair<__half, int>>);
-  static_assert(!cuda::is_trivially_copyable_relaxed_v<cuda::std::pair<__half, float>>);
+  test_is_trivially_copyable_relaxed<cuda::std::pair<__half, int>>();
+  test_is_trivially_copyable_relaxed<cuda::std::pair<__half, float>>();
 #endif // _CCCL_HAS_NVFP16()
 #if _CCCL_HAS_NVBF16()
-  static_assert(!cuda::is_trivially_copyable_relaxed_v<cuda::std::pair<__nv_bfloat16, int>>);
+  test_is_trivially_copyable_relaxed<cuda::std::pair<__nv_bfloat16, int>>();
 #endif // _CCCL_HAS_NVBF16()
 
-  // nested padding-free compositions
+  // nested compositions
 #if _CCCL_HAS_NVFP16()
   test_is_trivially_copyable_relaxed<cuda::std::array<cuda::std::pair<__half, __half>, 2>>();
 #endif // _CCCL_HAS_NVFP16()

@@ -32,16 +32,29 @@ The trait also propagates through composite types:
 - ``cuda::std::pair<T1, T2>``: relaxed trivially copyable when both ``T1`` and ``T2`` are and the object has no padding.
 - ``cuda::std::tuple<Ts...>``: relaxed trivially copyable when all ``Ts...`` are and the object has no padding.
 
-``const`` qualification is handled transparently, while ``volatile`` is compile-time dependent.
+``const`` qualification is handled transparently, while ``volatile`` is compiler dependent.
+
+.. note::
+
+  The type trait cannot determine if a structure (``struct`` or ``class``) contains extended floating-point types, and thus recognize the type as *trivially copyable*. The user must manually specialize the type trait for such types.
 
 Custom Specialization
 ---------------------
 
-Users may specialize ``cuda::is_trivially_copyable_relaxed_v`` for their own types whose memory representation is safe to copy with ``memcpy`` but that the compiler does not consider trivially copyable.
+Users may specialize ``cuda::is_trivially_copyable_relaxed_v`` for types whose semantics allow copying with ``memcpy``, but which the compiler does not consider to be trivially copyable.
 
-... warning::
+A `trivially copyable <https://en.cppreference.com/w/cpp/language/classes.html>`__ class is a class that
 
-    Users are responsible for ensuring that the type is actually trivially copyable when specializing this variable template. Otherwise, the behavior is undefined.
+- has at least one eligible copy constructor, move constructor, copy assignment operator, or move assignment operator,
+- each eligible copy constructor is trivial
+- each eligible move constructor is trivial
+- each eligible copy assignment operator is trivial
+- each eligible move assignment operator is trivial, and
+- has a non-deleted trivial destructor.
+
+.. warning::
+
+    The user is responsible for ensuring that the type is actually trivially copyable when specializing this variable template. Otherwise, the behavior is undefined.
 
 A common case is a type that wraps extended floating-point fields and provides user-defined copy operations
 solely to add ``__host__ __device__`` annotations:

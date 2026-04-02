@@ -19,45 +19,66 @@
 _CCCL_DIAG_PUSH
 _CCCL_DIAG_SUPPRESS_CLANG("-Wunused-local-typedef")
 
-// memcpy is not used to avoid compiler optimizations
-__host__ __device__ void test_memcpy(void* dst, const void* src, cuda::std::size_t bytes) noexcept
+// operator== for CUDA vector types and dim3 (not provided by the toolkit)
+template <class T, cuda::std::enable_if_t<cuda::is_vector_type_v<T>, int> = 0>
+__host__ __device__ bool operator==(T a, T b)
 {
-  unsigned char* d       = static_cast<unsigned char*>(dst);
-  const unsigned char* s = static_cast<const unsigned char*>(src);
-  for (; bytes > 0; --bytes)
+  if constexpr (sizeof(T) == sizeof(decltype(T::x)))
   {
-    *d++ = *s++;
+    return a.x == b.x;
+  }
+  else if constexpr (sizeof(T) == 2 * sizeof(decltype(T::x)))
+  {
+    return a.x == b.x && a.y == b.y;
+  }
+  else if constexpr (sizeof(T) == 3 * sizeof(decltype(T::x)))
+  {
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+  }
+  else
+  {
+    return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
   }
 }
 
-__host__ __device__ int test_memcmp(const void* lhs, const void* rhs, cuda::std::size_t bytes) noexcept
+// In CUDA 12.x,  __half/__nv_bfloat16 operators are __device__ only
+#if _CCCL_HAS_NVFP16()
+#  if defined(__CUDA_NO_HALF_OPERATORS__)
+__host__ __device__ bool operator==(__half a, __half b)
 {
-  const unsigned char* clhs = static_cast<const unsigned char*>(lhs);
-  const unsigned char* crhs = static_cast<const unsigned char*>(rhs);
-  for (; bytes > 0; --bytes)
-  {
-    if (*clhs++ != *crhs++)
-    {
-      return clhs[-1] < crhs[-1] ? -1 : 1;
-    }
-  }
-  return 0;
+  return __half2float(a) == __half2float(b);
 }
+#  endif
+#  if defined(__CUDA_NO_HALF2_OPERATORS__)
+__host__ __device__ bool operator==(__half2 a, __half2 b)
+{
+  return __half2float(a.x) == __half2float(b.x) && __half2float(a.y) == __half2float(b.y);
+}
+#  endif
+#endif // _CCCL_HAS_NVFP16()
+
+#if _CCCL_HAS_NVBF16()
+#  if defined(__CUDA_NO_BFLOAT16_OPERATORS__)
+__host__ __device__ bool operator==(__nv_bfloat16 a, __nv_bfloat16 b)
+{
+  return __bfloat162float(a) == __bfloat162float(b);
+}
+#  endif
+#  if defined(__CUDA_NO_BFLOAT162_OPERATORS__)
+__host__ __device__ bool operator==(__nv_bfloat162 a, __nv_bfloat162 b)
+{
+  return __bfloat162float(a.x) == __bfloat162float(b.x) && __bfloat162float(a.y) == __bfloat162float(b.y);
+}
+#  endif
+#endif // _CCCL_HAS_NVBF16()
 
 template <typename T>
 __host__ __device__ void test_memcpy_roundtrip(T from)
 {
   static_assert(cuda::is_trivially_copyable_relaxed_v<T>);
-  struct Buffer
-  {
-    char data[sizeof(T)];
-  };
-  Buffer buffer;
-  test_memcpy(&buffer, &from, sizeof(T));
-
-  Buffer copy;
-  test_memcpy(&copy, &buffer, sizeof(T));
-  assert(test_memcmp(&buffer, &copy, sizeof(T)) == 0);
+  T to;
+  ::memcpy(static_cast<void*>(&to), static_cast<const void*>(&from), sizeof(T));
+  assert(from == to);
 }
 
 #define CAST(base_type, val) static_cast<decltype(base_type##1 ::x)>(val)
@@ -195,7 +216,17 @@ __host__ __device__ bool tests()
     test_memcpy_roundtrip(i);
   }
 
-  // extended floating-point scalar types
+  return true;
+}
+
+// Extended floating-point types: in CUDA 12.x, __half/__nv_bfloat16 operator== is __device__ only.
+// The function is __device__ on CUDA 12.x and __host__ __device__ on CUDA 13.x.
+#if _CCCL_CTK_AT_LEAST(13, 0)
+__host__ __device__ void tests_nvfp()
+#else
+__device__ void tests_nvfp()
+#endif
+{
 #if _CCCL_HAS_NVFP16()
   for (__half i :
        {__float2half(0.0f),
@@ -208,6 +239,24 @@ __host__ __device__ bool tests()
   {
     test_memcpy_roundtrip(i);
   }
+
+  for (__half2 i :
+       {__half2{__float2half(0.0f), __float2half(1.0f)},
+        __half2{__float2half(-1.0f), __float2half(2.0f)},
+        __half2{__float2half(10.0f), __float2half(-10.0f)},
+        __half2{__float2half(2.71828f), __float2half(3.14159f)}})
+  {
+    test_memcpy_roundtrip(i);
+  }
+
+  test_memcpy_roundtrip(
+    cuda::std::array<__half, 4>{__float2half(1.0f), __float2half(2.0f), __float2half(3.0f), __float2half(4.0f)});
+  test_memcpy_roundtrip(cuda::std::pair<__half, __half>{__float2half(1.0f), __float2half(2.0f)});
+  test_memcpy_roundtrip(cuda::std::tuple<__half, __half>{__float2half(1.0f), __float2half(2.0f)});
+
+  test_memcpy_roundtrip(cuda::std::array<cuda::std::pair<__half, __half>, 2>{
+    cuda::std::pair<__half, __half>{__float2half(1.0f), __float2half(2.0f)},
+    cuda::std::pair<__half, __half>{__float2half(3.0f), __float2half(4.0f)}});
 #endif // _CCCL_HAS_NVFP16()
 
 #if _CCCL_HAS_NVBF16()
@@ -222,21 +271,7 @@ __host__ __device__ bool tests()
   {
     test_memcpy_roundtrip(i);
   }
-#endif // _CCCL_HAS_NVBF16()
 
-  // extended floating-point vector types
-#if _CCCL_HAS_NVFP16()
-  for (__half2 i :
-       {__half2{__float2half(0.0f), __float2half(1.0f)},
-        __half2{__float2half(-1.0f), __float2half(2.0f)},
-        __half2{__float2half(10.0f), __float2half(-10.0f)},
-        __half2{__float2half(2.71828f), __float2half(3.14159f)}})
-  {
-    test_memcpy_roundtrip(i);
-  }
-#endif // _CCCL_HAS_NVFP16()
-
-#if _CCCL_HAS_NVBF16()
   for (__nv_bfloat162 i :
        {__nv_bfloat162{__float2bfloat16(0.0f), __float2bfloat16(1.0f)},
         __nv_bfloat162{__float2bfloat16(-1.0f), __float2bfloat16(2.0f)},
@@ -245,35 +280,25 @@ __host__ __device__ bool tests()
   {
     test_memcpy_roundtrip(i);
   }
-#endif // _CCCL_HAS_NVBF16()
 
-  // padding-free compositions of extended floating-point types
-#if _CCCL_HAS_NVFP16()
-  test_memcpy_roundtrip(
-    cuda::std::array<__half, 4>{__float2half(1.0f), __float2half(2.0f), __float2half(3.0f), __float2half(4.0f)});
-  test_memcpy_roundtrip(cuda::std::pair<__half, __half>{__float2half(1.0f), __float2half(2.0f)});
-  test_memcpy_roundtrip(cuda::std::tuple<__half, __half>{__float2half(1.0f), __float2half(2.0f)});
-#endif // _CCCL_HAS_NVFP16()
-#if _CCCL_HAS_NVBF16()
   test_memcpy_roundtrip(cuda::std::array<__nv_bfloat16, 2>{__float2bfloat16(1.0f), __float2bfloat16(2.0f)});
   test_memcpy_roundtrip(cuda::std::pair<__nv_bfloat16, __nv_bfloat16>{__float2bfloat16(1.0f), __float2bfloat16(2.0f)});
 #endif // _CCCL_HAS_NVBF16()
 
-  // nested padding-free compositions
-#if _CCCL_HAS_NVFP16()
-  test_memcpy_roundtrip(cuda::std::array<cuda::std::pair<__half, __half>, 2>{
-    cuda::std::pair<__half, __half>{__float2half(1.0f), __float2half(2.0f)},
-    cuda::std::pair<__half, __half>{__float2half(3.0f), __float2half(4.0f)}});
-#endif // _CCCL_HAS_NVFP16()
 #if _CCCL_HAS_NVFP16() && _CCCL_HAS_NVBF16()
   test_memcpy_roundtrip(cuda::std::tuple<__half, __nv_bfloat16>{__float2half(1.0f), __float2bfloat16(2.0f)});
 #endif // _CCCL_HAS_NVFP16() && _CCCL_HAS_NVBF16()
-
-  return true;
 }
 
 int main(int, char**)
 {
   tests();
+#if _CCCL_CTK_AT_LEAST(13, 0)
+  tests_nvfp();
+#else
+  NV_IF_TARGET(NV_IS_DEVICE, (tests_nvfp();));
+#endif
   return 0;
 }
+
+_CCCL_DIAG_POP
