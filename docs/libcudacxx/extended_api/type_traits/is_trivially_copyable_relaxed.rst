@@ -36,7 +36,7 @@ The trait also propagates through composite types:
 
 .. note::
 
-  The type trait cannot determine if a structure (``struct`` or ``class``) contains extended floating-point types, and thus recognize the type as *trivially copyable*. The user must manually specialize the type trait for such types.
+  The type trait cannot determine if a structure (``struct`` or ``class``) contains extended floating-point types, and thus it recognizes the type as *trivially copyable*. The user must manually specialize the type trait for such types.
 
 Custom Specialization
 ---------------------
