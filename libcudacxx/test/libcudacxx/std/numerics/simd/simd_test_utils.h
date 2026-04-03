@@ -116,14 +116,48 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
 // Each vec test file must define test_type<T, N>() and then define test() using this macro.
 // clang-format off
 #if defined(__cccl_lib_char8_t)
-#  define _SIMD_TEST_CHAR8_T()                                          \
-    test_type<char8_t, 1>();                                            \
+#  define _SIMD_TEST_CHAR8_T()                                    \
+    test_type<char8_t, 1>();                                      \
     test_type<char8_t, 4>();
 #else
 #  define _SIMD_TEST_CHAR8_T()
 #endif
 
-#define DEFINE_BASIC_VEC_TEST()                                         \
+#if _CCCL_HAS_INT128()
+#  define _SIMD_TEST_INT128()                                     \
+    test_type<__int128_t, 1>();                                   \
+    test_type<__int128_t, 4>();
+#else
+#  define _SIMD_TEST_INT128()
+#endif
+
+#if _CCCL_HAS_NVFP16()
+#  define _SIMD_TEST_FP16()                                       \
+    test_type<__half, 1>();                                       \
+    test_type<__half, 4>();
+#else
+#  define _SIMD_TEST_FP16()
+#endif
+
+#if _CCCL_HAS_NVBF16()
+#  define _SIMD_TEST_BF16()                                       \
+    test_type<__nv_bfloat16, 1>();                                \
+    test_type<__nv_bfloat16, 4>();
+#else
+#  define _SIMD_TEST_BF16()
+#endif
+
+// __half and __nv_bfloat16 constructors are not constexpr (CUDA toolkit limitation),
+// so they are tested only at runtime via test_runtime().
+#define DEFINE_BASIC_VEC_TEST_RUNTIME()                           \
+  __host__ __device__ bool test_runtime()                         \
+  {                                                               \
+    _SIMD_TEST_FP16()                                             \
+    _SIMD_TEST_BF16()                                             \
+    return true;                                                  \
+  }
+
+#define DEFINE_BASIC_VEC_TEST()                                   \
   __host__ __device__ constexpr bool test()                       \
   {                                                               \
     test_type<cuda::std::int8_t, 1>();                            \
@@ -153,6 +187,7 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
     test_type<float, 4>();                                        \
     test_type<double, 1>();                                       \
     test_type<double, 4>();                                       \
+    _SIMD_TEST_INT128()                                           \
     return true;                                                  \
   }
 // clang-format on

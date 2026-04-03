@@ -8,8 +8,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: c++17
-
 // <cuda/std/__simd_>
 
 // [simd.binary], basic_vec binary operators
@@ -135,10 +133,12 @@ __host__ __device__ constexpr void test_type()
 }
 
 DEFINE_BASIC_VEC_TEST()
+DEFINE_BASIC_VEC_TEST_RUNTIME()
 
 int main(int, char**)
 {
   assert(test());
   static_assert(test());
+  assert(test_runtime());
   return 0;
 }
