@@ -126,12 +126,28 @@ __host__ __device__ constexpr void test_to_ullong()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// SFINAE constraints
+
+template <int Bytes, int N>
+__host__ __device__ constexpr void test_sfinae_negative()
+{
+  using Mask    = simd::basic_mask<Bytes, simd::fixed_size<N>>;
+  using Integer = integer_from_t<Bytes>;
+
+  // mismatched element count: conversion is fully rejected
+  using WrongSizeVec = simd::basic_vec<Integer, simd::fixed_size<N + 1>>;
+  static_assert(!cuda::std::is_constructible_v<WrongSizeVec, const Mask&>);
+  static_assert(!cuda::std::is_convertible_v<const Mask&, WrongSizeVec>);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 template <int Bytes, int N>
 __host__ __device__ constexpr void test_size()
 {
   test_to_bitset<Bytes, N>();
   test_to_ullong<Bytes, N>();
+  test_sfinae_negative<Bytes, N>();
 }
 
 template <int Bytes>

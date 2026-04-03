@@ -37,6 +37,9 @@ struct is_first_half
   }
 };
 
+struct wrong_generator
+{};
+
 template <typename>
 struct is_const_member_function : cuda::std::false_type
 {};

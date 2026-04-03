@@ -132,13 +132,47 @@ __host__ __device__ constexpr void test_unsigned_int()
     assert(all_one[i] == true);
   }
 
-  if constexpr (N >= 3 && num_bits >= 3)
+  if constexpr (N >= 4)
   {
     Mask m_pat(U{0b101});
     assert(m_pat[0] == true);
     assert(m_pat[1] == false);
     assert(m_pat[2] == true);
   }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// SFINAE and explicit constraints
+
+template <int Bytes, int N>
+__host__ __device__ constexpr void test_sfinae()
+{
+  using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
+
+  // broadcast: only accepts bool
+  static_assert(!cuda::std::is_constructible_v<Mask, int>);
+  // broadcast: must be explicit
+  static_assert(!cuda::std::is_convertible_v<bool, Mask>);
+
+  // converting: requires matching element count
+  using MaskDifferentSize = simd::basic_mask<Bytes, simd::fixed_size<N + 1>>;
+  static_assert(!cuda::std::is_constructible_v<Mask, const MaskDifferentSize&>);
+  // converting: must be explicit
+  using MaskOtherBytes = simd::basic_mask<Bytes * 2, simd::fixed_size<N>>;
+  static_assert(!cuda::std::is_convertible_v<const MaskOtherBytes&, Mask>);
+
+  // generator: rejects non-callable types
+  static_assert(!cuda::std::is_constructible_v<Mask, wrong_generator>);
+  // generator: must be explicit
+  static_assert(!cuda::std::is_convertible_v<is_even, Mask>);
+
+  // bitset: requires matching size
+  static_assert(!cuda::std::is_constructible_v<Mask, cuda::std::bitset<N + 1>>);
+  // bitset: is implicit
+  static_assert(cuda::std::is_convertible_v<const cuda::std::bitset<N>&, Mask>);
+
+  // unsigned integer: must be explicit
+  static_assert(!cuda::std::is_convertible_v<cuda::std::uint32_t, Mask>);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -154,6 +188,7 @@ __host__ __device__ constexpr void test_size()
   test_unsigned_int<Bytes, N, cuda::std::uint16_t>();
   test_unsigned_int<Bytes, N, cuda::std::uint32_t>();
   test_unsigned_int<Bytes, N, cuda::std::uint64_t>();
+  test_sfinae<Bytes, N>();
 }
 
 template <int Bytes>
