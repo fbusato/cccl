@@ -17,7 +17,7 @@
 // constexpr bitset<size()> to_bitset() const noexcept;
 // constexpr unsigned long long to_ullong() const;
 
-#include "mask_test_utils.h"
+#include "../simd_test_utils.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // implicit conversion to basic_vec (sizeof(U) == Bytes)
@@ -73,6 +73,7 @@ __host__ __device__ constexpr void test_to_bitset()
   static_assert(cuda::std::is_same_v<decltype(mask.to_bitset()), cuda::std::bitset<N>>);
   static_assert(noexcept(mask.to_bitset()));
   static_assert(is_const_member_function_v<decltype(&Mask::to_bitset)>);
+  unused(mask);
 
   Mask all_false(false);
   auto bitset_false = all_false.to_bitset();
@@ -102,6 +103,7 @@ __host__ __device__ constexpr void test_to_ullong()
   static_assert(cuda::std::is_same_v<decltype(mask.to_ullong()), unsigned long long>);
   static_assert(!noexcept(mask.to_ullong()));
   static_assert(is_const_member_function_v<decltype(&Mask::to_ullong)>);
+  unused(mask);
 
   Mask all_false(false);
   assert(all_false.to_ullong() == 0ULL);
@@ -160,7 +162,12 @@ __host__ __device__ constexpr void test_bytes()
 __host__ __device__ constexpr bool test()
 {
   test_bytes<1>();
+  test_bytes<2>();
   test_bytes<4>();
+  test_bytes<8>();
+#if _CCCL_HAS_INT128()
+  test_bytes<16>();
+#endif
 
   test_implicit_conv<int, 1>();
   test_implicit_conv<int, 8>();

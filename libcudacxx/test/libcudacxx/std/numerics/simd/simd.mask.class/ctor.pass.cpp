@@ -21,7 +21,7 @@
 #include <cuda/std/bitset>
 #include <cuda/std/type_traits>
 
-#include "mask_test_utils.h"
+#include "../simd_test_utils.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // member types and size
@@ -79,7 +79,9 @@ template <int Bytes, int N>
 __host__ __device__ constexpr void test_generator()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
+#if _CCCL_COMPILER(GCC, !=, 7)
   static_assert(!noexcept(Mask(is_even{})));
+#endif
 
   Mask mask(is_even{});
   for (int i = 0; i < N; ++i)
@@ -158,7 +160,7 @@ __host__ __device__ constexpr void test_sfinae()
   using MaskDifferentSize = simd::basic_mask<Bytes, simd::fixed_size<N + 1>>;
   static_assert(!cuda::std::is_constructible_v<Mask, const MaskDifferentSize&>);
   // converting: must be explicit
-  using MaskOtherBytes = simd::basic_mask<Bytes * 2, simd::fixed_size<N>>;
+  using MaskOtherBytes = simd::basic_mask<(Bytes == 1 ? 2 : 1), simd::fixed_size<N>>;
   static_assert(!cuda::std::is_convertible_v<const MaskOtherBytes&, Mask>);
 
   // generator: rejects non-callable types
@@ -201,7 +203,12 @@ __host__ __device__ constexpr void test_bytes()
 __host__ __device__ constexpr bool test()
 {
   test_bytes<1>();
+  test_bytes<2>();
   test_bytes<4>();
+  test_bytes<8>();
+#if _CCCL_HAS_INT128()
+  test_bytes<16>();
+#endif
 
   // test_converting  N1: Destination type size, N2: Source type size, N3: Mask number of elements
   test_converting<4, 2, 4>(); // 4 -> 2, 4 elements

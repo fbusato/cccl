@@ -14,7 +14,7 @@
 //
 // constexpr value_type operator[](simd-size-type) const noexcept;
 
-#include "mask_test_utils.h"
+#include "../simd_test_utils.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // subscript read-back
@@ -28,6 +28,7 @@ __host__ __device__ constexpr void test_subscript()
   static_assert(cuda::std::is_same_v<decltype(mask[0]), typename Mask::value_type>);
   static_assert(noexcept(mask[0]));
   static_assert(is_const_member_function_v<decltype(&Mask::operator[])>);
+  unused(mask);
 
   Mask all_true(true);
   Mask all_false(false);
@@ -52,7 +53,12 @@ __host__ __device__ constexpr void test_bytes()
 __host__ __device__ constexpr bool test()
 {
   test_bytes<1>();
+  test_bytes<2>();
   test_bytes<4>();
+  test_bytes<8>();
+#if _CCCL_HAS_INT128()
+  test_bytes<16>();
+#endif
   return true;
 }
 

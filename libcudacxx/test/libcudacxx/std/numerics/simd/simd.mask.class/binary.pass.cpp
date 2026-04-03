@@ -18,7 +18,7 @@
 // friend constexpr basic_mask operator|(const basic_mask&, const basic_mask&) noexcept;
 // friend constexpr basic_mask operator^(const basic_mask&, const basic_mask&) noexcept;
 
-#include "mask_test_utils.h"
+#include "../simd_test_utils.h"
 
 template <int Bytes, int N>
 __host__ __device__ constexpr void test_all_patterns()
@@ -121,7 +121,12 @@ __host__ __device__ constexpr void test_bytes()
 __host__ __device__ constexpr bool test()
 {
   test_bytes<1>();
+  test_bytes<2>();
   test_bytes<4>();
+  test_bytes<8>();
+#if _CCCL_HAS_INT128()
+  test_bytes<16>();
+#endif
   return true;
 }
 

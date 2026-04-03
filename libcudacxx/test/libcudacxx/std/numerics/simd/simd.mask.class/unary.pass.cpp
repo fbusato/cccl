@@ -17,7 +17,7 @@
 // constexpr basic_vec<integer-from<Bytes>, Abi> operator-() const noexcept;
 // constexpr basic_vec<integer-from<Bytes>, Abi> operator~() const noexcept;
 
-#include "mask_test_utils.h"
+#include "../simd_test_utils.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // operator!
@@ -30,6 +30,7 @@ __host__ __device__ constexpr void test_logical_not()
   static_assert(cuda::std::is_same_v<decltype(!mask), Mask>);
   static_assert(noexcept(!mask));
   static_assert(is_const_member_function_v<decltype(&Mask::operator!)>);
+  unused(mask);
 
   Mask all_true(true);
   Mask all_false(false);
@@ -144,7 +145,12 @@ __host__ __device__ constexpr void test_bytes()
 __host__ __device__ constexpr bool test()
 {
   test_bytes<1>();
+  test_bytes<2>();
   test_bytes<4>();
+  test_bytes<8>();
+#if _CCCL_HAS_INT128()
+  test_bytes<16>();
+#endif
   return true;
 }
 
