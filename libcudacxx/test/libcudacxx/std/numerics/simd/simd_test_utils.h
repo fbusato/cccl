@@ -63,38 +63,7 @@ struct is_first_half
 };
 
 template <int Bytes>
-struct integer_from;
-template <>
-struct integer_from<1>
-{
-  using type = cuda::std::int8_t;
-};
-template <>
-struct integer_from<2>
-{
-  using type = cuda::std::int16_t;
-};
-template <>
-struct integer_from<4>
-{
-  using type = cuda::std::int32_t;
-};
-template <>
-struct integer_from<8>
-{
-  using type = cuda::std::int64_t;
-};
-
-#if _CCCL_HAS_INT128()
-template <>
-struct integer_from<16>
-{
-  using type = __int128_t;
-};
-#endif // _CCCL_HAS_INT128()
-
-template <int Bytes>
-using integer_from_t = typename integer_from<Bytes>::type;
+using integer_from_t = cuda::std::__make_nbit_int_t<Bytes * 8, true>;
 
 //----------------------------------------------------------------------------------------------------------------------
 // vec utilities

@@ -494,6 +494,13 @@ public:
   //   const mask_type&, const basic_vec&, const basic_vec&) noexcept;
 };
 
+// GCC fails when the deduction guides are marked __host__ __device__, while it is requires for other cases, e.g. clang
+#if !_CCCL_COMPILER(GCC)
+#  define _CCCL_API_DEDUCTION_GUIDE _CCCL_API
+#else // ^^^ _CCCL_COMPILER(GCC) ^^^ / vvv !_CCCL_COMPILER(GCC) vvv
+#  define _CCCL_API_DEDUCTION_GUIDE
+#endif // !_CCCL_COMPILER(GCC)
+
 // [simd.ctor] deduction guide from contiguous sized range
 // Deduces vec<range_value_t<R>, static_cast<simd-size-type>(ranges::size(r))>
 //    * it is not possible to use the alias "vec" for the deduction guide
@@ -502,7 +509,7 @@ public:
 _CCCL_TEMPLATE(typename _Range, typename... _Ts)
 _CCCL_REQUIRES(::cuda::std::ranges::contiguous_range<_Range> _CCCL_AND ::cuda::std::ranges::sized_range<_Range>
                  _CCCL_AND __has_static_size<_Range>)
-_CCCL_API basic_vec(_Range&&, _Ts...)
+_CCCL_API_DEDUCTION_GUIDE basic_vec(_Range&&, _Ts...)
   -> basic_vec<::cuda::std::ranges::range_value_t<_Range>,
                __deduce_abi_t<::cuda::std::ranges::range_value_t<_Range>, __static_range_size_v<_Range>>>;
 
@@ -514,7 +521,7 @@ _CCCL_API basic_vec(_Range&&, _Ts...)
 // The deduced type is equivalent to decltype(+k), i.e. basic_vec<__integer_from<Bytes>, Abi>
 _CCCL_TEMPLATE(::cuda::std::size_t _Bytes, typename _Abi)
 _CCCL_REQUIRES(__has_unary_plus<basic_mask<_Bytes, _Abi>>)
-_CCCL_API basic_vec(basic_mask<_Bytes, _Abi>) -> basic_vec<__integer_from<_Bytes>, _Abi>;
+_CCCL_API_DEDUCTION_GUIDE basic_vec(basic_mask<_Bytes, _Abi>) -> basic_vec<__integer_from<_Bytes>, _Abi>;
 } // namespace cuda::std::simd
 
 #include <cuda/std/__cccl/epilogue.h>
