@@ -31,10 +31,10 @@ using __simd_size_type = ::cuda::std::ptrdiff_t;
 
 // [simd.expos.abi], simd ABI tags
 template <__simd_size_type _Np>
-struct __fixed_size_simple; // internal ABI tag
+struct __fixed_size; // internal ABI tag
 
 template <__simd_size_type _Np>
-using fixed_size = __fixed_size_simple<_Np>; // implementation-defined ABI
+using fixed_size = __fixed_size<_Np>; // implementation-defined ABI
 
 template <typename>
 using native = fixed_size<1>; // implementation-defined ABI

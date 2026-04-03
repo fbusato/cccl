@@ -42,7 +42,7 @@ template <typename _Tp>
 constexpr bool __is_abi_tag_v = false;
 
 template <__simd_size_type _Np>
-constexpr bool __is_abi_tag_v<__fixed_size_simple<_Np>> = true;
+constexpr bool __is_abi_tag_v<__fixed_size<_Np>> = true;
 
 template <typename _Tp, typename _Generator, __simd_size_type _Idx, typename = void>
 constexpr bool __is_well_formed = false;

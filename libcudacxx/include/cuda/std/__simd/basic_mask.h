@@ -80,6 +80,7 @@ public:
   static constexpr ::cuda::std::integral_constant<__simd_size_type, __simd_size_v<__integer_from<_Bytes>, _Abi>> size{};
 
   static constexpr auto __usize = ::cuda::std::size_t{size};
+  static constexpr auto __size  = __simd_size_type{size};
 
   _CCCL_HIDE_FROM_ABI basic_mask() noexcept = default;
 
@@ -92,18 +93,18 @@ public:
   {}
 
   _CCCL_TEMPLATE(::cuda::std::size_t _UBytes, typename _UAbi)
-  _CCCL_REQUIRES((__simd_size_v<__integer_from<_UBytes>, _UAbi> == size()))
+  _CCCL_REQUIRES((__simd_size_v<__integer_from<_UBytes>, _UAbi> == __size))
   _CCCL_API constexpr explicit basic_mask(const basic_mask<_UBytes, _UAbi>& __x) noexcept
   {
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (__simd_size_type __i = 0; __i < size; ++__i)
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
       __s_.__set(__i, __x[__i]);
     }
   }
 
   _CCCL_TEMPLATE(typename _Generator)
-  _CCCL_REQUIRES(__can_generate_v<bool, _Generator, size>)
+  _CCCL_REQUIRES(__can_generate_v<bool, _Generator, __size>)
   _CCCL_API constexpr explicit basic_mask(_Generator&& __g)
       : __s_{_Impl::__generate(__g)}
   {}
@@ -114,7 +115,7 @@ public:
       : __s_{_Impl::__broadcast(false)}
   {
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (__simd_size_type __i = 0; __i < size; ++__i)
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
       __s_.__set(__i, static_cast<bool>(__b[__i]));
     }
@@ -125,11 +126,10 @@ public:
   _CCCL_API constexpr explicit basic_mask(_Tp __val) noexcept
       : __s_{_Impl::__broadcast(false)}
   {
-    constexpr auto __num_bits    = __simd_size_type{::cuda::std::__num_bits_v<_Tp>};
-    constexpr auto __size_as_int = size();
-    constexpr auto __m           = __size_as_int < __num_bits ? __size_as_int : __num_bits;
-    using __uint8_array_t        = ::cuda::std::array<::cuda::std::uint8_t, sizeof(_Tp)>;
-    const auto __val1            = ::cuda::std::bit_cast<__uint8_array_t>(__val);
+    constexpr auto __num_bits = __simd_size_type{::cuda::std::__num_bits_v<_Tp>};
+    constexpr auto __m        = __size < __num_bits ? __size : __num_bits;
+    using __uint8_array_t     = ::cuda::std::array<::cuda::std::uint8_t, sizeof(_Tp)>;
+    const auto __val1         = ::cuda::std::bit_cast<__uint8_array_t>(__val);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __m; ++__i)
     {
@@ -142,7 +142,7 @@ public:
 
   [[nodiscard]] _CCCL_API constexpr value_type operator[](__simd_size_type __i) const noexcept
   {
-    _CCCL_ASSERT(::cuda::in_range(__i, __simd_size_type{0}, __simd_size_type{size}), "Index is out of bounds");
+    _CCCL_ASSERT(::cuda::in_range(__i, __simd_size_type{0}, __size), "Index is out of bounds");
     return static_cast<bool>(__s_.__get(__i));
   }
 
@@ -201,12 +201,12 @@ public:
   // [simd.mask.conv], basic_mask conversions
 
   _CCCL_TEMPLATE(typename _Up, typename _Ap)
-  _CCCL_REQUIRES((sizeof(_Up) != _Bytes && __simd_size_v<_Up, _Ap> == size()))
+  _CCCL_REQUIRES((sizeof(_Up) != _Bytes && __simd_size_v<_Up, _Ap> == __size))
   _CCCL_API constexpr explicit operator basic_vec<_Up, _Ap>() const noexcept
   {
-    basic_vec<_Up, _Ap> __result;
+    basic_vec<_Up, _Ap> __result{};
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (__simd_size_type __i = 0; __i < size; ++__i)
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
       __result.__s_.__set(__i, static_cast<_Up>((*this)[__i]));
     }
@@ -214,12 +214,12 @@ public:
   }
 
   _CCCL_TEMPLATE(typename _Up, typename _Ap)
-  _CCCL_REQUIRES((sizeof(_Up) == _Bytes && __simd_size_v<_Up, _Ap> == size()))
+  _CCCL_REQUIRES((sizeof(_Up) == _Bytes && __simd_size_v<_Up, _Ap> == __size))
   _CCCL_API constexpr operator basic_vec<_Up, _Ap>() const noexcept
   {
-    basic_vec<_Up, _Ap> __result;
+    basic_vec<_Up, _Ap> __result{};
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (__simd_size_type __i = 0; __i < size; ++__i)
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
       __result.__s_.__set(__i, static_cast<_Up>((*this)[__i]));
     }
@@ -228,9 +228,9 @@ public:
 
   [[nodiscard]] _CCCL_API constexpr ::cuda::std::bitset<__usize> to_bitset() const noexcept
   {
-    ::cuda::std::bitset<__usize> __result;
+    ::cuda::std::bitset<__usize> __result{};
     _CCCL_PRAGMA_UNROLL_FULL()
-    for (__simd_size_type __i = 0; __i < size; ++__i)
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
       __result.set(__i, (*this)[__i]);
     }
@@ -240,9 +240,9 @@ public:
   [[nodiscard]] _CCCL_API constexpr unsigned long long to_ullong() const
   {
     constexpr __simd_size_type __nbits = ::cuda::std::__num_bits_v<unsigned long long>;
-    if constexpr (size > __nbits)
+    if constexpr (__size > __nbits)
     {
-      for (auto __i = __nbits; __i < size; ++__i)
+      for (auto __i = __nbits; __i < __size; ++__i)
       {
         _CCCL_ASSERT(!(*this)[__i], "Bit above unsigned long long width is set");
       }
