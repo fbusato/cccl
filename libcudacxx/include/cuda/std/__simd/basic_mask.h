@@ -22,7 +22,6 @@
 #endif // no system header
 
 #include <cuda/__utility/in_range.h>
-#include <cuda/std/__bit/bit_cast.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__concepts/same_as.h>
 #include <cuda/std/__cstddef/types.h>
@@ -122,19 +121,16 @@ public:
   }
 
   _CCCL_TEMPLATE(typename _Tp)
-  _CCCL_REQUIRES((::cuda::std::__cccl_is_unsigned_integer_v<_Tp> && !::cuda::std::same_as<_Tp, value_type>) )
+  _CCCL_REQUIRES((::cuda::std::__cccl_is_unsigned_integer_v<_Tp>) )
   _CCCL_API constexpr explicit basic_mask(_Tp __val) noexcept
       : __s_{_Impl::__broadcast(false)}
   {
     constexpr auto __num_bits = __simd_size_type{::cuda::std::__num_bits_v<_Tp>};
     constexpr auto __m        = __size < __num_bits ? __size : __num_bits;
-    using __uint8_array_t     = ::cuda::std::array<::cuda::std::uint8_t, sizeof(_Tp)>;
-    const auto __val1         = ::cuda::std::bit_cast<__uint8_array_t>(__val);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __m; ++__i)
     {
-      const auto __byte = __val1[__i / CHAR_BIT];
-      __s_.__set(__i, static_cast<bool>((__byte >> (__i % CHAR_BIT)) & _Tp{1}));
+      __s_.__set(__i, static_cast<bool>((__val >> __i) & _Tp{1}));
     }
   }
 

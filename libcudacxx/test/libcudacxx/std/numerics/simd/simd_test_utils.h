@@ -122,7 +122,7 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
 
 // Each vec test file must define test_type<T, N>() and then define test() using this macro.
 // clang-format off
-#define DEFINE_VEC_TEST()                                         \
+#define DEFINE_BASIC_VEC_TEST()                                         \
   __host__ __device__ constexpr bool test()                       \
   {                                                               \
     test_type<cuda::std::int8_t, 1>();                            \

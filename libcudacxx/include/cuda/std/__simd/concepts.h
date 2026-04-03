@@ -48,11 +48,11 @@ _CCCL_CONCEPT __explicitly_convertible_to =
 // [simd.expos], constexpr-wrapper-like concept
 
 template <typename _Tp>
-_CCCL_CONCEPT __constexpr_wrapper_like =
-  ::cuda::std::convertible_to<_Tp, decltype(_Tp::value)>
-  && ::cuda::std::equality_comparable_with<_Tp, decltype(_Tp::value)>
-  && ::cuda::std::bool_constant<(_Tp() == _Tp::value)>::value
-  && ::cuda::std::bool_constant<(static_cast<decltype(_Tp::value)>(_Tp()) == _Tp::value)>::value;
+_CCCL_CONCEPT __constexpr_wrapper_like = _CCCL_REQUIRES_EXPR((_Tp))(
+  requires(::cuda::std::convertible_to<_Tp, decltype(_Tp::value)>),
+  requires(::cuda::std::equality_comparable_with<_Tp, decltype(_Tp::value)>),
+  requires(::cuda::std::bool_constant<(_Tp() == _Tp::value)>::value),
+  requires(::cuda::std::bool_constant<(static_cast<decltype(_Tp::value)>(_Tp()) == _Tp::value)>::value));
 
 // (c++draft)The conversion from an arithmetic type U to a vectorizable type T is value-preserving if all possible
 // values of U can be represented with type T.
