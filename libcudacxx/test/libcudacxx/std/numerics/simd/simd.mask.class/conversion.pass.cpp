@@ -109,7 +109,7 @@ __host__ __device__ constexpr void test_to_ullong()
   if constexpr (N <= 64)
   {
     Mask all_true(true);
-    constexpr unsigned long long expected = (N == 64) ? ~0ULL : ((1ULL << N) - 1ULL);
+    constexpr unsigned long long expected = (N == 64) ? ~0ULL : (~0ULL >> (64 - N));
     assert(all_true.to_ullong() == expected);
 
     Mask mixed(is_even{});

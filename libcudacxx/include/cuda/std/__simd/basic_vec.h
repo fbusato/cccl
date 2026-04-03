@@ -29,12 +29,8 @@
 #include <cuda/std/__simd/concepts.h>
 #include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__simd/flag.h>
-#include <cuda/std/__simd/specializations/fixed_size_vec.h>
 #include <cuda/std/__simd/utility.h>
-#include <cuda/std/__tuple_dir/tuple_size.h>
 #include <cuda/std/__type_traits/integral_constant.h>
-#include <cuda/std/__type_traits/remove_cvref.h>
-#include <cuda/std/__type_traits/void_t.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -139,22 +135,12 @@ public:
 
   // [simd.ctor] range constructor
 
-  template <typename _Range, typename = void>
-  static constexpr bool __is_compatible_range_v = false;
-
   template <typename _Range>
-  static constexpr bool __is_compatible_range_v<
-    _Range,
-    ::cuda::std::void_t<decltype(::cuda::std::tuple_size<::cuda::std::remove_cvref_t<_Range>>::value),
-                        ::cuda::std::ranges::range_value_t<_Range>>> =
-    ::cuda::std::ranges::contiguous_range<_Range> && ::cuda::std::ranges::sized_range<_Range>
-    && (__simd_size_type{::cuda::std::tuple_size<::cuda::std::remove_cvref_t<_Range>>::value} == size())
-    && __is_vectorizable_v<::cuda::std::ranges::range_value_t<_Range>>
-    && __explicitly_convertible_to<value_type, ::cuda::std::ranges::range_value_t<_Range>>;
+  static constexpr bool __is_compatible_range = __is_compatible_range_v<value_type, size(), _Range>;
 
   // [simd.ctor] range constructor
   _CCCL_TEMPLATE(typename _Range, typename... _Flags)
-  _CCCL_REQUIRES(__is_compatible_range_v<_Range>)
+  _CCCL_REQUIRES(__is_compatible_range<_Range>)
   _CCCL_API constexpr basic_vec(_Range&& __range, flags<_Flags...> = {})
   {
     static_assert(__has_convert_flag_v<_Flags...>
@@ -172,7 +158,7 @@ public:
 
   // [simd.ctor] masked range constructor
   _CCCL_TEMPLATE(typename _Range, typename... _Flags)
-  _CCCL_REQUIRES(__is_compatible_range_v<_Range>)
+  _CCCL_REQUIRES(__is_compatible_range<_Range>)
   _CCCL_API constexpr basic_vec(_Range&& __range, const mask_type& __mask, flags<_Flags...> = {})
   {
     static_assert(__has_convert_flag_v<_Flags...>

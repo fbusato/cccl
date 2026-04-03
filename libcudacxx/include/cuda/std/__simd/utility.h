@@ -23,8 +23,11 @@
 
 #include <cuda/__memory/is_aligned.h>
 #include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__ranges/concepts.h>
 #include <cuda/std/__simd/abi.h>
+#include <cuda/std/__simd/concepts.h>
 #include <cuda/std/__simd/flag.h>
+#include <cuda/std/__simd/specializations/fixed_size_vec.h>
 #include <cuda/std/__simd/type_traits.h>
 #include <cuda/std/__tuple_dir/tuple_size.h>
 #include <cuda/std/__type_traits/integral_constant.h>
@@ -76,6 +79,26 @@ _CCCL_CONCEPT __has_static_size =
 template <typename _Range>
 constexpr __simd_size_type __static_range_size_v =
   __simd_size_type{::cuda::std::tuple_size_v<::cuda::std::remove_cvref_t<_Range>>};
+
+// This trait is defined at namespace scope (not as a static member of basic_vec) because GCC 13 rejects partial
+// specialization of static member variable templates. The void_t guard intentionally uses tuple_size<T>::value
+// instead of tuple_size_v<T> because the latter causes a hard error (instead of SFINAE) on NVCC with
+// clang-19/clang-14/nvc++ when T is an incomplete specialization of tuple_size.
+template <typename _Tp, __simd_size_type _Size, typename _Range, typename = void>
+constexpr bool __is_compatible_range_v = false;
+
+template <typename _Tp, __simd_size_type _Size, typename _Range>
+constexpr bool __is_compatible_range_v<
+  _Tp,
+  _Size,
+  _Range,
+  ::cuda::std::void_t<decltype(::cuda::std::tuple_size<::cuda::std::remove_cvref_t<_Range>>::value),
+                      ::cuda::std::ranges::range_value_t<_Range>>> =
+  ::cuda::std::ranges::contiguous_range<_Range> //
+  && ::cuda::std::ranges::sized_range<_Range> //
+  && (__static_range_size_v<_Range> == _Size) //
+  && __is_vectorizable_v<::cuda::std::ranges::range_value_t<_Range>>
+  && __explicitly_convertible_to<_Tp, ::cuda::std::ranges::range_value_t<_Range>>;
 
 // [simd.flags] alignment assertion for load/store pointers
 template <typename _Vec, typename _Up, typename... _Flags>
