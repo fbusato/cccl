@@ -99,13 +99,6 @@ using integer_from_t = typename integer_from<Bytes>::type;
 //----------------------------------------------------------------------------------------------------------------------
 // vec utilities
 
-// Character types (char, wchar_t, char16_t, char32_t, char8_t) are excluded because
-// __is_value_preserving_v causes a hard error for them: it gates on is_integral_v (which includes char types)
-// then calls __is_integer_representable_v -> cmp_less_equal, which requires __cccl_is_integer_v (excludes char types).
-//
-// float is excluded for the same reason: __is_value_preserving_v eagerly instantiates
-// __is_integer_representable_v<float, float> on NVCC, which fails because cmp_less_equal does not accept float.
-//
 // The generator constructor is not tested because __can_generate_v<T, Gen, size> fails on NVCC when 'size' is an
 // integral_constant (atomic constraint substitution failure in the requires clause).
 
@@ -122,6 +115,14 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
 
 // Each vec test file must define test_type<T, N>() and then define test() using this macro.
 // clang-format off
+#if defined(__cccl_lib_char8_t)
+#  define _SIMD_TEST_CHAR8_T()                                          \
+    test_type<char8_t, 1>();                                            \
+    test_type<char8_t, 4>();
+#else
+#  define _SIMD_TEST_CHAR8_T()
+#endif
+
 #define DEFINE_BASIC_VEC_TEST()                                         \
   __host__ __device__ constexpr bool test()                       \
   {                                                               \
@@ -141,6 +142,17 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
     test_type<cuda::std::uint32_t, 4>();                          \
     test_type<cuda::std::uint64_t, 1>();                          \
     test_type<cuda::std::uint64_t, 4>();                          \
+    test_type<char16_t, 1>();                                     \
+    test_type<char16_t, 4>();                                     \
+    test_type<char32_t, 1>();                                     \
+    test_type<char32_t, 4>();                                     \
+    test_type<wchar_t, 1>();                                      \
+    test_type<wchar_t, 4>();                                      \
+    _SIMD_TEST_CHAR8_T()                                          \
+    test_type<float, 1>();                                        \
+    test_type<float, 4>();                                        \
+    test_type<double, 1>();                                       \
+    test_type<double, 4>();                                       \
     return true;                                                  \
   }
 // clang-format on

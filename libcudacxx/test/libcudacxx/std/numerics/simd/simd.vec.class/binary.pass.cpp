@@ -127,8 +127,11 @@ template <typename T, int N>
 __host__ __device__ constexpr void test_type()
 {
   test_arithmetic<T, N>();
-  test_integral_ops<T, N>();
-  test_shifts<T, N>();
+  if constexpr (cuda::std::is_integral_v<T>)
+  {
+    test_integral_ops<T, N>();
+    test_shifts<T, N>();
+  }
 }
 
 DEFINE_BASIC_VEC_TEST()

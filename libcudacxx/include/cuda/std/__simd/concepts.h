@@ -21,7 +21,6 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/__numeric/overflow_cast.h>
 #include <cuda/__type_traits/is_floating_point.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__concepts/convertible_to.h>
@@ -31,6 +30,7 @@
 #include <cuda/std/__simd/abi.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integral.h>
+#include <cuda/std/__type_traits/is_signed.h>
 #include <cuda/std/__type_traits/remove_cvref.h>
 #include <cuda/std/__type_traits/void_t.h>
 #include <cuda/std/__utility/declval.h>
@@ -54,12 +54,19 @@ _CCCL_CONCEPT __constexpr_wrapper_like = _CCCL_REQUIRES_EXPR((_Tp))(
   requires(::cuda::std::bool_constant<(_Tp() == _Tp::value)>::value),
   requires(::cuda::std::bool_constant<(static_cast<decltype(_Tp::value)>(_Tp()) == _Tp::value)>::value));
 
-// (c++draft)The conversion from an arithmetic type U to a vectorizable type T is value-preserving if all possible
+// Covers all integral types including character types (char16_t, char32_t, wchar_t, char8_t),
+// which are excluded by __cccl_is_integer_v
+template <typename _From, typename _To>
+constexpr bool __is_integral__value_preserving_v =
+  ::cuda::std::is_integral_v<_From> && ::cuda::std::is_integral_v<_To>
+  && ::cuda::std::numeric_limits<_From>::digits <= ::cuda::std::numeric_limits<_To>::digits
+  && (!::cuda::std::is_signed_v<_From> || ::cuda::std::is_signed_v<_To>);
+
+// The conversion from an arithmetic type U to a vectorizable type T is value-preserving if all possible
 // values of U can be represented with type T.
 template <typename _From, typename _To>
 constexpr bool __is_value_preserving_v =
-  (::cuda::std::is_integral_v<_From> && ::cuda::std::is_integral_v<_To>
-   && ::cuda::__is_integer_representable_v<_From, _To>)
+  __is_integral__value_preserving_v<_From, _To>
   || (::cuda::is_floating_point_v<_From> && ::cuda::is_floating_point_v<_To>
       && ::cuda::std::__fp_is_implicit_conversion_v<_From, _To>)
   || (::cuda::std::is_integral_v<_From> && ::cuda::is_floating_point_v<_To>
