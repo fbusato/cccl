@@ -30,6 +30,7 @@ __host__ __device__ constexpr void test_subscript()
   static_assert(is_const_member_function_v<decltype(&Mask::operator[])>);
 
   Mask all_true(true);
+  Mask all_false(false);
   Mask alternating(is_even{});
   for (int i = 0; i < N; ++i)
   {

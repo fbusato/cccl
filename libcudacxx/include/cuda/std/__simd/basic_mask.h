@@ -82,7 +82,7 @@ public:
   static constexpr auto __usize = ::cuda::std::size_t{size};
   static constexpr auto __size  = __simd_size_type{size};
 
-  _CCCL_HIDE_FROM_ABI basic_mask() noexcept = default;
+  _CCCL_HIDE_FROM_ABI constexpr basic_mask() noexcept = default;
 
   // [simd.mask.ctor], basic_mask constructors
 

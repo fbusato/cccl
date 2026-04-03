@@ -35,10 +35,9 @@ namespace cuda::std::simd
 template <::cuda::std::size_t _Bytes, __simd_size_type _Np>
 struct __mask_storage<_Bytes, __fixed_size<_Np>>
 {
-  using value_type                                     = bool;
   static constexpr ::cuda::std::size_t __element_bytes = _Bytes;
 
-  bool __data[_Np];
+  bool __data[_Np]{}; // initialization required for constexpr constructor
 
   [[nodiscard]] _CCCL_API constexpr bool __get(__simd_size_type __idx) const noexcept
   {

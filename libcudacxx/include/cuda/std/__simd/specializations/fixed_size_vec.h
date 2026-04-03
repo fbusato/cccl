@@ -43,7 +43,8 @@ template <typename _Tp, __simd_size_type _Np>
 struct __simd_storage<_Tp, __fixed_size<_Np>>
 {
   using value_type = _Tp;
-  _Tp __data[_Np];
+
+  _Tp __data[_Np]{}; // initialization required for constexpr constructor
 
   [[nodiscard]] _CCCL_API constexpr _Tp __get(__simd_size_type __idx) const noexcept
   {

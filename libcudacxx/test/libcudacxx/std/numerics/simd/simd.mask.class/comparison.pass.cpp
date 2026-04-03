@@ -43,7 +43,7 @@ __host__ __device__ constexpr void test_all_patterns()
   static_assert(noexcept(all_true <= all_false));
   static_assert(noexcept(all_true > all_false));
   static_assert(noexcept(all_true < all_false));
-  
+
   // operator==
   {
     Mask eq_result_tt = all_true == all_true;
