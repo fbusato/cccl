@@ -28,7 +28,7 @@ A type ``T`` satisfies ``cuda::is_trivially_copyable_relaxed`` if any of the fol
 The trait also propagates through composite types:
 
 - C-style arrays: ``T[N]`` and ``T[]`` are relaxed trivially copyable when ``T`` is.
-- ``cuda::std::array<T, N>``: relaxed trivially copyable when ``T`` is.
+- ``cuda::std::array<T, N>``: relaxed trivially copyable when ``T`` is also trivially copyable.
 - ``cuda::std::pair<T1, T2>``: relaxed trivially copyable when both ``T1`` and ``T2`` are and the object has no padding.
 - ``cuda::std::tuple<Ts...>``: relaxed trivially copyable when all ``Ts...`` are and the object has no padding.
 
