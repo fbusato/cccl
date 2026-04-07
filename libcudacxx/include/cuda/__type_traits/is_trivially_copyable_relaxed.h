@@ -25,6 +25,8 @@
 #include <cuda/std/__fwd/array.h>
 #include <cuda/std/__fwd/pair.h>
 #include <cuda/std/__fwd/tuple.h>
+#include <cuda/std/__type_traits/aggregate_members.h>
+#include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_extended_floating_point.h>
 #include <cuda/std/__type_traits/is_trivially_copyable.h>
@@ -34,6 +36,9 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA
 
+template <typename _Tp, typename = void>
+constexpr bool __is_aggregate_trivially_copyable_v = false;
+
 //! Users are allowed to specialize this variable template for their own types
 template <typename _Tp>
 constexpr bool is_trivially_copyable_relaxed_v =
@@ -42,7 +47,7 @@ constexpr bool is_trivially_copyable_relaxed_v =
 #if _CCCL_HAS_CTK()
   || ::cuda::is_extended_fp_vector_type_v<::cuda::std::remove_const_t<_Tp>>
 #endif // _CCCL_HAS_CTK()
-  ;
+  || __is_aggregate_trivially_copyable_v<::cuda::std::remove_const_t<_Tp>>;
 
 template <typename _Tp>
 constexpr bool is_trivially_copyable_relaxed_v<_Tp[]> = is_trivially_copyable_relaxed_v<_Tp>;
@@ -60,6 +65,14 @@ constexpr bool is_trivially_copyable_relaxed_v<::cuda::std::pair<_T1, _T2>> =
 template <typename... _Ts>
 constexpr bool is_trivially_copyable_relaxed_v<::cuda::std::tuple<_Ts...>> =
   (is_trivially_copyable_relaxed_v<_Ts> && ...);
+
+// if all the previous conditions fail, check if the type is an aggregate and all its members are trivially copyable
+template <typename _Tp>
+using __is_trivially_copyable_relaxed = ::cuda::std::bool_constant<is_trivially_copyable_relaxed_v<_Tp>>;
+
+template <typename _Tp>
+constexpr bool __is_aggregate_trivially_copyable_v<_Tp, ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp>>> =
+  ::cuda::std::__aggregate_all_of<__is_trivially_copyable_relaxed, _Tp>::value;
 
 // defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>

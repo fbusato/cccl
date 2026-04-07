@@ -82,10 +82,18 @@ __host__ __device__ void test_memcpy_roundtrip(T from)
   static_assert(cuda::is_trivially_copyable_relaxed_v<T>);
   T to;
   ::memcpy(static_cast<void*>(&to), static_cast<const void*>(&from), sizeof(T));
+
 #if _CCCL_CTK_AT_LEAST(12, 3)
   assert(from == to);
 #else
-  NV_IF_TARGET(NV_IS_DEVICE, (assert(from == to);));
+  if constexpr (cuda::std::is_same_v<T, __nv_bfloat162>)
+  {
+    NV_IF_TARGET(NV_PROVIDES_SM_80, (assert(from == to);));
+  }
+  else
+  {
+    NV_IF_TARGET(NV_IS_DEVICE, (assert(from == to);));
+  }
 #endif
 }
 
