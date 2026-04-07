@@ -8,7 +8,7 @@ Type traits
    :maxdepth: 1
 
    type_traits/is_floating_point
-   type_traits/is_trivially_copyable_relaxed
+   type_traits/is_trivially_copyable
    type_traits/vector_types
 
 .. list-table::
@@ -30,7 +30,7 @@ Type traits
      - CCCL 3.3.0
      - CUDA 13.3
 
-   * - :ref:`cuda::is_trivially_copyable_relaxed <libcudacxx-extended-api-type_traits-is_trivially_copyable_relaxed>`
+   * - :ref:`cuda::is_trivially_copyable <libcudacxx-extended-api-type_traits-is_trivially_copyable>`
      - Relaxed trivially copyable check including extended floating-point types
      - CCCL 3.4.0
      - CUDA 13.4

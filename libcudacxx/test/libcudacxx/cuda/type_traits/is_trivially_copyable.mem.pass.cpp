@@ -79,7 +79,7 @@ __host__ __device__ bool operator==(__nv_bfloat162 a, __nv_bfloat162 b)
 template <typename T>
 __host__ __device__ void test_memcpy_roundtrip(T from)
 {
-  static_assert(cuda::is_trivially_copyable_relaxed_v<T>);
+  static_assert(cuda::is_trivially_copyable_v<T>);
   T to;
   ::memcpy(static_cast<void*>(&to), static_cast<const void*>(&from), sizeof(T));
 

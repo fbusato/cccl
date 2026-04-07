@@ -10,21 +10,21 @@
 #include <cuda/type_traits>
 
 template <class _Tp>
-__host__ __device__ void test_is_trivially_copyable_relaxed()
+__host__ __device__ void test_is_trivially_copyable()
 {
-  static_assert(cuda::is_trivially_copyable_relaxed<_Tp>::value);
-  static_assert(cuda::is_trivially_copyable_relaxed<const _Tp>::value);
-  static_assert(cuda::is_trivially_copyable_relaxed_v<_Tp>);
-  static_assert(cuda::is_trivially_copyable_relaxed_v<const _Tp>);
+  static_assert(cuda::is_trivially_copyable<_Tp>::value);
+  static_assert(cuda::is_trivially_copyable<const _Tp>::value);
+  static_assert(cuda::is_trivially_copyable_v<_Tp>);
+  static_assert(cuda::is_trivially_copyable_v<const _Tp>);
 }
 
 template <class _Tp>
-__host__ __device__ void test_is_not_trivially_copyable_relaxed()
+__host__ __device__ void test_is_not_trivially_copyable()
 {
-  static_assert(!cuda::is_trivially_copyable_relaxed<_Tp>::value);
-  static_assert(!cuda::is_trivially_copyable_relaxed<const _Tp>::value);
-  static_assert(!cuda::is_trivially_copyable_relaxed_v<_Tp>);
-  static_assert(!cuda::is_trivially_copyable_relaxed_v<const _Tp>);
+  static_assert(!cuda::is_trivially_copyable<_Tp>::value);
+  static_assert(!cuda::is_trivially_copyable<const _Tp>::value);
+  static_assert(!cuda::is_trivially_copyable_v<_Tp>);
+  static_assert(!cuda::is_trivially_copyable_v<const _Tp>);
 }
 
 struct SingleMember
@@ -59,7 +59,7 @@ struct CustomNonTrivialType
 };
 
 template <>
-constexpr bool cuda::is_trivially_copyable_relaxed_v<CustomNonTrivialType> = true;
+constexpr bool cuda::is_trivially_copyable_v<CustomNonTrivialType> = true;
 
 struct SingleMemberCustom
 {
@@ -97,14 +97,14 @@ struct RelaxedWithNonRelaxedMember
 
 __host__ __device__ void test()
 {
-  test_is_trivially_copyable_relaxed<SingleMember>();
-  test_is_trivially_copyable_relaxed<DerivedStruct>();
-  test_is_trivially_copyable_relaxed<NesterStruct>();
-  test_is_trivially_copyable_relaxed<ArrayMember>();
-  test_is_trivially_copyable_relaxed<ArrayMember>();
-  test_is_trivially_copyable_relaxed<DerivedStructCustom>();
-  test_is_trivially_copyable_relaxed<NestedStructCustom>();
-  test_is_not_trivially_copyable_relaxed<RelaxedWithNonRelaxedMember>();
+  test_is_trivially_copyable<SingleMember>();
+  test_is_trivially_copyable<DerivedStruct>();
+  test_is_trivially_copyable<NesterStruct>();
+  test_is_trivially_copyable<ArrayMember>();
+  test_is_trivially_copyable<ArrayMember>();
+  test_is_trivially_copyable<DerivedStructCustom>();
+  test_is_trivially_copyable<NestedStructCustom>();
+  test_is_not_trivially_copyable<RelaxedWithNonRelaxedMember>();
 }
 
 int main(int, char**)
