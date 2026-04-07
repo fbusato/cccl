@@ -9,17 +9,17 @@
 //===----------------------------------------------------------------------===//
 
 // (EDG CTAD bug) Deduction guides fail with:
-//   * gcc -- all nvcc+gcc configs
+//   * gcc: all nvcc+gcc configs
 //   * nvrtc
 //   * nvcc+clang C++17
 //
 // while they work with:
 //
-//   * nvcc+clang C++20 -- PASS
-//   * clang-cuda -- PASS
-//   * nvc++ -- PASS
+//   * nvcc+clang C++20: PASS
+//   * clang-cuda: PASS
+//   * nvc++: PASS
 
-// error: error: no instance of constructor "cuda::std::simd::basic_vec" matches the argument lis
+// error: error: no instance of constructor "cuda::std::simd::basic_vec" matches the argument list
 
 // UNSUPPORTED: gcc
 // UNSUPPORTED: nvrtc

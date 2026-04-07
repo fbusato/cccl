@@ -39,7 +39,7 @@ struct is_const_member_function<R (C::*)(Args...) const noexcept> : cuda::std::t
 {};
 
 template <typename T>
-inline constexpr bool is_const_member_function_v = is_const_member_function<T>::value;
+constexpr bool is_const_member_function_v = is_const_member_function<T>::value;
 
 //----------------------------------------------------------------------------------------------------------------------
 // mask utilities
@@ -100,7 +100,7 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
 #  define _SIMD_TEST_INT128()
 #endif
 
-#if _CCCL_HAS_NVFP16()
+#if _LIBCUDACXX_HAS_NVFP16()
 #  define _SIMD_TEST_FP16()                                       \
     test_type<__half, 1>();                                       \
     test_type<__half, 4>();
@@ -108,7 +108,7 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
 #  define _SIMD_TEST_FP16()
 #endif
 
-#if _CCCL_HAS_NVBF16()
+#if _LIBCUDACXX_HAS_NVBF16()
 #  define _SIMD_TEST_BF16()                                       \
     test_type<__nv_bfloat16, 1>();                                \
     test_type<__nv_bfloat16, 4>();
