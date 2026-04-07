@@ -28,7 +28,7 @@ A type ``T`` satisfies ``cuda::is_trivially_copyable_relaxed`` if any of the fol
 The trait also propagates through composite types:
 
 - C-style arrays: ``T[N]`` and ``T[]`` are relaxed trivially copyable when ``T`` is.
-- ``cuda::std::array<T, N>``: relaxed trivially copyable when ``T`` is.
+- ``cuda::std::array<T, N>``: relaxed trivially copyable when ``T`` is also trivially copyable.
 - ``cuda::std::pair<T1, T2>``: relaxed trivially copyable when both ``T1`` and ``T2`` are and the object has no padding.
 - ``cuda::std::tuple<Ts...>``: relaxed trivially copyable when all ``Ts...`` are and the object has no padding.
 
@@ -46,7 +46,7 @@ Users may specialize ``cuda::is_trivially_copyable_relaxed_v`` for types whose s
 A `trivially copyable <https://en.cppreference.com/w/cpp/language/classes.html>`__ class is a class that
 
 - has at least one eligible copy constructor, move constructor, copy assignment operator, or move assignment operator,
-- each eligible copy constructor is trivial
+- each of its eligible copy constructors is trivial
 - each eligible move constructor is trivial
 - each eligible copy assignment operator is trivial
 - each eligible move assignment operator is trivial, and
