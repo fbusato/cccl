@@ -85,7 +85,7 @@ __host__ __device__ void test_memcpy_roundtrip(T from)
 
 #if _CCCL_CTK_AT_LEAST(12, 3)
   assert(from == to);
-#else
+#else // ^^^ _CCCL_CTK_AT_LEAST(12, 3) ^^^ / !_CCCL_CTK_AT_LEAST(12, 3) vvv
   if constexpr (cuda::std::is_same_v<T, __nv_bfloat162>)
   {
     NV_IF_TARGET(NV_PROVIDES_SM_80, (assert(from == to);));
@@ -94,7 +94,7 @@ __host__ __device__ void test_memcpy_roundtrip(T from)
   {
     NV_IF_TARGET(NV_IS_DEVICE, (assert(from == to);));
   }
-#endif
+#endif // ^^^ !_CCCL_CTK_AT_LEAST(12, 3) ^^^
 }
 
 #define CAST(base_type, val) static_cast<decltype(base_type##1 ::x)>(val)
