@@ -55,7 +55,7 @@ struct CustomNonTrivialType
   int x;
 
   CustomNonTrivialType() = default;
-  CustomNonTrivialType(const CustomNonTrivialType&) {}
+  __host__ __device__ CustomNonTrivialType(const CustomNonTrivialType&) {}
 };
 
 template <>
@@ -86,7 +86,7 @@ struct ArrayMemberCustom
 
 struct NonTriviallyCopyable
 {
-  NonTriviallyCopyable(const NonTriviallyCopyable&) {};
+  __host__ __device__ NonTriviallyCopyable(const NonTriviallyCopyable&) {};
 };
 
 struct RelaxedWithNonRelaxedMember
