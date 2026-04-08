@@ -54,7 +54,7 @@ struct __aggregate_arity_impl
 {
   template <typename... _Args,
             typename _Up   = _Tp,
-            typename       = decltype(_Up{_Args{}...}), // SFINAE on args number
+            typename       = decltype(_Up{(_Args{})...}), // SFINAE on args number
             typename _Self = __aggregate_arity_impl>
   _CCCL_API auto operator()(_Args... __args) -> decltype(_Self{}(__args..., __any_aggregate_member{}));
 

@@ -51,8 +51,11 @@ _CCCL_DIAG_SUPPRESS_GCC("-Wclass-memaccess")
 template <class _To, class _From>
 [[nodiscard]] _CCCL_API inline _To __bit_cast_memcpy(const _From& __from) noexcept
 {
+// is_trivially_default_constructible_v fails with tuple and pair with gcc 7
+#if !_CCCL_COMPILER(GCC, <=, 7)
   static_assert(::cuda::std::is_trivially_default_constructible_v<_To>,
                 "bit_cast requires the destination type to be trivially constructible");
+#endif // !_CCCL_COMPILER(GCC, <=, 7)
   _To __temp;
   ::cuda::std::memcpy(&__temp, &__from, sizeof(_To));
   return __temp;
