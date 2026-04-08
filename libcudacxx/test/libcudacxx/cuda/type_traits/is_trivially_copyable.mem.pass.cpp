@@ -44,57 +44,13 @@ __host__ __device__ bool operator==(T a, T b)
   }
 }
 
-// Extended FP operator== is __device__ only on CTK < 12.3, __host__ __device__ from CTK >= 12.3.
-// Provide __host__ __device__ fallbacks only when operators are explicitly disabled by the user.
-#if _CCCL_HAS_NVFP16()
-#  if defined(__CUDA_NO_HALF_OPERATORS__)
-__host__ __device__ bool operator==(__half a, __half b)
-{
-  return __half2float(a) == __half2float(b);
-}
-#  endif // defined(__CUDA_NO_HALF_OPERATORS__)
-#  if defined(__CUDA_NO_HALF2_OPERATORS__)
-__host__ __device__ bool operator==(__half2 a, __half2 b)
-{
-  return __half2float(a.x) == __half2float(b.x) && __half2float(a.y) == __half2float(b.y);
-}
-#  endif // defined(__CUDA_NO_HALF2_OPERATORS__)
-#endif // _CCCL_HAS_NVFP16()
-
-#if _CCCL_HAS_NVBF16()
-#  if defined(__CUDA_NO_BFLOAT16_OPERATORS__)
-__host__ __device__ bool operator==(__nv_bfloat16 a, __nv_bfloat16 b)
-{
-  return __bfloat162float(a) == __bfloat162float(b);
-}
-#  endif // defined(__CUDA_NO_BFLOAT16_OPERATORS__)
-#  if defined(__CUDA_NO_BFLOAT162_OPERATORS__)
-__host__ __device__ bool operator==(__nv_bfloat162 a, __nv_bfloat162 b)
-{
-  return __bfloat162float(a.x) == __bfloat162float(b.x) && __bfloat162float(a.y) == __bfloat162float(b.y);
-}
-#  endif // defined(__CUDA_NO_BFLOAT162_OPERATORS__)
-#endif // _CCCL_HAS_NVBF16()
-
 template <typename T>
 __host__ __device__ void test_memcpy_roundtrip(T from)
 {
   static_assert(cuda::is_trivially_copyable_v<T>);
   T to;
   ::memcpy(static_cast<void*>(&to), static_cast<const void*>(&from), sizeof(T));
-
-#if _CCCL_CTK_AT_LEAST(12, 3)
   assert(from == to);
-#else // ^^^ _CCCL_CTK_AT_LEAST(12, 3) ^^^ / !_CCCL_CTK_AT_LEAST(12, 3) vvv
-  if constexpr (cuda::std::is_same_v<T, __nv_bfloat162>)
-  {
-    NV_IF_TARGET(NV_PROVIDES_SM_80, (assert(from == to);));
-  }
-  else
-  {
-    NV_IF_TARGET(NV_IS_DEVICE, (assert(from == to);));
-  }
-#endif // ^^^ !_CCCL_CTK_AT_LEAST(12, 3) ^^^
 }
 
 #define CAST(base_type, val) static_cast<decltype(base_type##1 ::x)>(val)
@@ -235,14 +191,9 @@ __host__ __device__ bool tests()
   return true;
 }
 
-// Extended floating-point types: operator== is __device__ only on CTK < 12.3.
-#if _CCCL_CTK_AT_LEAST(12, 3)
-__host__ __device__ void tests_nvfp()
-#else
-__device__ void tests_nvfp()
-#endif
+__host__ __device__ bool tests_nvfp()
 {
-#if _CCCL_HAS_NVFP16()
+#if _LIBCUDACXX_HAS_NVFP16()
   for (__half i :
        {__float2half(0.0f),
         __float2half(1.0f),
@@ -272,9 +223,9 @@ __device__ void tests_nvfp()
   test_memcpy_roundtrip(cuda::std::array<cuda::std::pair<__half, __half>, 2>{
     cuda::std::pair<__half, __half>{__float2half(1.0f), __float2half(2.0f)},
     cuda::std::pair<__half, __half>{__float2half(3.0f), __float2half(4.0f)}});
-#endif // _CCCL_HAS_NVFP16()
+#endif // _LIBCUDACXX_HAS_NVFP16()
 
-#if _CCCL_HAS_NVBF16()
+#if _LIBCUDACXX_HAS_NVBF16()
   for (__nv_bfloat16 i :
        {__float2bfloat16(0.0f),
         __float2bfloat16(1.0f),
@@ -298,21 +249,18 @@ __device__ void tests_nvfp()
 
   test_memcpy_roundtrip(cuda::std::array<__nv_bfloat16, 2>{__float2bfloat16(1.0f), __float2bfloat16(2.0f)});
   test_memcpy_roundtrip(cuda::std::pair<__nv_bfloat16, __nv_bfloat16>{__float2bfloat16(1.0f), __float2bfloat16(2.0f)});
-#endif // _CCCL_HAS_NVBF16()
+#endif // _LIBCUDACXX_HAS_NVBF16()
 
-#if _CCCL_HAS_NVFP16() && _CCCL_HAS_NVBF16()
+#if _LIBCUDACXX_HAS_NVFP16() && _LIBCUDACXX_HAS_NVBF16()
   test_memcpy_roundtrip(cuda::std::tuple<__half, __nv_bfloat16>{__float2half(1.0f), __float2bfloat16(2.0f)});
-#endif // _CCCL_HAS_NVFP16() && _CCCL_HAS_NVBF16()
+#endif // _LIBCUDACXX_HAS_NVFP16() && _LIBCUDACXX_HAS_NVBF16()
+  return true;
 }
 
 int main(int, char**)
 {
-  tests();
-#if _CCCL_CTK_AT_LEAST(12, 3)
-  tests_nvfp();
-#else
-  NV_IF_TARGET(NV_IS_DEVICE, (tests_nvfp();));
-#endif
+  assert(tests());
+  assert(tests_nvfp());
   return 0;
 }
 
