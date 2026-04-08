@@ -35,39 +35,6 @@ The trait also propagates through composite types:
 
 ``const`` qualification is handled transparently, while ``volatile`` is compiler dependent.
 
-Custom Specialization
----------------------
-
-Users may specialize ``cuda::is_trivially_copyable_v`` for types whose semantics allow copying with ``memcpy``, but which the compiler does not consider to be trivially copyable.
-
-A `trivially copyable <https://en.cppreference.com/w/cpp/language/classes.html>`__ class is a class that
-
-- has at least one eligible copy constructor, move constructor, copy assignment operator, or move assignment operator,
-- each of its eligible copy constructors is trivial
-- each eligible move constructor is trivial
-- each eligible copy assignment operator is trivial
-- each eligible move assignment operator is trivial, and
-- has a non-deleted trivial destructor.
-
-.. warning::
-
-    The user is responsible for ensuring that the type is actually trivially copyable when specializing this variable template. Otherwise, the behavior is undefined.
-
-A common case is a user-declared type that has a copy constructor but is technically trivially copyable:
-
-.. code:: cuda
-
-    struct NonTriviallyCopyable {
-        int x;
-        __host__ __device__ NonTriviallyCopyable(const NonTriviallyCopyable&) {}
-    };
-
-    // Specializing the variable template
-    template <>
-    constexpr bool cuda::is_trivially_copyable_v<NonTriviallyCopyable> = true;
-
-    static_assert(cuda::is_trivially_copyable_v<NonTriviallyCopyable>);
-
 Examples
 --------
 
@@ -80,10 +47,6 @@ Examples
 
    #include <cuda_fp16.h>
 
-   struct UserType {
-     __half x, y;
-   };
-
    // Standard trivially copyable types
    static_assert(cuda::is_trivially_copyable_v<int>);
    static_assert(cuda::is_trivially_copyable_v<float>);
@@ -93,11 +56,9 @@ Examples
    static_assert(cuda::is_trivially_copyable_v<__nv_bfloat16>);
    static_assert(cuda::is_trivially_copyable_v<__half2>);
 
-   // Padding-free composite types containing extended floating-point types
+   // Composite types containing extended floating-point types
    static_assert(cuda::is_trivially_copyable_v<__half[4]>);
    static_assert(cuda::is_trivially_copyable_v<cuda::std::array<__half, 4>>);
    static_assert(cuda::is_trivially_copyable_v<cuda::std::pair<__half, __half>>);
    static_assert(cuda::is_trivially_copyable_v<cuda::std::tuple<__half, __half>>);
-
-   // Composites with padding are not trivially copyable
-   static_assert(!cuda::is_trivially_copyable_v<cuda::std::pair<__half, int>>);
+   static_assert(cuda::is_trivially_copyable_v<cuda::std::pair<__half, int>>);
