@@ -13,8 +13,6 @@
 
 #include <cuda/std/detail/__config>
 
-#include <cuda/std/__cccl/dialect.h>
-
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
 #elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
@@ -42,7 +40,7 @@ struct __aligned_flag
 template <size_t _Np>
 struct __overaligned_flag
 {
-  static_assert(::cuda::is_power_of_two(_Np), "Overaligned flag requires a power-of-2 alignment");
+  static_assert(::cuda::__is_valid_alignment(_Np), "Overaligned flag requires a power-of-2 alignment");
 };
 
 template <typename _Tp>
@@ -72,6 +70,10 @@ struct flags
                 "Every flag type must be one of convert_flag, aligned_flag, or overaligned_flag<N>");
   static_assert((0 + ... + static_cast<int>(__overaligned_value_v<_Flags> != 0)) <= 1,
                 "At most one overaligned_flag is allowed");
+  // we cannot use __is_valid_alignment because 0 has a different meaning
+  static_assert((true && ...
+                 && (__overaligned_value_v<_Flags> == 0 || ::cuda::is_power_of_two(__overaligned_value_v<_Flags>))),
+                "Overaligned flag requires a power-of-2 alignment");
 
   // [simd.flags.oper], flags operators
   template <typename... _Other>

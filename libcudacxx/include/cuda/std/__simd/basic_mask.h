@@ -136,7 +136,7 @@ public:
 
   // [simd.mask.subscr], basic_mask subscript operators
 
-  [[nodiscard]] _CCCL_API constexpr value_type operator[](__simd_size_type __i) const noexcept
+  [[nodiscard]] _CCCL_API constexpr value_type operator[](__simd_size_type __i) const
   {
     _CCCL_ASSERT(::cuda::in_range(__i, __simd_size_type{0}, __size), "Index is out of bounds");
     return static_cast<bool>(__s_.__get(__i));

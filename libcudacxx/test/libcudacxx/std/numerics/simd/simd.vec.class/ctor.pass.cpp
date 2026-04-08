@@ -182,8 +182,8 @@ __host__ __device__ constexpr void test_range_span()
 template <typename T, int N>
 __host__ __device__ constexpr void test_range_alignment_flags()
 {
-  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  alignas(32) cuda::std::array<T, N> arr{};
+  using Vec                      = simd::basic_vec<T, simd::fixed_size<N>>;
+  alignas(64) cuda::std::array<T, N> arr{};
   for (int i = 0; i < N; ++i)
   {
     arr[i] = static_cast<T>(i + 1);

@@ -71,14 +71,14 @@ private:
     return mask_type{__s, mask_type::__storage_tag};
   }
 
-public:
-  using abi_type = _Abi;
-
   // operator[] is const only. We need this function to set values
   _CCCL_API constexpr void __set(__simd_size_type __i, value_type __v) noexcept
   {
     __s_.__set(__i, __v);
   }
+
+public:
+  using abi_type = _Abi;
 
   // TODO(fbusato): add simd-iterator
   // using iterator       = simd-iterator<basic_vec>;

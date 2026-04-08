@@ -26,7 +26,7 @@ __host__ __device__ constexpr void test_subscript()
   Mask mask(true);
 
   static_assert(cuda::std::is_same_v<decltype(mask[0]), typename Mask::value_type>);
-  static_assert(noexcept(mask[0]));
+  static_assert(!noexcept(mask[0]));
   static_assert(is_const_member_function_v<decltype(&Mask::operator[])>);
   unused(mask);
 
