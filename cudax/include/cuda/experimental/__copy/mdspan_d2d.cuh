@@ -176,7 +176,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     _CCCL_ASSERT(__tensor_size % __tile_size == 0, "tensor size must be divisible by tile size");
     const auto __inner_extent_bytes = __src_normalized.__extents[0] * sizeof(_TpIn);
     // (1) contiguous case
-    if (__tile_size == __tensor_size)
+    if (static_cast<::cuda::std::size_t>(__tile_size) == __tensor_size)
     {
       _CCCL_TRY_CUDA_API(
         CUB_NS_QUALIFIER::DeviceTransform::Transform,
