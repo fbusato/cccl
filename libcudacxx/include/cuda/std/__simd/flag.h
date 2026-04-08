@@ -29,8 +29,8 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
 // [simd.expos], exposition-only flag types
 
 struct __convert_flag
@@ -39,7 +39,7 @@ struct __convert_flag
 struct __aligned_flag
 {};
 
-template <::cuda::std::size_t _Np>
+template <size_t _Np>
 struct __overaligned_flag
 {
   static_assert(::cuda::is_power_of_two(_Np), "Overaligned flag requires a power-of-2 alignment");
@@ -54,14 +54,14 @@ constexpr bool __is_flag_type_v<__convert_flag> = true;
 template <>
 constexpr bool __is_flag_type_v<__aligned_flag> = true;
 
-template <::cuda::std::size_t _Np>
+template <size_t _Np>
 constexpr bool __is_flag_type_v<__overaligned_flag<_Np>> = true;
 
 template <typename _Flag>
-constexpr ::cuda::std::size_t __overaligned_value_v = 0;
+constexpr size_t __overaligned_value_v = 0;
 
-template <::cuda::std::size_t _Np>
-constexpr ::cuda::std::size_t __overaligned_value_v<__overaligned_flag<_Np>> = _Np;
+template <size_t _Np>
+constexpr size_t __overaligned_value_v<__overaligned_flag<_Np>> = _Np;
 
 // [simd.flags.overview], class template flags
 
@@ -87,22 +87,22 @@ inline constexpr flags<> flag_default{};
 inline constexpr flags<__convert_flag> flag_convert{};
 inline constexpr flags<__aligned_flag> flag_aligned{};
 
-template <::cuda::std::size_t _Np>
+template <size_t _Np>
 constexpr flags<__overaligned_flag<_Np>> flag_overaligned{};
 
 template <typename... _Flags>
-constexpr bool __has_convert_flag_v = (false || ... || ::cuda::std::is_same_v<_Flags, __convert_flag>);
+constexpr bool __has_convert_flag_v = (false || ... || is_same_v<_Flags, __convert_flag>);
 
 template <typename... _Flags>
-constexpr bool __has_aligned_flag_v = (false || ... || ::cuda::std::is_same_v<_Flags, __aligned_flag>);
+constexpr bool __has_aligned_flag_v = (false || ... || is_same_v<_Flags, __aligned_flag>);
 
 template <typename... _Flags>
 constexpr bool __has_overaligned_flag_v = (false || ... || (__overaligned_value_v<_Flags> != 0));
 
 template <typename... _Flags>
-constexpr ::cuda::std::size_t __overaligned_alignment_v =
-  (::cuda::std::size_t{0} | ... | __overaligned_value_v<_Flags>);
-} // namespace cuda::std::simd
+constexpr size_t __overaligned_alignment_v = (size_t{0} | ... | __overaligned_value_v<_Flags>);
+
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 

@@ -32,27 +32,28 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
 // [simd.expos], exposition-only helpers
 
-template <::cuda::std::size_t _Bytes>
-using __integer_from = ::cuda::std::__make_nbit_int_t<_Bytes * 8, true>;
+template <size_t _Bytes>
+using __integer_from = __make_nbit_int_t<_Bytes * 8, true>;
 
 // all standard integer types, character types, and the types float and double ([basic.fundamental]);
 // std​::​float16_t, std​::​float32_t, and std​::​float64_t if defined ([basic.extended.fp]); and
 // TODO(fbusato) complex<T> where T is a vectorizable floating-point type.
 template <typename _Tp>
 constexpr bool __is_vectorizable_v =
-  (::cuda::std::is_integral_v<_Tp> || ::cuda::is_floating_point_v<_Tp>)
-  && !::cuda::std::is_same_v<_Tp, bool> && !::cuda::std::is_const_v<_Tp> && !::cuda::std::is_volatile_v<_Tp>;
+  (is_integral_v<_Tp> || ::cuda::is_floating_point_v<_Tp>)
+  && !is_same_v<_Tp, bool> && !is_const_v<_Tp> && !is_volatile_v<_Tp>;
 
 template <typename _Tp, typename _Abi>
 constexpr __simd_size_type __simd_size_v = 0;
 
 template <typename _Tp, __simd_size_type _Np>
 constexpr __simd_size_type __simd_size_v<_Tp, fixed_size<_Np>> = _Np;
-} // namespace cuda::std::simd
+
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 

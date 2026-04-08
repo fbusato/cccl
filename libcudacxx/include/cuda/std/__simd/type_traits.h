@@ -29,20 +29,20 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
 // [simd.traits], alignment
 template <typename _Tp, typename _Up = typename _Tp::value_type>
 struct alignment;
 
 template <typename _Tp, typename _Abi, typename _Up>
-struct alignment<basic_vec<_Tp, _Abi>, _Up> : ::cuda::std::integral_constant<::cuda::std::size_t, alignof(_Up)>
+struct alignment<basic_vec<_Tp, _Abi>, _Up> : integral_constant<size_t, alignof(_Up)>
 {
   static_assert(__is_vectorizable_v<_Up>, "U must be a vectorizable type");
 };
 
 template <typename _Tp, typename _Up = typename _Tp::value_type>
-constexpr ::cuda::std::size_t alignment_v = alignment<_Tp, _Up>::value;
+constexpr size_t alignment_v = alignment<_Tp, _Up>::value;
 
 // [simd.traits], rebind
 template <typename _Tp, typename _Vp>
@@ -55,7 +55,7 @@ struct rebind<_Tp, basic_vec<_Up, _Abi>>
   using type = basic_vec<_Tp, __deduce_abi_t<_Tp, __simd_size_v<_Up, _Abi>>>;
 };
 
-template <typename _Tp, ::cuda::std::size_t _Bytes, typename _Abi>
+template <typename _Tp, size_t _Bytes, typename _Abi>
 struct rebind<_Tp, basic_mask<_Bytes, _Abi>>
 {
   static_assert(__is_vectorizable_v<_Tp>, "T must be a vectorizable type");
@@ -78,7 +78,7 @@ struct resize<_Np, basic_vec<_Tp, _Abi>>
   using type = basic_vec<_Tp, __deduce_abi_t<_Tp, _Np>>;
 };
 
-template <__simd_size_type _Np, ::cuda::std::size_t _Bytes, typename _Abi>
+template <__simd_size_type _Np, size_t _Bytes, typename _Abi>
 struct resize<_Np, basic_mask<_Bytes, _Abi>>
 {
   using type = basic_mask<_Bytes, __deduce_abi_t<__integer_from<_Bytes>, _Np>>;
@@ -86,7 +86,8 @@ struct resize<_Np, basic_mask<_Bytes, _Abi>>
 
 template <__simd_size_type _Np, typename _Vp>
 using resize_t = typename resize<_Np, _Vp>::type;
-} // namespace cuda::std::simd
+
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 

@@ -29,13 +29,13 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
 // Bool-per-element mask storage for fixed_size ABI
-template <::cuda::std::size_t _Bytes, __simd_size_type _Np>
+template <size_t _Bytes, __simd_size_type _Np>
 struct __mask_storage<_Bytes, __fixed_size<_Np>>
 {
-  static constexpr ::cuda::std::size_t __element_bytes = _Bytes;
+  static constexpr size_t __element_bytes = _Bytes;
 
   bool __data[_Np]{}; // initialization required for constexpr constructor
 
@@ -53,7 +53,7 @@ struct __mask_storage<_Bytes, __fixed_size<_Np>>
 };
 
 // Mask operations for fixed_size ABI with bool-per-element storage
-template <::cuda::std::size_t _Bytes, __simd_size_type _Np>
+template <size_t _Bytes, __simd_size_type _Np>
 struct __mask_operations<_Bytes, __fixed_size<_Np>>
 {
   using _MaskStorage = __mask_storage<_Bytes, __fixed_size<_Np>>;
@@ -71,17 +71,17 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
 
   template <typename _Generator, __simd_size_type... _Is>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
-  __generate_init(_Generator&& __g, ::cuda::std::integer_sequence<__simd_size_type, _Is...>)
+  __generate_init(_Generator&& __g, integer_sequence<__simd_size_type, _Is...>)
   {
     _MaskStorage __result{};
-    ((__result.__data[_Is] = static_cast<bool>(__g(::cuda::std::integral_constant<__simd_size_type, _Is>()))), ...);
+    ((__result.__data[_Is] = static_cast<bool>(__g(integral_constant<__simd_size_type, _Is>()))), ...);
     return __result;
   }
 
   template <typename _Generator>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage __generate(_Generator&& __g)
   {
-    return __generate_init(__g, ::cuda::std::make_integer_sequence<__simd_size_type, _Np>());
+    return __generate_init(__g, make_integer_sequence<__simd_size_type, _Np>());
   }
 
   // Logical operators (for operator&& and operator||)
@@ -224,7 +224,8 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
     _CCCL_UNREACHABLE();
   }
 };
-} // namespace cuda::std::simd
+
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 

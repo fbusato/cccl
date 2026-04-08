@@ -34,8 +34,8 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
 // [simd.class], class template basic_vec
 template <typename _Tp, typename _Abi>
 class basic_vec : public __simd_operations<_Tp, _Abi>
@@ -48,7 +48,7 @@ private:
   static_assert(__is_vectorizable_v<_Tp>, "basic_vec requires a vectorizable type");
   static_assert(__is_abi_tag_v<_Abi>, "basic_vec requires a valid ABI tag");
 
-  template <::cuda::std::size_t, typename>
+  template <size_t, typename>
   friend class basic_mask;
 
   using _Impl    = __simd_operations<_Tp, _Abi>;
@@ -90,9 +90,9 @@ public:
   // constexpr default_sentinel_t end() const noexcept { return {}; }
   // constexpr default_sentinel_t cend() const noexcept { return {}; }
 
-  static constexpr ::cuda::std::integral_constant<__simd_size_type, __simd_size_v<value_type, abi_type>> size{};
+  static constexpr integral_constant<__simd_size_type, __simd_size_v<value_type, abi_type>> size{};
 
-  static constexpr auto __usize = ::cuda::std::size_t{size};
+  static constexpr auto __usize = size_t{size};
   static constexpr auto __size  = __simd_size_type{size};
 
   _CCCL_HIDE_FROM_ABI basic_vec() noexcept = default;
@@ -156,12 +156,10 @@ public:
   _CCCL_REQUIRES(__is_compatible_range<_Range>)
   _CCCL_API constexpr basic_vec(_Range&& __range, flags<_Flags...> = {})
   {
-    static_assert(__has_convert_flag_v<_Flags...>
-                    || __is_value_preserving_v<::cuda::std::ranges::range_value_t<_Range>, value_type>,
+    static_assert(__has_convert_flag_v<_Flags...> || __is_value_preserving_v<ranges::range_value_t<_Range>, value_type>,
                   "Conversion from range_value_t<R> to value_type is not value-preserving; use flag_convert");
-    const auto __data = ::cuda::std::ranges::data(__range);
-    ::cuda::std::simd::__assert_load_store_alignment<basic_vec, ::cuda::std::ranges::range_value_t<_Range>, _Flags...>(
-      __data);
+    const auto __data = ranges::data(__range);
+    __assert_load_store_alignment<basic_vec, ranges::range_value_t<_Range>, _Flags...>(__data);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
@@ -174,12 +172,10 @@ public:
   _CCCL_REQUIRES(__is_compatible_range<_Range>)
   _CCCL_API constexpr basic_vec(_Range&& __range, const mask_type& __mask, flags<_Flags...> = {})
   {
-    static_assert(__has_convert_flag_v<_Flags...>
-                    || __is_value_preserving_v<::cuda::std::ranges::range_value_t<_Range>, value_type>,
+    static_assert(__has_convert_flag_v<_Flags...> || __is_value_preserving_v<ranges::range_value_t<_Range>, value_type>,
                   "Conversion from range_value_t<R> to value_type is not value-preserving; use flag_convert");
-    const auto __data = ::cuda::std::ranges::data(__range);
-    ::cuda::std::simd::__assert_load_store_alignment<basic_vec, ::cuda::std::ranges::range_value_t<_Range>, _Flags...>(
-      __data);
+    const auto __data = ranges::data(__range);
+    __assert_load_store_alignment<basic_vec, ranges::range_value_t<_Range>, _Flags...>(__data);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
@@ -507,11 +503,11 @@ public:
 //    * "vec" is defined as basic_vec<_Tp, __deduce_abi_t<_Tp, _Np>>
 //    * where _Np is __simd_size_v<_Tp, __static_range_size_v<_Range>>
 _CCCL_TEMPLATE(typename _Range, typename... _Ts)
-_CCCL_REQUIRES(::cuda::std::ranges::contiguous_range<_Range> _CCCL_AND ::cuda::std::ranges::sized_range<_Range>
-                 _CCCL_AND __has_static_size<_Range>)
+_CCCL_REQUIRES(
+  ranges::contiguous_range<_Range> _CCCL_AND ranges::sized_range<_Range> _CCCL_AND __has_static_size<_Range>)
 _CCCL_API_DEDUCTION_GUIDE basic_vec(_Range&&, _Ts...)
-  -> basic_vec<::cuda::std::ranges::range_value_t<_Range>,
-               __deduce_abi_t<::cuda::std::ranges::range_value_t<_Range>, __static_range_size_v<_Range>>>;
+  -> basic_vec<ranges::range_value_t<_Range>,
+               __deduce_abi_t<ranges::range_value_t<_Range>, __static_range_size_v<_Range>>>;
 
 // [simd.ctor] deduction guide from basic_mask
 // basic_vec<__integer_from<Bytes>, Abi> is equivalent to decltype(+k):
@@ -519,10 +515,11 @@ _CCCL_API_DEDUCTION_GUIDE basic_vec(_Range&&, _Ts...)
 //   * +k calls basic_mask::operator+()
 //   * the return type is basic_vec<__integer_from<_Bp>, _Abi>
 // The deduced type is equivalent to decltype(+k), i.e. basic_vec<__integer_from<Bytes>, Abi>
-_CCCL_TEMPLATE(::cuda::std::size_t _Bytes, typename _Abi)
+_CCCL_TEMPLATE(size_t _Bytes, typename _Abi)
 _CCCL_REQUIRES(__has_unary_plus<basic_mask<_Bytes, _Abi>>)
 _CCCL_API_DEDUCTION_GUIDE basic_vec(basic_mask<_Bytes, _Abi>) -> basic_vec<__integer_from<_Bytes>, _Abi>;
-} // namespace cuda::std::simd
+
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 

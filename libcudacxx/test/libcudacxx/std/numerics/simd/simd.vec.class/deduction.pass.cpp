@@ -8,10 +8,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-// (EDG CTAD bug) Deduction guides fail with:
-//   * gcc: all nvcc+gcc configs
-//   * nvrtc
-//   * nvcc+clang C++17
+// (CTAD bug) Deduction guides fail with:
+//   * gcc: all nvcc+gcc configs (EDG frontend bug)
+//   * nvrtc (EDG frontend bug)
+//   * msvc: all nvcc+msvc configs (MSVC CTAD limitation)
+//   * nvcc+clang C++17 (EDG frontend bug)
 //
 // while they work with:
 //
@@ -23,6 +24,7 @@
 
 // UNSUPPORTED: gcc
 // UNSUPPORTED: nvrtc
+// UNSUPPORTED: msvc
 // UNSUPPORTED: nvcc && clang && c++17
 
 // <cuda/std/__simd_>

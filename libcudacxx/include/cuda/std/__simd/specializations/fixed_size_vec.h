@@ -28,8 +28,8 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
 template <__simd_size_type _Np>
 struct __fixed_size
 {
@@ -79,15 +79,15 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
 
   template <typename _Generator, __simd_size_type... _Is>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
-  __generate_init(_Generator&& __g, ::cuda::std::integer_sequence<__simd_size_type, _Is...>)
+  __generate_init(_Generator&& __g, integer_sequence<__simd_size_type, _Is...>)
   {
-    return _SimdStorage{{__g(::cuda::std::integral_constant<__simd_size_type, _Is>())...}};
+    return _SimdStorage{{__g(integral_constant<__simd_size_type, _Is>())...}};
   }
 
   template <typename _Generator>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __generate(_Generator&& __g)
   {
-    return __generate_init(__g, ::cuda::std::make_integer_sequence<__simd_size_type, _Np>());
+    return __generate_init(__g, make_integer_sequence<__simd_size_type, _Np>());
   }
 
   // Unary operations
@@ -132,6 +132,8 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     return __result;
   }
 
+  _CCCL_DIAG_PUSH
+  _CCCL_DIAG_SUPPRESS_MSVC(4146) // unary minus applied to unsigned type
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __unary_minus(const _SimdStorage& __s) noexcept
   {
     _SimdStorage __result{};
@@ -142,6 +144,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     }
     return __result;
   }
+  _CCCL_DIAG_POP
 
   // Binary arithmetic operations
 
@@ -341,7 +344,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     return __result;
   }
 };
-} // namespace cuda::std::simd
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 

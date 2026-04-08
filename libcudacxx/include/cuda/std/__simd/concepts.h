@@ -37,30 +37,28 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
 // [simd.expos], explicitly-convertible-to concept
 
 template <typename _To, typename _From>
-_CCCL_CONCEPT __explicitly_convertible_to =
-  _CCCL_REQUIRES_EXPR((_To, _From))((static_cast<_To>(::cuda::std::declval<_From>())));
+_CCCL_CONCEPT __explicitly_convertible_to = _CCCL_REQUIRES_EXPR((_To, _From))((static_cast<_To>(declval<_From>())));
 
 // [simd.expos], constexpr-wrapper-like concept
 
 template <typename _Tp>
 _CCCL_CONCEPT __constexpr_wrapper_like = _CCCL_REQUIRES_EXPR((_Tp))(
-  requires(::cuda::std::convertible_to<_Tp, decltype(_Tp::value)>),
-  requires(::cuda::std::equality_comparable_with<_Tp, decltype(_Tp::value)>),
-  requires(::cuda::std::bool_constant<(_Tp() == _Tp::value)>::value),
-  requires(::cuda::std::bool_constant<(static_cast<decltype(_Tp::value)>(_Tp()) == _Tp::value)>::value));
+  requires(convertible_to<_Tp, decltype(_Tp::value)>),
+  requires(equality_comparable_with<_Tp, decltype(_Tp::value)>),
+  requires(bool_constant<(_Tp() == _Tp::value)>::value),
+  requires(bool_constant<(static_cast<decltype(_Tp::value)>(_Tp()) == _Tp::value)>::value));
 
 // Covers all integral types including character types (char16_t, char32_t, wchar_t, char8_t),
 // which are excluded by __cccl_is_integer_v
 template <typename _From, typename _To>
 constexpr bool __is_integral__value_preserving_v =
-  ::cuda::std::is_integral_v<_From> && ::cuda::std::is_integral_v<_To>
-  && ::cuda::std::numeric_limits<_From>::digits <= ::cuda::std::numeric_limits<_To>::digits
-  && (!::cuda::std::is_signed_v<_From> || ::cuda::std::is_signed_v<_To>);
+  is_integral_v<_From> && is_integral_v<_To> && numeric_limits<_From>::digits <= numeric_limits<_To>::digits
+  && (!is_signed_v<_From> || is_signed_v<_To>);
 
 // The conversion from an arithmetic type U to a vectorizable type T is value-preserving if all possible
 // values of U can be represented with type T.
@@ -68,9 +66,9 @@ template <typename _From, typename _To>
 constexpr bool __is_value_preserving_v =
   __is_integral__value_preserving_v<_From, _To>
   || (::cuda::is_floating_point_v<_From> && ::cuda::is_floating_point_v<_To>
-      && ::cuda::std::__fp_is_implicit_conversion_v<_From, _To>)
-  || (::cuda::std::is_integral_v<_From> && ::cuda::is_floating_point_v<_To>
-      && ::cuda::std::numeric_limits<_From>::digits <= ::cuda::std::numeric_limits<_To>::digits);
+      && __fp_is_implicit_conversion_v<_From, _To>)
+  || (is_integral_v<_From> && ::cuda::is_floating_point_v<_To>
+      && numeric_limits<_From>::digits <= numeric_limits<_To>::digits);
 
 template <typename _From, typename _ValueType, typename = void>
 constexpr bool __is_constexpr_wrapper_value_preserving_v = false;
@@ -78,21 +76,20 @@ constexpr bool __is_constexpr_wrapper_value_preserving_v = false;
 // The standard requires checking whether the specific compile-time value From::value is representable by _ValueType,
 // not whether the entire source type is value-preserving.
 template <typename _From, typename _ValueType>
-constexpr bool __is_constexpr_wrapper_value_preserving_v<_From, _ValueType, ::cuda::std::void_t<decltype(_From::value)>> =
-  ::cuda::std::is_arithmetic_v<::cuda::std::remove_cvref_t<decltype(_From::value)>>
-  && (static_cast<::cuda::std::remove_cvref_t<decltype(_From::value)>>(static_cast<_ValueType>(_From::value))
-      == _From::value);
+constexpr bool __is_constexpr_wrapper_value_preserving_v<_From, _ValueType, void_t<decltype(_From::value)>> =
+  is_arithmetic_v<remove_cvref_t<decltype(_From::value)>>
+  && (static_cast<remove_cvref_t<decltype(_From::value)>>(static_cast<_ValueType>(_From::value)) == _From::value);
 
 // [simd.ctor] implicit value constructor
 // - From is not an arithmetic type and does not satisfy constexpr-wrapper-like,
 // - From is an arithmetic type and the conversion from From to value_type is value-preserving
 // - From satisfies constexpr-wrapper-like, remove_cvref_t<decltype(From​::​value)> is an arithmetic type, and
 //   From​::​value is representable by value_type.
-template <typename _Up, typename _ValueType, typename _From = ::cuda::std::remove_cvref_t<_Up>>
+template <typename _Up, typename _ValueType, typename _From = remove_cvref_t<_Up>>
 _CCCL_CONCEPT __is_value_ctor_implicit =
-  ::cuda::std::convertible_to<_Up, _ValueType>
-  && ((!::cuda::std::is_arithmetic_v<_From> && !__constexpr_wrapper_like<_From>)
-      || (::cuda::std::is_arithmetic_v<_From> && __is_value_preserving_v<_From, _ValueType>)
+  convertible_to<_Up, _ValueType>
+  && ((!is_arithmetic_v<_From> && !__constexpr_wrapper_like<_From>)
+      || (is_arithmetic_v<_From> && __is_value_preserving_v<_From, _ValueType>)
       || (__constexpr_wrapper_like<_From> && __is_constexpr_wrapper_value_preserving_v<_From, _ValueType>) );
 
 // [conv.rank], integer conversion rank for [simd.ctor] p7
@@ -163,7 +160,7 @@ inline constexpr int __fp_conversion_rank<__float128> = 5;
 template <typename _Up, typename _ValueType>
 constexpr bool __is_vec_ctor_explicit =
   !__is_value_preserving_v<_Up, _ValueType>
-  || (::cuda::std::is_integral_v<_Up> && ::cuda::std::is_integral_v<_ValueType>
+  || (is_integral_v<_Up> && is_integral_v<_ValueType>
       && __integer_conversion_rank<_Up> > __integer_conversion_rank<_ValueType>)
   || (::cuda::is_floating_point_v<_Up> && ::cuda::is_floating_point_v<_ValueType>
       && __fp_conversion_rank<_Up> > __fp_conversion_rank<_ValueType>);
@@ -251,7 +248,8 @@ _CCCL_CONCEPT __has_greater = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a 
 
 template <typename _Tp>
 _CCCL_CONCEPT __has_less = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a < __b));
-} // namespace cuda::std::simd
+
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 

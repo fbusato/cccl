@@ -27,12 +27,12 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
 template <typename _Tp, typename _Abi = native<_Tp>>
 class basic_vec;
 
-template <::cuda::std::size_t _Bytes, typename _Abi = native<__integer_from<_Bytes>>>
+template <size_t _Bytes, typename _Abi = native<__integer_from<_Bytes>>>
 class basic_mask;
 
 template <typename _Tp, __simd_size_type _Np = __simd_size_v<_Tp, native<_Tp>>>
@@ -49,12 +49,13 @@ struct __simd_storage;
 template <typename _Tp, typename _Abi>
 struct __simd_operations;
 
-template <::cuda::std::size_t _Bytes, typename _Abi>
+template <size_t _Bytes, typename _Abi>
 struct __mask_storage;
 
-template <::cuda::std::size_t _Bytes, typename _Abi>
+template <size_t _Bytes, typename _Abi>
 struct __mask_operations;
-} // namespace cuda::std::simd
+
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 

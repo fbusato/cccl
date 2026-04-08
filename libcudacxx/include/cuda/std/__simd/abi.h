@@ -25,9 +25,9 @@
 
 #include <cuda/std/__cccl/prologue.h>
 
-namespace cuda::std::simd
-{
-using __simd_size_type = ::cuda::std::ptrdiff_t;
+_CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
+using __simd_size_type = ptrdiff_t;
 
 // [simd.expos.abi], simd ABI tags
 template <__simd_size_type _Np>
@@ -41,7 +41,8 @@ using native = fixed_size<1>; // implementation-defined ABI
 
 template <typename, __simd_size_type _Np>
 using __deduce_abi_t = fixed_size<_Np>; // exposition-only
-} // namespace cuda::std::simd
+
+_CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 
