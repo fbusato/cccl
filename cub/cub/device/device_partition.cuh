@@ -32,9 +32,11 @@ CUB_NAMESPACE_BEGIN
 
 namespace detail::partition
 {
+// TODO(bgruber): drop this after rewriting to the new tuning API
 struct get_tuning_query_t
 {};
 
+// TODO(bgruber): drop this after rewriting to the new tuning API
 template <class Derived>
 struct tuning
 {
@@ -44,6 +46,7 @@ struct tuning
   }
 };
 
+// TODO(bgruber): drop this after rewriting to the new tuning API
 struct default_tuning : tuning<default_tuning>
 {
   template <class InputT, class FlagT, class OffsetT, bool DistinctPartitions, SelectImpl Impl>
@@ -345,7 +348,6 @@ public:
   //!
   //! @param[in] env
   //!   **[optional]** Execution environment. Default is ``cuda::std::execution::env{}``.
-  //!   @endrst
   template <typename InputIteratorT,
             typename FlagIterator,
             typename OutputIteratorT,
@@ -602,7 +604,6 @@ public:
   //!
   //! @param[in] env
   //!   **[optional]** Execution environment. Default is ``cuda::std::execution::env{}``.
-  //!   @endrst
   template <
     typename InputIteratorT,
     typename OutputIteratorT,
