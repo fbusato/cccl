@@ -20,6 +20,8 @@
 #include <cuda/std/cstdint>
 #include <cuda/std/cstring>
 #include <cuda/std/limits>
+#include <cuda/std/tuple>
+#include <cuda/std/utility>
 
 #include "test_macros.h"
 
@@ -53,7 +55,7 @@ __host__ __device__ void test_roundtrip_through_nested_T(T from)
   {
     T x;
   };
-  static_assert(sizeof(Nested) == sizeof(T), "");
+  static_assert(sizeof(Nested) == sizeof(T));
 
   Nested middle  = cuda::std::bit_cast<Nested>(from);
   T to           = cuda::std::bit_cast<T>(middle);
@@ -72,7 +74,7 @@ __host__ __device__ void test_roundtrip_through_nested_T(T from)
 template <typename Intermediate, bool HasUniqueObjectRepresentations = true, typename T>
 __host__ __device__ void test_roundtrip_through(T from)
 {
-  static_assert(sizeof(Intermediate) == sizeof(T), "");
+  static_assert(sizeof(Intermediate) == sizeof(T));
 
   Intermediate middle  = cuda::std::bit_cast<Intermediate>(from);
   T to                 = cuda::std::bit_cast<T>(middle);
@@ -87,6 +89,16 @@ __host__ __device__ void test_roundtrip_through(T from)
     assert(cuda::std::memcmp(&middle, &middle2, sizeof(T)) == 0);
   }
 }
+
+struct TrivialPod
+{
+  int x;
+  float y;
+  __host__ __device__ friend bool operator==(TrivialPod a, TrivialPod b)
+  {
+    return a.x == b.x && a.y == b.y;
+  }
+};
 
 template <typename T>
 __host__ __device__ _CCCL_CONSTEXPR_BIT_CAST cuda::std::array<T, 10> generate_signed_integral_values()
@@ -319,6 +331,141 @@ __host__ __device__ bool tests()
   }
 #endif // _LIBCUDACXX_HAS_NVBF16()
 
+  // User-defined trivially copyable type
+  for (TrivialPod i : {TrivialPod{0, 0.0f}, TrivialPod{1, 1.0f}, TrivialPod{-1, 3.14159f}, TrivialPod{42, 2.71828f}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+
+  // cuda::std::array
+  for (cuda::std::array<int, 4> i :
+       {cuda::std::array<int, 4>{0, 1, 2, 3},
+        cuda::std::array<int, 4>{-1, -2, -3, -4},
+        cuda::std::array<int, 4>{100, 200, 300, 400}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+
+  // cuda::std::pair
+  for (cuda::std::pair<int, float> i :
+       {cuda::std::pair<int, float>{0, 0.0f},
+        cuda::std::pair<int, float>{1, 1.0f},
+        cuda::std::pair<int, float>{-1, 3.14159f}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+
+  // cuda::std::tuple
+  for (cuda::std::tuple<int, float> i :
+       {cuda::std::tuple<int, float>{0, 0.0f},
+        cuda::std::tuple<int, float>{1, 1.0f},
+        cuda::std::tuple<int, float>{-1, 3.14159f}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+
+  // cuda::std::tuple<> (empty, sizeof == 1 with no data bytes)
+  test_roundtrip_through_buffer<false>(cuda::std::tuple<>{});
+
+  // Extended floating point vector types
+#if _LIBCUDACXX_HAS_NVFP16()
+  for (__half2 i :
+       {__half2{__float2half(0.0f), __float2half(1.0f)},
+        __half2{__float2half(-1.0f), __float2half(2.0f)},
+        __half2{__float2half(10.0f), __float2half(-10.0f)},
+        __half2{__float2half(2.71828f), __float2half(3.14159f)}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+#endif // _LIBCUDACXX_HAS_NVFP16()
+
+#if _LIBCUDACXX_HAS_NVBF16()
+  for (__nv_bfloat162 i :
+       {__nv_bfloat162{__float2bfloat16(0.0f), __float2bfloat16(1.0f)},
+        __nv_bfloat162{__float2bfloat16(-1.0f), __float2bfloat16(2.0f)},
+        __nv_bfloat162{__float2bfloat16(10.0f), __float2bfloat16(-10.0f)},
+        __nv_bfloat162{__float2bfloat16(2.71828f), __float2bfloat16(3.14159f)}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+#endif // _LIBCUDACXX_HAS_NVBF16()
+
+  // Padding-free compositions of extended floating point scalar types
+#if _LIBCUDACXX_HAS_NVFP16()
+  {
+    const auto arr =
+      cuda::std::array<__half, 4>{__float2half(1.0f), __float2half(2.0f), __float2half(3.0f), __float2half(4.0f)};
+    test_roundtrip_through_nested_T(arr);
+    test_roundtrip_through_buffer(arr);
+  }
+  {
+    const auto p = cuda::std::pair<__half, __half>{__float2half(1.0f), __float2half(2.0f)};
+    test_roundtrip_through_nested_T(p);
+    test_roundtrip_through_buffer(p);
+  }
+  {
+    const auto t = cuda::std::tuple<__half, __half>{__float2half(1.0f), __float2half(2.0f)};
+    test_roundtrip_through_nested_T(t);
+    test_roundtrip_through_buffer(t);
+  }
+  {
+    const auto nested = cuda::std::array<cuda::std::pair<__half, __half>, 2>{
+      cuda::std::pair<__half, __half>{__float2half(1.0f), __float2half(2.0f)},
+      cuda::std::pair<__half, __half>{__float2half(3.0f), __float2half(4.0f)}};
+    test_roundtrip_through_nested_T(nested);
+    test_roundtrip_through_buffer(nested);
+  }
+#endif // _LIBCUDACXX_HAS_NVFP16()
+
+#if _LIBCUDACXX_HAS_NVBF16()
+  {
+    const auto arr = cuda::std::array<__nv_bfloat16, 2>{__float2bfloat16(1.0f), __float2bfloat16(2.0f)};
+    test_roundtrip_through_nested_T(arr);
+    test_roundtrip_through_buffer(arr);
+  }
+  {
+    const auto p = cuda::std::pair<__nv_bfloat16, __nv_bfloat16>{__float2bfloat16(1.0f), __float2bfloat16(2.0f)};
+    test_roundtrip_through_nested_T(p);
+    test_roundtrip_through_buffer(p);
+  }
+#endif // _LIBCUDACXX_HAS_NVBF16()
+
+#if _LIBCUDACXX_HAS_NVFP16() && _LIBCUDACXX_HAS_NVBF16()
+  {
+    const auto t = cuda::std::tuple<__half, __nv_bfloat16>{__float2half(1.0f), __float2bfloat16(2.0f)};
+    test_roundtrip_through_nested_T(t);
+    test_roundtrip_through_buffer(t);
+  }
+#endif // _LIBCUDACXX_HAS_NVFP16() && _LIBCUDACXX_HAS_NVBF16()
+
+  // Padded compositions
+#if _LIBCUDACXX_HAS_NVFP16()
+  {
+    const auto p1 = cuda::std::pair<__half, int>{__float2half(1.0f), 42};
+    test_roundtrip_through_nested_T<false>(p1);
+    test_roundtrip_through_buffer<false>(p1);
+  }
+  {
+    const auto p2 = cuda::std::pair<__half, float>{__float2half(1.0f), 3.14f};
+    test_roundtrip_through_nested_T<false>(p2);
+    test_roundtrip_through_buffer<false>(p2);
+  }
+#endif // _LIBCUDACXX_HAS_NVFP16()
+
+#if _LIBCUDACXX_HAS_NVBF16()
+  {
+    const auto p = cuda::std::pair<__nv_bfloat16, int>{__float2bfloat16(1.0f), 42};
+    test_roundtrip_through_nested_T<false>(p);
+    test_roundtrip_through_buffer<false>(p);
+  }
+#endif // _LIBCUDACXX_HAS_NVBF16()
+
   // Test pointers
   {
     {
@@ -362,7 +509,7 @@ int main(int, char**)
 {
   tests();
 #if defined(_CCCL_BUILTIN_BIT_CAST)
-  static_assert(basic_constexpr_test(), "");
+  static_assert(basic_constexpr_test());
 #endif // _CCCL_BUILTIN_BIT_CAST
   return 0;
 }
