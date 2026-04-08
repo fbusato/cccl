@@ -75,12 +75,19 @@ constexpr bool __is_value_preserving_v =
 template <typename _From, typename _ValueType, typename = void>
 constexpr bool __is_constexpr_wrapper_value_preserving_v = false;
 
+// The standard requires checking whether the specific compile-time value From::value is representable by _ValueType,
+// not whether the entire source type is value-preserving.
 template <typename _From, typename _ValueType>
 constexpr bool __is_constexpr_wrapper_value_preserving_v<_From, _ValueType, ::cuda::std::void_t<decltype(_From::value)>> =
   ::cuda::std::is_arithmetic_v<::cuda::std::remove_cvref_t<decltype(_From::value)>>
-  && __is_value_preserving_v<::cuda::std::remove_cvref_t<decltype(_From::value)>, _ValueType>;
+  && (static_cast<::cuda::std::remove_cvref_t<decltype(_From::value)>>(static_cast<_ValueType>(_From::value))
+      == _From::value);
 
 // [simd.ctor] implicit value constructor
+// - From is not an arithmetic type and does not satisfy constexpr-wrapper-like,
+// - From is an arithmetic type and the conversion from From to value_type is value-preserving
+// - From satisfies constexpr-wrapper-like, remove_cvref_t<decltype(From​::​value)> is an arithmetic type, and
+//   From​::​value is representable by value_type.
 template <typename _Up, typename _ValueType, typename _From = ::cuda::std::remove_cvref_t<_Up>>
 _CCCL_CONCEPT __is_value_ctor_implicit =
   ::cuda::std::convertible_to<_Up, _ValueType>

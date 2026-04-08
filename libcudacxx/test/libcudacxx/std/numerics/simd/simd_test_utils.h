@@ -68,8 +68,15 @@ using integer_from_t = cuda::std::__make_nbit_int_t<Bytes * 8, true>;
 //----------------------------------------------------------------------------------------------------------------------
 // vec utilities
 
-// The generator constructor is not tested because __can_generate_v<T, Gen, size> fails on NVCC when 'size' is an
-// integral_constant (atomic constraint substitution failure in the requires clause).
+template <typename T>
+struct iota_generator
+{
+  template <typename I>
+  __host__ __device__ constexpr T operator()(I i) const noexcept
+  {
+    return static_cast<T>(i + 1);
+  }
+};
 
 template <typename T, int N>
 __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
@@ -129,22 +136,22 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
 #define DEFINE_BASIC_VEC_TEST()                                   \
   __host__ __device__ constexpr bool test()                       \
   {                                                               \
-    test_type<cuda::std::int8_t, 1>();                            \
-    test_type<cuda::std::int8_t, 4>();                            \
-    test_type<cuda::std::int16_t, 1>();                           \
-    test_type<cuda::std::int16_t, 4>();                           \
-    test_type<cuda::std::int32_t, 1>();                           \
-    test_type<cuda::std::int32_t, 4>();                           \
-    test_type<cuda::std::int64_t, 1>();                           \
-    test_type<cuda::std::int64_t, 4>();                           \
-    test_type<cuda::std::uint8_t, 1>();                           \
-    test_type<cuda::std::uint8_t, 4>();                           \
-    test_type<cuda::std::uint16_t, 1>();                          \
-    test_type<cuda::std::uint16_t, 4>();                          \
-    test_type<cuda::std::uint32_t, 1>();                          \
-    test_type<cuda::std::uint32_t, 4>();                          \
-    test_type<cuda::std::uint64_t, 1>();                          \
-    test_type<cuda::std::uint64_t, 4>();                          \
+    test_type<int8_t, 1>();                                       \
+    test_type<int8_t, 4>();                                       \
+    test_type<int16_t, 1>();                                      \
+    test_type<int16_t, 4>();                                      \
+    test_type<int32_t, 1>();                                      \
+    test_type<int32_t, 4>();                                      \
+    test_type<int64_t, 1>();                                      \
+    test_type<int64_t, 4>();                                      \
+    test_type<uint8_t, 1>();                                      \
+    test_type<uint8_t, 4>();                                      \
+    test_type<uint16_t, 1>();                                     \
+    test_type<uint16_t, 4>();                                     \
+    test_type<uint32_t, 1>();                                     \
+    test_type<uint32_t, 4>();                                     \
+    test_type<uint64_t, 1>();                                     \
+    test_type<uint64_t, 4>();                                     \
     test_type<char16_t, 1>();                                     \
     test_type<char16_t, 4>();                                     \
     test_type<char32_t, 1>();                                     \

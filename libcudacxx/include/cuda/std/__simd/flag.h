@@ -13,6 +13,8 @@
 
 #include <cuda/std/detail/__config>
 
+#include <cuda/std/__cccl/dialect.h>
+
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
 #elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
@@ -73,7 +75,7 @@ struct flags
 
   // [simd.flags.oper], flags operators
   template <typename... _Other>
-  [[nodiscard]] _CCCL_API friend constexpr flags<_Flags..., _Other...> operator|(flags, flags<_Other...>) noexcept
+  [[nodiscard]] _CCCL_API friend _CCCL_CONSTEVAL flags<_Flags..., _Other...> operator|(flags, flags<_Other...>)
   {
     return {};
   }

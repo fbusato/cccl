@@ -34,6 +34,44 @@ __host__ __device__ constexpr void test_member_types()
   static_assert(cuda::std::is_same_v<typename Mask::value_type, bool>);
   static_assert(cuda::std::is_same_v<typename Mask::abi_type, simd::fixed_size<N>>);
   static_assert(Mask::size() == N);
+  static_assert(cuda::std::is_trivially_copyable_v<Mask>);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// default construction: value-initializes all elements to false
+
+template <int Bytes, int N>
+__host__ __device__ constexpr void test_default_ctor()
+{
+  using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
+  Mask mask{};
+  for (int i = 0; i < N; ++i)
+  {
+    assert(mask[i] == false);
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// copy construction and copy assignment
+
+template <int Bytes, int N>
+__host__ __device__ constexpr void test_copy()
+{
+  using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
+  Mask original(is_even{});
+
+  Mask copied(original);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(copied[i] == original[i]);
+  }
+
+  Mask assigned(false);
+  assigned = original;
+  for (int i = 0; i < N; ++i)
+  {
+    assert(assigned[i] == original[i]);
+  }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -174,7 +212,7 @@ __host__ __device__ constexpr void test_sfinae()
   static_assert(cuda::std::is_convertible_v<const cuda::std::bitset<N>&, Mask>);
 
   // unsigned integer: must be explicit
-  static_assert(!cuda::std::is_convertible_v<cuda::std::uint32_t, Mask>);
+  static_assert(!cuda::std::is_convertible_v<uint32_t, Mask>);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -183,13 +221,15 @@ template <int Bytes, int N>
 __host__ __device__ constexpr void test_size()
 {
   test_member_types<Bytes, N>();
+  test_default_ctor<Bytes, N>();
+  test_copy<Bytes, N>();
   test_broadcast<Bytes, N>();
   test_generator<Bytes, N>();
   test_bitset<Bytes, N>();
-  test_unsigned_int<Bytes, N, cuda::std::uint8_t>();
-  test_unsigned_int<Bytes, N, cuda::std::uint16_t>();
-  test_unsigned_int<Bytes, N, cuda::std::uint32_t>();
-  test_unsigned_int<Bytes, N, cuda::std::uint64_t>();
+  test_unsigned_int<Bytes, N, uint8_t>();
+  test_unsigned_int<Bytes, N, uint16_t>();
+  test_unsigned_int<Bytes, N, uint32_t>();
+  test_unsigned_int<Bytes, N, uint64_t>();
   test_sfinae<Bytes, N>();
 }
 

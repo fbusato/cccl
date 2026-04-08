@@ -23,6 +23,8 @@
 
 #include "../simd_test_utils.h"
 
+TEST_DIAG_SUPPRESS_MSVC(4146) // unary minus operator applied to unsigned type, result still unsigned
+
 //----------------------------------------------------------------------------------------------------------------------
 // operator++ (pre)
 

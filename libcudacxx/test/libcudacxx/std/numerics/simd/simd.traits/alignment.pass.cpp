@@ -27,22 +27,23 @@ template <typename T, int N>
 __host__ __device__ void test_default_u()
 {
   using V = simd::basic_vec<T, simd::fixed_size<N>>;
-  static_assert(simd::alignment<V>::value == alignof(T) * N);
-  static_assert(simd::alignment_v<V> == alignof(T) * N);
+  static_assert(simd::alignment<V>::value == alignof(T));
+  static_assert(simd::alignment_v<V> == alignof(T));
 }
 
 template <typename T, int N, typename U>
 __host__ __device__ void test_explicit_u()
 {
   using V = simd::basic_vec<T, simd::fixed_size<N>>;
-  static_assert(simd::alignment<V, U>::value == alignof(U) * N);
-  static_assert(simd::alignment_v<V, U> == alignof(U) * N);
+  static_assert(simd::alignment<V, U>::value == alignof(U));
+  static_assert(simd::alignment_v<V, U> == alignof(U));
 }
 
 template <typename T>
 __host__ __device__ void test_type()
 {
   test_default_u<T, 1>();
+  test_default_u<T, 3>();
   test_default_u<T, 2>();
   test_default_u<T, 4>();
   test_default_u<T, 8>();
@@ -69,6 +70,7 @@ __host__ __device__ void test()
 
   // explicit U different from value_type
   test_explicit_u<int, 1, float>();
+  test_explicit_u<int, 3, float>();
   test_explicit_u<int, 4, char>();
   test_explicit_u<float, 2, double>();
   test_explicit_u<double, 4, int>();

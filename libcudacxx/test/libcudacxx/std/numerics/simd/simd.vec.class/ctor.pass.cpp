@@ -16,8 +16,11 @@
 // constexpr basic_vec(Up&&) noexcept;                                              // broadcast (implicit)
 // constexpr explicit basic_vec(const basic_vec<U,UAbi>&) noexcept;                 // converting (explicit)
 // constexpr basic_vec(const basic_vec<U,UAbi>&) noexcept;                          // converting (implicit)
+// constexpr explicit basic_vec(Generator&&);                                       // generator
 // constexpr basic_vec(Range&&, flags<> = {});                                      // range
 // constexpr basic_vec(Range&&, const mask_type&, flags<> = {});                    // masked range
+
+#include <cuda/std/span>
 
 #include "../simd_test_utils.h"
 
@@ -32,6 +35,44 @@ __host__ __device__ constexpr void test_member_types()
   static_assert(cuda::std::is_same_v<typename Vec::value_type, T>);
   static_assert(cuda::std::is_same_v<typename Vec::abi_type, simd::fixed_size<N>>);
   static_assert(Vec::size() == N);
+  static_assert(cuda::std::is_trivially_copyable_v<Vec>);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// default construction: value-initialize all elements
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_default_ctor()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  Vec vec{};
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec[i] == T{});
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// copy construction and copy assignment
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_copy()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  Vec original(T{42});
+
+  Vec copied(original);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(copied[i] == T{42});
+  }
+
+  Vec assigned{};
+  assigned = original;
+  for (int i = 0; i < N; ++i)
+  {
+    assert(assigned[i] == T{42});
+  }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -47,6 +88,21 @@ __host__ __device__ constexpr void test_broadcast()
   for (int i = 0; i < N; ++i)
   {
     assert(vec[i] == T{42});
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// generator constructor
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_generator()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+
+  const Vec vec(iota_generator<T>{});
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec[i] == static_cast<T>(i + 1));
   }
 }
 
@@ -94,6 +150,51 @@ __host__ __device__ constexpr void test_range()
   for (int i = 0; i < N; ++i)
   {
     assert(vec2[i] == static_cast<T>(i + 1));
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// range constructor with fixed-extent span
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_range_span()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  cuda::std::array<T, N> arr{};
+  for (int i = 0; i < N; ++i)
+  {
+    arr[i] = static_cast<T>(i + 1);
+  }
+
+  const cuda::std::span<T, N> values(arr);
+  const Vec vec(values);
+  const Vec vec2(values, simd::flag_default);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec[i] == static_cast<T>(i + 1));
+    assert(vec2[i] == static_cast<T>(i + 1));
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// range constructor with alignment flags
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_range_alignment_flags()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  alignas(32) cuda::std::array<T, N> arr{};
+  for (int i = 0; i < N; ++i)
+  {
+    arr[i] = static_cast<T>(i + 1);
+  }
+
+  const Vec aligned_vec(arr, simd::flag_aligned);
+  const Vec overaligned_vec(arr, simd::flag_overaligned<32>);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(aligned_vec[i] == static_cast<T>(i + 1));
+    assert(overaligned_vec[i] == static_cast<T>(i + 1));
   }
 }
 
@@ -198,6 +299,90 @@ __host__ __device__ constexpr void test_masked_range_convert_lossy()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// broadcast constructor with constexpr-wrapper-like types
+// [simd.ctor] p4.3: implicit when From::value is representable by value_type
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_broadcast_constexpr_wrapper()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+
+  // integral_constant<T, V> where V fits in T: implicit
+  static_assert(cuda::std::is_convertible_v<cuda::std::integral_constant<T, T{1}>, Vec>);
+
+  // integral_constant from a wider type, but the specific value fits: implicit
+  if constexpr (sizeof(T) < sizeof(int64_t) && cuda::std::is_integral_v<T>)
+  {
+    using IC = cuda::std::integral_constant<int64_t, 5>;
+    static_assert(cuda::std::is_constructible_v<Vec, IC>);
+    static_assert(cuda::std::is_convertible_v<IC, Vec>);
+    Vec vec = IC{};
+    for (int i = 0; i < N; ++i)
+    {
+      assert(vec[i] == static_cast<T>(5));
+    }
+  }
+
+  // integral_constant from a wider type with a value that does NOT fit: explicit
+  if constexpr (cuda::std::is_same_v<T, int8_t>)
+  {
+    using IC = cuda::std::integral_constant<int64_t, 200>;
+    static_assert(cuda::std::is_constructible_v<Vec, IC>);
+    static_assert(!cuda::std::is_convertible_v<IC, Vec>);
+  }
+
+  // unsigned value in a signed target that fits: implicit
+  if constexpr (cuda::std::is_same_v<T, int>)
+  {
+    using IC = cuda::std::integral_constant<uint16_t, 100>;
+    static_assert(cuda::std::is_convertible_v<IC, Vec>);
+  }
+
+  // negative value in an unsigned target: explicit
+  if constexpr (cuda::std::is_same_v<T, uint32_t>)
+  {
+    using IC_neg = cuda::std::integral_constant<int64_t, -1>;
+    static_assert(cuda::std::is_constructible_v<Vec, IC_neg>);
+    static_assert(!cuda::std::is_convertible_v<IC_neg, Vec>);
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// broadcast constructor explicit/implicit boundary for arithmetic types
+// [simd.ctor] p4: implicit iff convertible_to and value-preserving
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_broadcast_explicit_implicit()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+
+  // (1) same type is implicit
+  static_assert(cuda::std::is_convertible_v<T, Vec>);
+
+  // (2) value-preserving and wider type is implicit
+  if constexpr (cuda::std::is_same_v<T, int>)
+  {
+    static_assert(cuda::std::is_convertible_v<int16_t, Vec>);
+  }
+  else if constexpr (cuda::std::is_same_v<T, double>)
+  {
+    static_assert(cuda::std::is_convertible_v<float, Vec>);
+  }
+
+  // (3) narrow conversion is explicit
+  else if constexpr (cuda::std::is_same_v<T, int16_t>)
+  {
+    static_assert(cuda::std::is_constructible_v<Vec, int>);
+    static_assert(!cuda::std::is_convertible_v<int, Vec>);
+  }
+  else if constexpr (cuda::std::is_same_v<T, float>)
+  {
+    static_assert(cuda::std::is_constructible_v<Vec, double>);
+    static_assert(!cuda::std::is_convertible_v<double, Vec>);
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // SFINAE constraints
 
 template <typename T, int N>
@@ -219,18 +404,28 @@ template <typename T, int N>
 __host__ __device__ constexpr void test_type()
 {
   test_member_types<T, N>();
+  test_default_ctor<T, N>();
+  test_copy<T, N>();
   test_broadcast<T, N>();
+  test_broadcast_explicit_implicit<T, N>();
+  test_generator<T, N>();
   test_range<T, N>();
+  test_range_span<T, N>();
+  test_range_alignment_flags<T, N>();
   test_masked_range<T, N>();
+  if constexpr (cuda::std::is_integral_v<T>)
+  {
+    test_broadcast_constexpr_wrapper<T, N>();
+  }
   test_sfinae<T, N>();
   if constexpr (sizeof(T) >= 2 && cuda::std::is_integral_v<T>)
   {
-    using Smaller = cuda::std::conditional_t<cuda::std::is_signed_v<T>, cuda::std::int8_t, cuda::std::uint8_t>;
+    using Smaller = cuda::std::conditional_t<cuda::std::is_signed_v<T>, int8_t, uint8_t>;
     test_converting<T, Smaller, N>();
   }
   if constexpr (sizeof(T) < 8 && cuda::std::is_integral_v<T>)
   {
-    using Wider = cuda::std::conditional_t<cuda::std::is_signed_v<T>, cuda::std::int64_t, cuda::std::uint64_t>;
+    using Wider = cuda::std::conditional_t<cuda::std::is_signed_v<T>, int64_t, uint64_t>;
     test_range_convert_lossy<T, Wider, N>();
     test_masked_range_convert_lossy<T, Wider, N>();
   }

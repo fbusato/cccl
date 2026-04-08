@@ -141,7 +141,7 @@ public:
 
   // [simd.ctor] generator constructor
   _CCCL_TEMPLATE(typename _Generator)
-  _CCCL_REQUIRES(__can_generate_v<value_type, _Generator, size>)
+  _CCCL_REQUIRES(__can_generate_v<value_type, _Generator, __size>)
   _CCCL_API constexpr explicit basic_vec(_Generator&& __g)
       : __s_{_Impl::__generate(__g)}
   {}
@@ -505,7 +505,7 @@ public:
 // Deduces vec<range_value_t<R>, static_cast<simd-size-type>(ranges::size(r))>
 //    * it is not possible to use the alias "vec" for the deduction guide
 //    * "vec" is defined as basic_vec<_Tp, __deduce_abi_t<_Tp, _Np>>
-//    * where _Np is __simd_size_v<_Tp, tuple_size_v<_Range>>
+//    * where _Np is __simd_size_v<_Tp, __static_range_size_v<_Range>>
 _CCCL_TEMPLATE(typename _Range, typename... _Ts)
 _CCCL_REQUIRES(::cuda::std::ranges::contiguous_range<_Range> _CCCL_AND ::cuda::std::ranges::sized_range<_Range>
                  _CCCL_AND __has_static_size<_Range>)

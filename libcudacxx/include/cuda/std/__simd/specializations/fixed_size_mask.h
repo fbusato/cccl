@@ -213,6 +213,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
 
   [[nodiscard]] _CCCL_API static constexpr __simd_size_type __max_index(const _MaskStorage& __s) noexcept
   {
+    _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = _Np - 1; __i >= 0; --__i)
     {
       if (__s.__data[__i])

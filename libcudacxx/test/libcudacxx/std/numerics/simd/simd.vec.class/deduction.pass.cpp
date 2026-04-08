@@ -32,6 +32,8 @@
 // basic_vec(Range&&, Ts...) -> basic_vec<range_value_t<Range>, deduce-abi-t<...>>;
 // basic_vec(basic_mask<Bytes, Abi>) -> basic_vec<integer-from<Bytes>, Abi>;
 
+#include <cuda/std/span>
+
 #include "../simd_test_utils.h"
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -46,6 +48,28 @@ __host__ __device__ constexpr void test_range_deduction()
     arr[i] = static_cast<T>(i);
   }
   simd::basic_vec vec(arr);
+  static_assert(cuda::std::is_same_v<typename decltype(vec)::value_type, T>);
+  static_assert(decltype(vec)::size() == N);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec[i] == static_cast<T>(i));
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// deduction from fixed-extent span
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_span_deduction()
+{
+  cuda::std::array<T, N> arr{};
+  for (int i = 0; i < N; ++i)
+  {
+    arr[i] = static_cast<T>(i);
+  }
+
+  const cuda::std::span<T, N> values(arr);
+  simd::basic_vec vec(values);
   static_assert(cuda::std::is_same_v<typename decltype(vec)::value_type, T>);
   static_assert(decltype(vec)::size() == N);
   for (int i = 0; i < N; ++i)
@@ -78,6 +102,10 @@ __host__ __device__ constexpr bool test_deduction()
   test_range_deduction<int, 4>();
   test_range_deduction<short, 4>();
   test_range_deduction<long long, 4>();
+  test_span_deduction<int, 1>();
+  test_span_deduction<int, 4>();
+  test_span_deduction<short, 4>();
+  test_span_deduction<long long, 4>();
 
   test_mask_deduction<1, 1>();
   test_mask_deduction<1, 4>();

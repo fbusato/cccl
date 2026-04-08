@@ -97,7 +97,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
-      __s.__data[__i] += 1;
+      ++__s.__data[__i];
     }
   }
 
@@ -106,7 +106,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
-      __s.__data[__i] -= 1;
+      --__s.__data[__i];
     }
   }
 

@@ -23,6 +23,7 @@
 
 #include <cuda/__memory/is_aligned.h>
 #include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__fwd/span.h>
 #include <cuda/std/__ranges/concepts.h>
 #include <cuda/std/__simd/abi.h>
 #include <cuda/std/__simd/concepts.h>
@@ -46,6 +47,9 @@ constexpr bool __is_abi_tag_v = false;
 
 template <__simd_size_type _Np>
 constexpr bool __is_abi_tag_v<__fixed_size<_Np>> = true;
+
+//----------------------------------------------------------------------------------------------------------------------
+// __can_generate_v
 
 template <typename _Tp, typename _Generator, __simd_size_type _Idx, typename = void>
 constexpr bool __is_well_formed = false;
@@ -71,36 +75,66 @@ template <typename _Tp, typename _Generator, __simd_size_type _Size>
 constexpr bool __can_generate_v =
   ::cuda::std::simd::__can_generate<_Tp, _Generator>(::cuda::std::make_integer_sequence<__simd_size_type, _Size>());
 
-// Proxy for ranges::size(r) is a constant expression
-template <typename _Range>
-_CCCL_CONCEPT __has_static_size =
-  _CCCL_REQUIRES_EXPR((_Range))((__simd_size_type{::cuda::std::tuple_size_v<::cuda::std::remove_cvref_t<_Range>>}));
+//----------------------------------------------------------------------------------------------------------------------
+// __is_compatible_range_v
+
+template <typename _Range, typename = void>
+constexpr bool __has_tuple_size_v = false;
 
 template <typename _Range>
-constexpr __simd_size_type __static_range_size_v =
-  __simd_size_type{::cuda::std::tuple_size_v<::cuda::std::remove_cvref_t<_Range>>};
+constexpr bool __has_tuple_size_v<
+  _Range,
+  ::cuda::std::void_t<decltype(::cuda::std::tuple_size<::cuda::std::remove_cvref_t<_Range>>::value)>> = true;
+
+template <typename _Range, typename = void>
+constexpr bool __has_static_extent_v = false;
+
+template <typename _Range>
+constexpr bool __has_static_extent_v<_Range, ::cuda::std::void_t<decltype(::cuda::std::remove_cvref_t<_Range>::extent)>> =
+  ::cuda::std::remove_cvref_t<_Range>::extent != ::cuda::std::dynamic_extent;
+
+// Proxy for ranges::size(r) is a constant expression.
+template <typename _Range>
+_CCCL_CONCEPT __has_static_size = __has_tuple_size_v<_Range> || __has_static_extent_v<_Range>;
+
+template <typename _Range>
+[[nodiscard]] _CCCL_API constexpr __simd_size_type __get_static_range_size() noexcept
+{
+  using __range_t = ::cuda::std::remove_cvref_t<_Range>;
+  if constexpr (__has_tuple_size_v<_Range>)
+  {
+    return __simd_size_type{::cuda::std::tuple_size_v<__range_t>};
+  }
+  else
+  {
+    return __simd_size_type{__range_t::extent};
+  }
+}
+
+template <typename _Range>
+constexpr __simd_size_type __static_range_size_v = __get_static_range_size<_Range>();
 
 // This trait is defined at namespace scope (not as a static member of basic_vec) because GCC 13 rejects partial
-// specialization of static member variable templates. The void_t guard intentionally uses tuple_size<T>::value
-// instead of tuple_size_v<T> because the latter causes a hard error (instead of SFINAE) on NVCC with
+// specialization of static member variable templates. The static-size detection intentionally avoids directly using
+// tuple_size_v<T> in the guard because that causes a hard error (instead of SFINAE) on NVCC with
 // clang-19/clang-14/nvc++ when T is an incomplete specialization of tuple_size.
-template <typename _Tp, __simd_size_type _Size, typename _Range, typename = void>
+template <typename _Range>
+constexpr bool __is_compatible_range_guard_v =
+  __has_static_size<_Range> && ::cuda::std::ranges::contiguous_range<_Range>
+  && ::cuda::std::ranges::sized_range<_Range>;
+
+template <typename _Tp, __simd_size_type _Size, typename _Range, bool = __is_compatible_range_guard_v<_Range>>
 constexpr bool __is_compatible_range_v = false;
 
 template <typename _Tp, __simd_size_type _Size, typename _Range>
-constexpr bool __is_compatible_range_v<
-  _Tp,
-  _Size,
-  _Range,
-  ::cuda::std::void_t<decltype(::cuda::std::tuple_size<::cuda::std::remove_cvref_t<_Range>>::value),
-                      ::cuda::std::ranges::range_value_t<_Range>>> =
-  ::cuda::std::ranges::contiguous_range<_Range> //
-  && ::cuda::std::ranges::sized_range<_Range> //
-  && (__static_range_size_v<_Range> == _Size) //
-  && __is_vectorizable_v<::cuda::std::ranges::range_value_t<_Range>>
+constexpr bool __is_compatible_range_v<_Tp, _Size, _Range, true> =
+  (__static_range_size_v<_Range> == _Size) //
+  && __is_vectorizable_v<::cuda::std::ranges::range_value_t<_Range>> //
   && __explicitly_convertible_to<_Tp, ::cuda::std::ranges::range_value_t<_Range>>;
 
+//----------------------------------------------------------------------------------------------------------------------
 // [simd.flags] alignment assertion for load/store pointers
+
 template <typename _Vec, typename _Up, typename... _Flags>
 _CCCL_API constexpr void __assert_load_store_alignment([[maybe_unused]] const _Up* __data) noexcept
 {
