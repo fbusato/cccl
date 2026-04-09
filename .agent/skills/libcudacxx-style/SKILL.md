@@ -55,7 +55,7 @@ Function call:
 - Headers in `cuda/std/__cccl/` must not be included directly (they are provided by `__config` or the prologue/epilogue mechanism).
 
 - All headers must have the correct license.
-  
+
 - `libcudacxx/include/cuda/std` files: If the file is ported from LLVM libc++ then we *must* use the LLVM license.
 - `libcudacxx/include/cuda/` files: use the Apache License v2.0 with LLVM Exceptions.
 - All headers must have the include guard, with the correct name: uppercase full path from the root, separated by `_`.
