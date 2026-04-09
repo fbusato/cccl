@@ -409,6 +409,10 @@
 #  define _CCCL_BUILTIN_TYPE_PACK_ELEMENT(...) __type_pack_element<__VA_ARGS__>
 #endif // _CCCL_HAS_BUILTIN(__type_pack_element)
 
+#if _CCCL_HAS_BUILTIN(__is_complete_type)
+#  define _CCCL_BUILTIN_IS_COMPLETE_TYPE(...) __is_complete_type(__VA_ARGS__)
+#endif // _CCCL_HAS_BUILTIN(__is_complete_type)
+
 #if _CCCL_HAS_BUILTIN(__builtin_structured_binding_size)
 #  define _CCCL_BUILTIN_STRUCTURED_BINDING_SIZE(...) __builtin_structured_binding_size(__VA_ARGS__)
 #endif // _CCCL_HAS_BUILTIN(__builtin_structured_binding_size)
