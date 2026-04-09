@@ -71,7 +71,7 @@ struct __aggregate_arity_impl<_Tp, false>
 
 // Returns the number of aggregate members, or `-1` if the type is not an aggregate.
 template <typename _Tp>
-constexpr int __aggregate_arity_v = int{sizeof(*__aggregate_arity_impl<_Tp>{}())} - 2;
+inline constexpr int __aggregate_arity_v = int{sizeof(*__aggregate_arity_impl<_Tp>{}())} - 2;
 
 #endif // ^^^ !_CCCL_BUILTIN_STRUCTURED_BINDING_SIZE ^^^
 

@@ -1,6 +1,7 @@
 //===----------------------------------------------------------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// Part of libcu++, the C++ Standard Library for your entire system,
+// under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 // SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
@@ -37,11 +38,11 @@
 _CCCL_BEGIN_NAMESPACE_CUDA
 
 template <typename _Tp, typename = void>
-constexpr bool __is_aggregate_trivially_copyable_v = false;
+inline constexpr bool __is_aggregate_trivially_copyable_v = false;
 
 //! Users are allowed to specialize this variable template for their own types
 template <typename _Tp>
-constexpr bool is_trivially_copyable_v =
+inline constexpr bool is_trivially_copyable_v =
   ::cuda::std::is_trivially_copyable_v<::cuda::std::remove_const_t<_Tp>>
   || ::cuda::std::__is_extended_floating_point_v<::cuda::std::remove_const_t<_Tp>>
 #if _CCCL_HAS_CTK()
@@ -50,28 +51,29 @@ constexpr bool is_trivially_copyable_v =
   || __is_aggregate_trivially_copyable_v<::cuda::std::remove_const_t<_Tp>>;
 
 template <typename _Tp>
-constexpr bool is_trivially_copyable_v<_Tp[]> = is_trivially_copyable_v<_Tp>;
+inline constexpr bool is_trivially_copyable_v<_Tp[]> = is_trivially_copyable_v<_Tp>;
 
 template <typename _Tp, ::cuda::std::size_t _Size>
-constexpr bool is_trivially_copyable_v<_Tp[_Size]> = is_trivially_copyable_v<_Tp>;
+inline constexpr bool is_trivially_copyable_v<_Tp[_Size]> = is_trivially_copyable_v<_Tp>;
 
 template <typename _Tp, ::cuda::std::size_t _Size>
-constexpr bool is_trivially_copyable_v<::cuda::std::array<_Tp, _Size>> = is_trivially_copyable_v<_Tp>;
+inline constexpr bool is_trivially_copyable_v<::cuda::std::array<_Tp, _Size>> = is_trivially_copyable_v<_Tp>;
 
 template <typename _T1, typename _T2>
-constexpr bool is_trivially_copyable_v<::cuda::std::pair<_T1, _T2>> =
+inline constexpr bool is_trivially_copyable_v<::cuda::std::pair<_T1, _T2>> =
   is_trivially_copyable_v<_T1> && is_trivially_copyable_v<_T2>;
 
 template <typename... _Ts>
-constexpr bool is_trivially_copyable_v<::cuda::std::tuple<_Ts...>> = (is_trivially_copyable_v<_Ts> && ...);
+inline constexpr bool is_trivially_copyable_v<::cuda::std::tuple<_Ts...>> = (is_trivially_copyable_v<_Ts> && ...);
 
 // if all the previous conditions fail, check if the type is an aggregate and all its members are trivially copyable
 template <typename _Tp>
 using __is_trivially_copyable_callable = ::cuda::std::bool_constant<is_trivially_copyable_v<_Tp>>;
 
 template <typename _Tp>
-constexpr bool __is_aggregate_trivially_copyable_v<_Tp, ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp>>> =
-  ::cuda::std::__aggregate_all_of<__is_trivially_copyable_callable, _Tp>::value;
+inline constexpr bool
+  __is_aggregate_trivially_copyable_v<_Tp, ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp>>> =
+    ::cuda::std::__aggregate_all_of<__is_trivially_copyable_callable, _Tp>::value;
 
 // defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>
