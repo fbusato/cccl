@@ -8,6 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cuda/std/__type_traits/aggregate_members_all_of.h>
 #include <cuda/std/type_traits>
 
 #include "test_macros.h"
