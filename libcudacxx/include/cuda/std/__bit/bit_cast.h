@@ -76,12 +76,10 @@ _CCCL_REQUIRES((sizeof(_To) == sizeof(_From)) _CCCL_AND(::cuda::is_trivially_cop
     return _CCCL_BUILTIN_BIT_CAST(_To, __from);
   }
   else
+#endif // _CCCL_BUILTIN_BIT_CAST
   {
     return ::cuda::std::__bit_cast_memcpy<_To>(__from);
   }
-#else // ^^^ _CCCL_BUILTIN_BIT_CAST ^^^ / vvv !_CCCL_BUILTIN_BIT_CAST vvv
-  return ::cuda::std::__bit_cast_memcpy<_To>(__from);
-#endif // !_CCCL_BUILTIN_BIT_CAST
 }
 
 _CCCL_END_NAMESPACE_CUDA_STD
