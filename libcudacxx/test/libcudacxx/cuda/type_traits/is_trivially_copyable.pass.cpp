@@ -10,7 +10,9 @@
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 
+#include <cuda/__complex_>
 #include <cuda/std/array>
+#include <cuda/std/complex>
 #include <cuda/std/tuple>
 #include <cuda/std/utility>
 #include <cuda/type_traits>
@@ -65,6 +67,17 @@ __host__ __device__ void test()
   test_is_trivially_copyable<cuda::std::pair<int, float>>();
   test_is_trivially_copyable<cuda::std::tuple<int, float>>();
   test_is_trivially_copyable<cuda::std::tuple<>>();
+
+  // complex types
+  test_is_trivially_copyable<cuda::std::complex<float>>();
+  test_is_trivially_copyable<cuda::complex<float>>();
+
+#if _CCCL_HAS_NVFP16()
+  test_is_trivially_copyable<cuda::std::complex<__half>>();
+#endif // _CCCL_HAS_NVFP16()
+#if _CCCL_HAS_NVBF16()
+  test_is_trivially_copyable<cuda::std::complex<__nv_bfloat16>>();
+#endif // _CCCL_HAS_NVBF16()
 
   // extended floating point scalar types
 #if _CCCL_HAS_NVFP16()

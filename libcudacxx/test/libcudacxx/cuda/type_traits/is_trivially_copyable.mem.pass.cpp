@@ -10,8 +10,10 @@
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 
+#include <cuda/__complex_>
 #include <cuda/std/array>
 #include <cuda/std/cassert>
+#include <cuda/std/complex>
 #include <cuda/std/cstring>
 #include <cuda/std/tuple>
 #include <cuda/std/utility>
@@ -42,6 +44,12 @@ __host__ __device__ bool operator==(T a, T b)
   {
     return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
   }
+}
+
+template <class T>
+__host__ __device__ bool operator==(cuda::complex<T> a, cuda::complex<T> b)
+{
+  return a.real() == b.real() && a.imag() == b.imag();
 }
 
 template <typename T>
@@ -128,6 +136,34 @@ __host__ __device__ bool tests()
         array{-10.0f, 5.0f},
         array{2.71828f, 6.0f},
         array{3.14159f, 7.0f}})
+  {
+    test_memcpy_roundtrip(i);
+  }
+
+  // cuda::std::complex
+  using std_complex_f = cuda::std::complex<float>;
+  for (std_complex_f i :
+       {std_complex_f{0.0f, 1.0f},
+        std_complex_f{1.0f, -1.0f},
+        std_complex_f{-1.0f, 0.0f},
+        std_complex_f{10.0f, -10.0f},
+        std_complex_f{-10.0f, 10.0f},
+        std_complex_f{2.71828f, 3.14159f},
+        std_complex_f{3.14159f, 2.71828f}})
+  {
+    test_memcpy_roundtrip(i);
+  }
+
+  // cuda::complex
+  using cuda_complex_f = cuda::complex<float>;
+  for (cuda_complex_f i :
+       {cuda_complex_f{0.0f, 1.0f},
+        cuda_complex_f{1.0f, -1.0f},
+        cuda_complex_f{-1.0f, 0.0f},
+        cuda_complex_f{10.0f, -10.0f},
+        cuda_complex_f{-10.0f, 10.0f},
+        cuda_complex_f{2.71828f, 3.14159f},
+        cuda_complex_f{3.14159f, 2.71828f}})
   {
     test_memcpy_roundtrip(i);
   }
@@ -223,6 +259,16 @@ __host__ __device__ bool tests_nvfp()
   test_memcpy_roundtrip(cuda::std::array<cuda::std::pair<__half, __half>, 2>{
     cuda::std::pair<__half, __half>{__float2half(1.0f), __float2half(2.0f)},
     cuda::std::pair<__half, __half>{__float2half(3.0f), __float2half(4.0f)}});
+
+  using complex_half = cuda::std::complex<__half>;
+  for (complex_half i :
+       {complex_half{__float2half(0.0f), __float2half(1.0f)},
+        complex_half{__float2half(1.0f), __float2half(-1.0f)},
+        complex_half{__float2half(-1.0f), __float2half(0.0f)},
+        complex_half{__float2half(10.0f), __float2half(-10.0f)}})
+  {
+    test_memcpy_roundtrip(i);
+  }
 #endif // _LIBCUDACXX_HAS_NVFP16()
 
 #if _LIBCUDACXX_HAS_NVBF16()
@@ -249,6 +295,16 @@ __host__ __device__ bool tests_nvfp()
 
   test_memcpy_roundtrip(cuda::std::array<__nv_bfloat16, 2>{__float2bfloat16(1.0f), __float2bfloat16(2.0f)});
   test_memcpy_roundtrip(cuda::std::pair<__nv_bfloat16, __nv_bfloat16>{__float2bfloat16(1.0f), __float2bfloat16(2.0f)});
+
+  using complex_bfloat = cuda::std::complex<__nv_bfloat16>;
+  for (complex_bfloat i :
+       {complex_bfloat{__float2bfloat16(0.0f), __float2bfloat16(1.0f)},
+        complex_bfloat{__float2bfloat16(1.0f), __float2bfloat16(-1.0f)},
+        complex_bfloat{__float2bfloat16(-1.0f), __float2bfloat16(0.0f)},
+        complex_bfloat{__float2bfloat16(10.0f), __float2bfloat16(-10.0f)}})
+  {
+    test_memcpy_roundtrip(i);
+  }
 #endif // _LIBCUDACXX_HAS_NVBF16()
 
 #if _LIBCUDACXX_HAS_NVFP16() && _LIBCUDACXX_HAS_NVBF16()

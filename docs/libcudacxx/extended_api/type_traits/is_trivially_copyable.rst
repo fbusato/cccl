@@ -31,6 +31,8 @@ The trait also propagates through composite types:
 - ``cuda::std::array<T, N>``: trivially copyable when ``T`` is also trivially copyable.
 - ``cuda::std::pair<T1, T2>``: trivially copyable when both ``T1`` and ``T2`` are.
 - ``cuda::std::tuple<Ts...>``: trivially copyable when all ``Ts...`` are.
+- ``cuda::std::complex<T>``: trivially copyable when ``T`` is.
+- ``cuda::complex<T>``: trivially copyable when ``T`` is.
 - Aggregates: trivially copyable when all members are.
 
 ``const`` qualification is handled transparently, while ``volatile`` is compiler dependent.
@@ -55,6 +57,8 @@ Examples
    static_assert(cuda::is_trivially_copyable_v<__half>);
    static_assert(cuda::is_trivially_copyable_v<__nv_bfloat16>);
    static_assert(cuda::is_trivially_copyable_v<__half2>);
+   static_assert(cuda::is_trivially_copyable_v<cuda::std::complex<__half>>);
+   static_assert(cuda::is_trivially_copyable_v<cuda::complex<__half>>);
 
    // Composite types containing extended floating-point types
    static_assert(cuda::is_trivially_copyable_v<__half[4]>);

@@ -17,6 +17,7 @@
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
 #include <cuda/std/cmath>
+#include <cuda/std/complex>
 #include <cuda/std/cstdint>
 #include <cuda/std/cstring>
 #include <cuda/std/limits>
@@ -370,6 +371,44 @@ __host__ __device__ bool tests()
 
   // cuda::std::tuple<> (empty, sizeof == 1 with no data bytes)
   test_roundtrip_through_buffer<false>(cuda::std::tuple<>{});
+
+  // cuda::std::complex<float>
+  for (cuda::std::complex<float> i :
+       {cuda::std::complex<float>{0.0f, 1.0f},
+        cuda::std::complex<float>{1.0f, -1.0f},
+        cuda::std::complex<float>{-1.0f, 0.0f},
+        cuda::std::complex<float>{10.0f, -10.0f},
+        cuda::std::complex<float>{2.71828f, 3.14159f}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+
+#if _LIBCUDACXX_HAS_NVFP16()
+  // cuda::std::complex<__half>
+  for (cuda::std::complex<__half> i :
+       {cuda::std::complex<__half>{__float2half(0.0f), __float2half(1.0f)},
+        cuda::std::complex<__half>{__float2half(1.0f), __float2half(-1.0f)},
+        cuda::std::complex<__half>{__float2half(-1.0f), __float2half(0.0f)},
+        cuda::std::complex<__half>{__float2half(10.0f), __float2half(-10.0f)}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+#endif // _LIBCUDACXX_HAS_NVFP16()
+
+#if _LIBCUDACXX_HAS_NVBF16()
+  // cuda::std::complex<__nv_bfloat16>
+  for (cuda::std::complex<__nv_bfloat16> i :
+       {cuda::std::complex<__nv_bfloat16>{__float2bfloat16(0.0f), __float2bfloat16(1.0f)},
+        cuda::std::complex<__nv_bfloat16>{__float2bfloat16(1.0f), __float2bfloat16(-1.0f)},
+        cuda::std::complex<__nv_bfloat16>{__float2bfloat16(-1.0f), __float2bfloat16(0.0f)},
+        cuda::std::complex<__nv_bfloat16>{__float2bfloat16(10.0f), __float2bfloat16(-10.0f)}})
+  {
+    test_roundtrip_through_nested_T(i);
+    test_roundtrip_through_buffer(i);
+  }
+#endif // _LIBCUDACXX_HAS_NVBF16()
 
   // Extended floating point vector types
 #if _LIBCUDACXX_HAS_NVFP16()

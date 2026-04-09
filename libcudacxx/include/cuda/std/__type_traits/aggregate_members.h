@@ -38,7 +38,7 @@ _CCCL_BEGIN_NAMESPACE_CUDA_STD
 
 // Returns the number of aggregate members, or `-1` if the type is not an aggregate.
 template <typename _Tp, ::cuda::std::enable_if_t<_CCCL_BUILTIN_STRUCTURED_BINDING_SIZE(_Tp) >= 0, int> = 0>
-constexpr int __aggregate_arity_v = _CCCL_BUILTIN_STRUCTURED_BINDING_SIZE(_Tp);
+inline constexpr int __aggregate_arity_v = _CCCL_BUILTIN_STRUCTURED_BINDING_SIZE(_Tp);
 
 #else // ^^^ _CCCL_BUILTIN_STRUCTURED_BINDING_SIZE ^^^ / !_CCCL_BUILTIN_STRUCTURED_BINDING_SIZE vvv
 
