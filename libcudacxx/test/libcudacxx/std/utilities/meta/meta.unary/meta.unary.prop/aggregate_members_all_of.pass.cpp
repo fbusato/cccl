@@ -8,9 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cuda/std/__type_traits/aggregate_members_all_of.h>
-#include <cuda/std/__type_traits/is_integral.h>
-#include <cuda/std/__type_traits/is_trivially_copyable.h>
+#include <cuda/std/type_traits>
 
 #include "test_macros.h"
 
@@ -157,8 +155,10 @@ static_assert(cuda::std::__aggregate_arity_v<AllInts> == 3);
 static_assert(cuda::std::__aggregate_arity_v<AllFloats> == 2);
 static_assert(cuda::std::__aggregate_arity_v<LargeAggregate> == 16);
 static_assert(cuda::std::__aggregate_arity_v<NonAggregate> == -1);
+#if !TEST_COMPILER(MSVC) // MSVC does not perform brace elision in SFINAE contexts
 static_assert(cuda::std::__aggregate_arity_v<Nested> == 2);
 static_assert(cuda::std::__aggregate_arity_v<WithArray> == 4);
+#endif // !TEST_COMPILER(MSVC)
 
 //----------------------------------------------------------------------------------------------------------------------
 // __aggregate_all_of tests
@@ -183,10 +183,12 @@ static_assert(cuda::std::__aggregate_all_of<is_integral_pred, LargeAggregate>::v
 static_assert(!cuda::std::__aggregate_all_of<is_integral_pred, TooLarge>::value);
 
 // nested aggregate / array members: brace elision lets the predicate see the flat elements
+#if !TEST_COMPILER(MSVC) // MSVC does not perform brace elision in SFINAE contexts
 static_assert(cuda::std::__aggregate_all_of<is_integral_pred, Nested>::value);
 static_assert(cuda::std::__aggregate_all_of<is_integral_pred, WithArray>::value);
 static_assert(cuda::std::__aggregate_all_of<is_trivially_copyable_pred, Nested>::value);
 static_assert(cuda::std::__aggregate_all_of<is_trivially_copyable_pred, WithArray>::value);
+#endif // !TEST_COMPILER(MSVC)
 
 // non-aggregate: always false
 static_assert(!cuda::std::__aggregate_all_of<always_true, NonAggregate>::value);
