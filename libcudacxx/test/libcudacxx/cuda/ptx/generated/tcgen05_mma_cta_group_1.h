@@ -7038,4 +7038,3 @@ __global__ void test_tcgen05_mma_cta_group_1(void** fn_ptr)
                                bool)>(cuda::ptx::tcgen05_mma_block_scale_block32_tmem_a_collector_a_discard));));
 #endif // __cccl_ptx_isa >= 880
 }
-

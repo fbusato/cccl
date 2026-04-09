@@ -37,4 +37,3 @@ __global__ void test_tcgen05_shift_cta_group_1(void** fn_ptr)
           static_cast<void (*)(cuda::ptx::cta_group_1_t, cuda::std::uint32_t)>(cuda::ptx::tcgen05_shift_down));));
 #endif // __cccl_ptx_isa >= 860
 }
-

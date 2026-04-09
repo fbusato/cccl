@@ -14,7 +14,6 @@
 // Because `fn_ptr` is possibly visible outside this translation unit, the
 // compiler must compile all the functions which are stored.
 
-
 __global__ void test_tcgen05_shift_cta_group_2(void** fn_ptr)
 {
 #if __cccl_ptx_isa >= 860
@@ -38,4 +37,3 @@ __global__ void test_tcgen05_shift_cta_group_2(void** fn_ptr)
           static_cast<void (*)(cuda::ptx::cta_group_2_t, cuda::std::uint32_t)>(cuda::ptx::tcgen05_shift_down));));
 #endif // __cccl_ptx_isa >= 860
 }
-

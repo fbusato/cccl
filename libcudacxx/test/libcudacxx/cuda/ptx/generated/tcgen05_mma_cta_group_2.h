@@ -14,7 +14,6 @@
 // Because `fn_ptr` is possibly visible outside this translation unit, the
 // compiler must compile all the functions which are stored.
 
-
 __global__ void test_tcgen05_mma_cta_group_2(void** fn_ptr)
 {
 #if __cccl_ptx_isa >= 860
@@ -7039,4 +7038,3 @@ __global__ void test_tcgen05_mma_cta_group_2(void** fn_ptr)
                                bool)>(cuda::ptx::tcgen05_mma_block_scale_block32_tmem_a_collector_a_discard));));
 #endif // __cccl_ptx_isa >= 880
 }
-

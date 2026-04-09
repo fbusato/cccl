@@ -14,7 +14,6 @@
 // Because `fn_ptr` is possibly visible outside this translation unit, the
 // compiler must compile all the functions which are stored.
 
-
 __global__ void test_tcgen05_commit_cta_group_2(void** fn_ptr)
 {
 #if __cccl_ptx_isa >= 860
@@ -101,4 +100,3 @@ __global__ void test_tcgen05_commit_cta_group_2(void** fn_ptr)
             cuda::ptx::tcgen05_commit_multicast));));
 #endif // __cccl_ptx_isa >= 860
 }
-

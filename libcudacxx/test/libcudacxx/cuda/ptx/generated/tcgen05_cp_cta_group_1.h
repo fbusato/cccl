@@ -826,4 +826,3 @@ __global__ void test_tcgen05_cp_cta_group_1(void** fn_ptr)
             cuda::ptx::tcgen05_cp_32x128b_warpx4_b8x16_b4x16_p64));));
 #endif // __cccl_ptx_isa >= 860
 }
-

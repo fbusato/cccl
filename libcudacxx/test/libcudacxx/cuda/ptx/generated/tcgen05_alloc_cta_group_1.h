@@ -139,4 +139,3 @@ __global__ void test_tcgen05_alloc_cta_group_1(void** fn_ptr)
                      static_cast<void (*)(cuda::ptx::cta_group_1_t)>(cuda::ptx::tcgen05_relinquish_alloc_permit));));
 #endif // __cccl_ptx_isa >= 860
 }
-

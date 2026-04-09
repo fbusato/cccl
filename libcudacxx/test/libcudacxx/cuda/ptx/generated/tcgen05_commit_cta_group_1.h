@@ -100,4 +100,3 @@ __global__ void test_tcgen05_commit_cta_group_1(void** fn_ptr)
             cuda::ptx::tcgen05_commit_multicast));));
 #endif // __cccl_ptx_isa >= 860
 }
-
