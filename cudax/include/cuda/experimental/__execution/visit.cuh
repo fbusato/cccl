@@ -36,11 +36,16 @@
 #define _CCCL_FWD_CHILD(_Ord)  , _CCCL_FWD_LIKE(_Sndr, _CCCL_PP_CAT(__child, _Ord))
 #define _CCCL_FWD_LIKE(_X, _Y) static_cast<::cuda::std::__copy_cvref_t<_X&&, decltype(_Y)>>(_Y)
 
+#if _CCCL_HAS_BUILTIN(__builtin_structured_binding_size)
+#  define _CCCL_BUILTIN_STRUCTURED_BINDING_SIZE(...) __builtin_structured_binding_size(__VA_ARGS__)
+#endif // _CCCL_HAS_BUILTIN(__builtin_structured_binding_size)
+
 #if __cpp_structured_bindings >= 202411L
 #  define _CCCL_STRUCTURED_BINDING_CAN_INTRODUCE_A_PACK
 #endif // __cpp_structured_bindings >= 202411L
 
 #if _CCCL_CUDA_COMPILER(NVCC)
+#  undef _CCCL_BUILTIN_STRUCTURED_BINDING_SIZE
 #  undef _CCCL_STRUCTURED_BINDING_CAN_INTRODUCE_A_PACK
 #endif // _CCCL_CUDA_COMPILER(NVCC)
 

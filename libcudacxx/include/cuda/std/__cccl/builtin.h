@@ -413,10 +413,6 @@
 #  define _CCCL_BUILTIN_IS_COMPLETE_TYPE(...) __is_complete_type(__VA_ARGS__)
 #endif // _CCCL_HAS_BUILTIN(__is_complete_type)
 
-#if _CCCL_HAS_BUILTIN(__builtin_structured_binding_size)
-#  define _CCCL_BUILTIN_STRUCTURED_BINDING_SIZE(...) __builtin_structured_binding_size(__VA_ARGS__)
-#endif // _CCCL_HAS_BUILTIN(__builtin_structured_binding_size)
-
 // NVCC prior to 12.2 have trouble with pack expansion into __type_pack_element in an alias template
 #if _CCCL_CUDACC_BELOW(12, 2)
 #  undef _CCCL_BUILTIN_TYPE_PACK_ELEMENT
