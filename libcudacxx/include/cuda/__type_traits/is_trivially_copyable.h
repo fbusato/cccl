@@ -66,13 +66,10 @@ inline constexpr bool __is_trivially_copyable_v<::cuda::std::pair<_T1, _T2>> =
 template <typename... _Ts>
 inline constexpr bool __is_trivially_copyable_v<::cuda::std::tuple<_Ts...>> = (__is_trivially_copyable_v<_Ts> && ...);
 
+#if _CCCL_HAS_NVFP16()
+
 template <>
 inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__half>> = true;
-
-template <>
-inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__nv_bfloat16>> = true;
-
-#if _CCCL_HAS_NVFP16()
 
 template <>
 inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__half>> = true;
@@ -80,6 +77,9 @@ inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__half>> = tru
 #endif // _CCCL_HAS_NVFP16
 
 #if _CCCL_HAS_NVBF16()
+
+template <>
+inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__nv_bfloat16>> = true;
 
 template <>
 inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__nv_bfloat16>> = true;
