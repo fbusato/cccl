@@ -214,16 +214,18 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
         cudax::__launch_copy_contiguous_kernel(
           __src_normalized, __dst_normalized, __stream, __src.accessor(), __dst.accessor());
       }
+      return;
     }
     // (3) inner size is not large -> try vectorized case
-    else if (__both_stride1)
+    if constexpr (__are_vectorizable_copy)
     {
-      if constexpr (__are_vectorizable_copy)
+      if (__both_stride1)
       {
         const auto __op = [__stream](const auto& __src, const auto& __dst) {
           cudax::__copy_optimized(__src, __dst, cudax::__total_size(__src), __stream);
         };
         cudax::__dispatch_by_vector_size(__src_normalized, __dst_normalized, __op);
+        return;
       }
     }
     // (4) transpose case, TODO: next PR
@@ -232,16 +234,13 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     //  cudax::copy_shared_mem(__src_normalized, __dst_normalized, __stream);
     //}
     // (5) generic case (fallback)
-    else
-    {
-      cudax::__copy_optimized(
-        __src_normalized,
-        __dst_normalized,
-        cudax::__total_size(__src_normalized),
-        __stream,
-        __src.accessor(),
-        __dst.accessor());
-    }
+    cudax::__copy_optimized(
+      __src_normalized,
+      __dst_normalized,
+      cudax::__total_size(__src_normalized),
+      __stream,
+      __src.accessor(),
+      __dst.accessor());
   }
 }
 } // namespace cuda::experimental

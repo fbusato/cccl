@@ -181,8 +181,8 @@ __may_overlap(const ::cuda::std::mdspan<_Tp1, _Extents1, _LayoutPolicy1, _Access
   }
   const auto* __a_begin = reinterpret_cast<const char*>(__a.data_handle());
   const auto* __b_begin = reinterpret_cast<const char*>(__b.data_handle());
-  const auto* __a_end = __a_begin + __a.mapping().required_span_size() * sizeof(_Tp1);
-  const auto* __b_end = __b_begin + __b.mapping().required_span_size() * sizeof(_Tp2);
+  const auto* __a_end   = __a_begin + __a.mapping().required_span_size() * sizeof(_Tp1);
+  const auto* __b_end   = __b_begin + __b.mapping().required_span_size() * sizeof(_Tp2);
   return ::cuda::ranges_overlap(__a_begin, __a_end, __b_begin, __b_end);
 }
 } // namespace cuda::experimental
