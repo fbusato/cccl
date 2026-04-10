@@ -48,40 +48,6 @@ struct ArrayMember
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-// custom type
-
-struct CustomNonTrivialType
-{
-  int x;
-
-  CustomNonTrivialType() = default;
-  __host__ __device__ CustomNonTrivialType(const CustomNonTrivialType&) {}
-};
-
-template <>
-constexpr bool cuda::is_trivially_copyable_v<CustomNonTrivialType> = true;
-
-struct SingleMemberCustom
-{
-  CustomNonTrivialType x;
-};
-
-struct DerivedStructCustom : SingleMemberCustom
-{
-  CustomNonTrivialType y;
-};
-
-struct NestedStructCustom
-{
-  CustomNonTrivialType z;
-};
-
-struct ArrayMemberCustom
-{
-  CustomNonTrivialType values[2];
-};
-
-//----------------------------------------------------------------------------------------------------------------------
 // non trivially copyable type
 
 struct NonTriviallyCopyable
@@ -89,9 +55,9 @@ struct NonTriviallyCopyable
   __host__ __device__ NonTriviallyCopyable(const NonTriviallyCopyable&) {};
 };
 
-struct RelaxedWithNonRelaxedMember
+struct AggregateWithNonTriviallyCopyableMember
 {
-  CustomNonTrivialType x;
+  int x;
   NonTriviallyCopyable y;
 };
 
@@ -101,10 +67,8 @@ __host__ __device__ void test()
   test_is_trivially_copyable<DerivedStruct>();
   test_is_trivially_copyable<NesterStruct>();
   test_is_trivially_copyable<ArrayMember>();
-  test_is_trivially_copyable<ArrayMember>();
-  test_is_trivially_copyable<DerivedStructCustom>();
-  test_is_trivially_copyable<NestedStructCustom>();
-  test_is_not_trivially_copyable<RelaxedWithNonRelaxedMember>();
+  test_is_not_trivially_copyable<NonTriviallyCopyable>();
+  test_is_not_trivially_copyable<AggregateWithNonTriviallyCopyableMember>();
 }
 
 int main(int, char**)

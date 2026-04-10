@@ -42,7 +42,6 @@ _CCCL_BEGIN_NAMESPACE_CUDA
 template <typename _Tp, typename = void>
 inline constexpr bool __is_aggregate_trivially_copyable_v = false;
 
-//! Users are allowed to specialize this variable template for their own types
 template <typename _Tp>
 inline constexpr bool __is_trivially_copyable_v =
   ::cuda::std::is_trivially_copyable_v<_Tp> || ::cuda::std::__is_extended_floating_point_v<_Tp>
@@ -67,11 +66,17 @@ inline constexpr bool __is_trivially_copyable_v<::cuda::std::pair<_T1, _T2>> =
 template <typename... _Ts>
 inline constexpr bool __is_trivially_copyable_v<::cuda::std::tuple<_Ts...>> = (__is_trivially_copyable_v<_Ts> && ...);
 
-template <typename _Tp>
-inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<_Tp>> = __is_trivially_copyable_v<_Tp>;
+template <>
+inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__half>> = true;
 
-template <typename _Tp>
-inline constexpr bool __is_trivially_copyable_v<::cuda::complex<_Tp>> = __is_trivially_copyable_v<_Tp>;
+template <>
+inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__nv_bfloat16>> = true;
+
+template <>
+inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__half>> = true;
+
+template <>
+inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__nv_bfloat16>> = true;
 
 // if all the previous conditions fail, check if the type is an aggregate and all its members are trivially copyable
 template <typename _Tp>
@@ -88,7 +93,6 @@ inline constexpr bool
 template <typename _Tp>
 inline constexpr bool is_trivially_copyable_v = __is_trivially_copyable_v<::cuda::std::remove_const_t<_Tp>>;
 
-// defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>
 using is_trivially_copyable = ::cuda::std::bool_constant<is_trivially_copyable_v<_Tp>>;
 
