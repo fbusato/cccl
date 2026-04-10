@@ -72,11 +72,19 @@ inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__half>> 
 template <>
 inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__nv_bfloat16>> = true;
 
+#if _CCCL_HAS_NVFP16()
+
 template <>
 inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__half>> = true;
 
+#endif // _CCCL_HAS_NVFP16
+
+#if _CCCL_HAS_NVBF16()
+
 template <>
 inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__nv_bfloat16>> = true;
+
+#endif // _CCCL_HAS_NVBF16
 
 // if all the previous conditions fail, check if the type is an aggregate and all its members are trivially copyable
 template <typename _Tp>
