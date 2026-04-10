@@ -82,7 +82,7 @@ __global__ void __copy_contiguous_kernel(
   const auto __tile_offset = __block_idx.x * _TileSize;
   const auto __outer_idx   = __block_idx.y;
   const auto __remaining   = __inner_size - __tile_offset;
-  const auto __base_idx    = __tile_offset + __outer_idx * __inner_size + __thread_id;
+  const auto __base_idx    = __outer_idx * __inner_size + __tile_offset + __thread_id;
 
   if (__remaining >= _TileSize)
   {
@@ -98,7 +98,7 @@ __global__ void __copy_contiguous_kernel(
     _CCCL_PRAGMA_UNROLL_FULL()
     for (int __i = 0; __i < _TileSize; __i += __block_size)
     {
-      if (__tile_offset + __thread_id + __i < __remaining)
+      if (__thread_id + __i < __remaining)
       {
         const auto __coord = __coord_iter(__base_idx + __i);
         __dst(__coord)     = __src(__coord);
@@ -116,7 +116,7 @@ inline constexpr int __bytes_in_flight = 64 * 1024; // 64KB
 [[nodiscard]] _CCCL_HOST_API constexpr int __elem_per_thread(int __access_bytes) noexcept
 {
   constexpr auto __threads_per_sm = 2048; // 2048 threads per SM
-  return (__bytes_in_flight / __access_bytes) / __threads_per_sm;
+  return ::cuda::std::max((__bytes_in_flight / __access_bytes) / __threads_per_sm, 1);
 }
 
 //! @brief Launch the tiled copy kernel for contiguous innermost dimension.

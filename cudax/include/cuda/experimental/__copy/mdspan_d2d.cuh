@@ -13,6 +13,8 @@
 
 #include <cuda/std/detail/__config>
 
+#include <cuda/std/__type_traits/remove_cv.h>
+
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
 #elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
@@ -115,7 +117,17 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     _CCCL_THROW(::std::invalid_argument, "mdspans must not overlap in memory");
   }
 
-  if (__tensor_size == 1)
+  using __default_accessor_in  = ::cuda::std::default_accessor<_TpIn>;
+  using __default_accessor_out = ::cuda::std::default_accessor<_TpOut>;
+  constexpr bool __have_default_accessors =
+    ::cuda::std::is_convertible_v<_AccessorPolicyIn, __default_accessor_in>
+    && ::cuda::std::is_convertible_v<_AccessorPolicyOut, __default_accessor_out>;
+  constexpr bool __are_byte_copyable =
+    ::cuda::std::is_same_v<::cuda::std::remove_cv_t<_TpIn>, ::cuda::std::remove_cv_t<_TpOut>>
+    && ::cuda::std::is_trivially_copyable_v<_TpIn> //
+    && __have_default_accessors;
+
+  if (__tensor_size == 1 && __are_byte_copyable)
   {
     auto __src_ptr = __src.data_handle();
     auto __dst_ptr = __dst.data_handle();
@@ -130,21 +142,10 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     ::cuda::__driver::__memcpyAsync(__dst_ptr, __src_ptr, sizeof(_TpIn), __stream.get());
     return;
   }
+
   // rank == 0 for both tensors is already handled above -> their size is exactly 1
   if constexpr (_ExtentsIn::rank() > 0 && _ExtentsOut::rank() > 0)
   {
-    // check the preconditions for the vectorized case
-    constexpr bool __are_accessors_default_convertible =
-      ::cuda::std::is_convertible_v<_AccessorPolicyIn, ::cuda::std::default_accessor<_TpIn>>
-      && ::cuda::std::is_convertible_v<_AccessorPolicyOut, ::cuda::std::default_accessor<_TpOut>>;
-    constexpr bool __have_same_type =
-      ::cuda::std::is_same_v<::cuda::std::remove_cvref_t<_TpIn>, ::cuda::std::remove_cvref_t<_TpOut>>;
-    constexpr bool __are_trivial_copyable =
-      ::cuda::std::is_trivially_copyable_v<_TpIn> && ::cuda::std::is_trivially_copyable_v<_TpOut>;
-    constexpr bool __are_vectorizable =
-      sizeof(_TpIn) <= __max_vector_access && ::cuda::is_power_of_two(sizeof(_TpIn))
-      && __are_accessors_default_convertible && __have_same_type && __are_trivial_copyable;
-
     // use the most efficient type for device code
     using __src_extent_t = ::cuda::std::common_type_t<typename _ExtentsIn::index_type, int>;
     using __dst_extent_t = ::cuda::std::common_type_t<typename _ExtentsOut::index_type, int>;
@@ -175,23 +176,32 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
 
     _CCCL_ASSERT(__tensor_size % __tile_size == 0, "tensor size must be divisible by tile size");
     const auto __inner_extent_bytes = __src_normalized.__extents[0] * sizeof(_TpIn);
+
+    // check the preconditions for the vectorized case
+    constexpr bool __are_vectorizable_copy =
+      sizeof(_TpIn) <= __max_vector_access && ::cuda::is_power_of_two(sizeof(_TpIn)) && __are_byte_copyable;
+
     // (1) contiguous case
-    if (static_cast<::cuda::std::size_t>(__tile_size) == __tensor_size)
+    if constexpr (__have_default_accessors)
     {
-      _CCCL_TRY_CUDA_API(
-        CUB_NS_QUALIFIER::DeviceTransform::Transform,
-        "cub::DeviceTransform::Transform failed",
-        __src_simplified.__data,
-        __dst_simplified.__data,
-        __tensor_size,
-        ::cuda::proclaim_copyable_arguments(::cuda::std::identity{}),
-        __stream.get());
+      if (static_cast<::cuda::std::size_t>(__tile_size) == __tensor_size)
+      {
+        _CCCL_TRY_CUDA_API(
+          CUB_NS_QUALIFIER::DeviceTransform::Transform,
+          "cub::DeviceTransform::Transform failed",
+          __src_simplified.__data,
+          __dst_simplified.__data,
+          __tensor_size,
+          ::cuda::proclaim_copyable_arguments(::cuda::std::identity{}),
+          __stream.get());
+        return;
+      }
     }
     // (2) inner size is large
-    else if (__both_stride1 && __inner_extent_bytes >= __bytes_in_flight) // TODO: tunable bytes in flight
+    if (__both_stride1 && __inner_extent_bytes >= __bytes_in_flight) // TODO: tunable bytes in flight
     {
       // (2a) vectorized case
-      if constexpr (__are_vectorizable)
+      if constexpr (__are_vectorizable_copy)
       {
         const auto __op = [__stream](const auto& __src, const auto& __dst) {
           cudax::__launch_copy_contiguous_kernel(__src, __dst, __stream);
@@ -208,7 +218,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
     // (3) inner size is not large -> try vectorized case
     else if (__both_stride1)
     {
-      if constexpr (__are_vectorizable)
+      if constexpr (__are_vectorizable_copy)
       {
         const auto __op = [__stream](const auto& __src, const auto& __dst) {
           cudax::__copy_optimized(__src, __dst, cudax::__total_size(__src), __stream);

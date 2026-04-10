@@ -27,44 +27,19 @@
 #endif // !_CCCL_COMPILER(NVRTC)
 
 #include <cuda/std/__cstddef/types.h>
-#include <cuda/std/__type_traits/make_nbit_int.h>
-#include <cuda/std/climits>
-
-#if _CCCL_HAS_CTK()
-#  include <vector_types.h>
-#endif // _CCCL_HAS_CTK()
 
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
 {
-//! @brief Maps a vector byte width to the corresponding unsigned integer type for vectorized memory access.
+//! @brief Aligned storage type for vectorized memory access of a given byte width.
 template <::cuda::std::size_t _VectorBytes>
-struct __vector_access
+struct alignas(_VectorBytes) __vector_access
 {
-  using type = ::cuda::std::__make_nbit_uint_t<_VectorBytes * CHAR_BIT>;
+  char __data[_VectorBytes];
 };
 
-#if _CCCL_HAS_CTK()
-
-template <>
-struct __vector_access<16>
-{
-  using type = ::uint4;
-};
-
-#endif // _CCCL_HAS_CTK()
-
-#if _CCCL_CTK_AT_LEAST(13, 0)
-
-template <>
-struct __vector_access<32>
-{
-  using type = ::ulonglong4_32a;
-};
-
-#endif // _CCCL_CTK_AT_LEAST(13, 0)
-
+// 32-byte accesses are supported since CTK 13.0
 #if _CCCL_CTK_AT_LEAST(13, 0)
 inline constexpr auto __max_vector_access = 32;
 #else
@@ -74,7 +49,7 @@ inline constexpr auto __max_vector_access = 16;
 #if !_CCCL_COMPILER(NVRTC)
 
 template <::cuda::std::size_t _VectorBytes>
-using __vector_access_t = typename __vector_access<_VectorBytes>::type;
+using __vector_access_t = __vector_access<_VectorBytes>;
 
 //! @brief Query the maximum vector access width supported by the current GPU architecture.
 //!

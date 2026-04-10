@@ -23,6 +23,7 @@
 
 #if !_CCCL_COMPILER(NVRTC)
 
+#  include <cuda/__mdspan/traits.h>
 #  include <cuda/__memory/ptr_alignment.h>
 #  include <cuda/__memory/ranges_overlap.h>
 #  include <cuda/__utility/in_range.h>
@@ -179,9 +180,9 @@ __may_overlap(const ::cuda::std::mdspan<_Tp1, _Extents1, _LayoutPolicy1, _Access
     return false;
   }
   const auto* __a_begin = reinterpret_cast<const char*>(__a.data_handle());
-  const auto* __a_end   = __a_begin + __a.mapping().required_span_size() * sizeof(_Tp1);
   const auto* __b_begin = reinterpret_cast<const char*>(__b.data_handle());
-  const auto* __b_end   = __b_begin + __b.mapping().required_span_size() * sizeof(_Tp2);
+  const auto* __a_end = __a_begin + __a.mapping().required_span_size() * sizeof(_Tp1);
+  const auto* __b_end = __b_begin + __b.mapping().required_span_size() * sizeof(_Tp2);
   return ::cuda::ranges_overlap(__a_begin, __a_end, __b_begin, __b_end);
 }
 } // namespace cuda::experimental
