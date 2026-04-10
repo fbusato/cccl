@@ -198,7 +198,7 @@ _CCCL_HOST_API void copy(::cuda::device_mdspan<_TpIn, _ExtentsIn, _LayoutPolicyI
       }
     }
     // (2) inner size is large
-    if (__both_stride1 && __inner_extent_bytes >= __bytes_in_flight) // TODO: tunable bytes in flight
+    if (__both_stride1 && __inner_extent_bytes >= cudax::__bytes_in_flight())
     {
       // (2a) vectorized case
       if constexpr (__are_vectorizable_copy)
