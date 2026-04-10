@@ -192,6 +192,47 @@ TEST_CASE("copy d2d large element 128 bytes 2D contiguous", "[copy][d2d][large_e
   test_copy<layout_right>(data, M, N);
 }
 
+// src: (2,513):(1024,1), layout_stride, sizeof(T) = 128
+// dst: (2,513):(1024,1), layout_stride
+// Padded outer stride (1024 > 513) prevents coalescing → tile_size = 513 != tensor_size = 1026
+// inner_extent_bytes = 513 * 128 = 65664 >= __bytes_in_flight → path (2b)
+// __are_vectorizable_copy is false (alignof(128) > __max_vector_access)
+// _TileSize = 256, inner_size = 513 = 2 * 256 + 1 → last tile has 1 remaining element
+TEST_CASE("copy d2d contiguous kernel remainder", "[copy][d2d][contiguous][remainder]")
+{
+  constexpr int M  = 2;
+  constexpr int N  = 513;
+  constexpr int Ld = 1024;
+
+  cuda::std::array<int, 2> shape{M, N};
+  cuda::std::array<int, 2> strides{Ld, 1};
+
+  using extents_t     = cuda::std::dextents<int, 2>;
+  using mapping_t     = cuda::std::layout_stride::mapping<extents_t>;
+  const int span_size = static_cast<int>(mapping_t(extents_t(shape), strides).required_span_size());
+
+  thrust::host_vector<large_type_128> h_src(span_size);
+  for (int i = 0; i < span_size; ++i)
+  {
+    for (int j = 0; j < 128; ++j)
+    {
+      h_src[i].data[j] = static_cast<char>((i * 128 + j) % 128);
+    }
+  }
+
+  large_type_128 zero{};
+  thrust::host_vector<large_type_128> h_expected(span_size, zero);
+  for (int i = 0; i < M; ++i)
+  {
+    for (int j = 0; j < N; ++j)
+    {
+      h_expected[i * Ld + j] = h_src[i * Ld + j];
+    }
+  }
+
+  test_copy_strided(h_src, h_expected, shape, strides, strides);
+}
+
 /***********************************************************************************************************************
  * Overaligned type (alignof > natural alignment, vectorizable via alignment-based check)
  **********************************************************************************************************************/
