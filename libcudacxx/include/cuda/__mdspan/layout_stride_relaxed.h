@@ -25,7 +25,6 @@
 #include <cuda/__fwd/mdspan.h>
 #include <cuda/__numeric/add_overflow.h>
 #include <cuda/__numeric/mul_overflow.h>
-#include <cuda/__numeric/overflow_cast.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__mdspan/concepts.h>
@@ -132,7 +131,7 @@ private:
     {
       for (rank_type __d = 0; __d < __rank_; ++__d)
       {
-        _CCCL_ASSERT(!::cuda::overflow_cast<offset_type>(__other.stride(__d)),
+        _CCCL_ASSERT(::cuda::std::in_range<offset_type>(__other.stride(__d)),
                      "layout_stride_relaxed::mapping: stride is out of range");
         __init_strides[__d] = static_cast<offset_type>(__other.stride(__d));
       }
@@ -274,15 +273,15 @@ public:
           return index_type{0};
         }
         const auto __stride_val = strides().stride(__r);
-        _CCCL_ASSERT(!::cuda::overflow_cast<index_type>(::cuda::uabs(__stride_val)),
+        _CCCL_ASSERT(::cuda::std::in_range<index_type>(::cuda::uabs(__stride_val)),
                      "layout_stride_relaxed::mapping: stride is out of range");
         if (__stride_val < 0)
         {
-          _CCCL_ASSERT(!::cuda::overflow_cast<offset_type>(__ext - 1),
+          _CCCL_ASSERT(::cuda::std::in_range<offset_type>(__ext - 1),
                        "layout_stride_relaxed::mapping: extent - 1 is not representable as offset_type");
           const auto __min_extent   = static_cast<offset_type>(__ext - 1);
           const auto __abs_stride_u = ::cuda::uabs(__stride_val);
-          _CCCL_ASSERT(!::cuda::overflow_cast<offset_type>(__abs_stride_u),
+          _CCCL_ASSERT(::cuda::std::in_range<offset_type>(__abs_stride_u),
                        "layout_stride_relaxed::mapping: absolute stride is not representable as offset_type");
           const auto __abs_stride = static_cast<offset_type>(__abs_stride_u);
           _CCCL_ASSERT(!::cuda::mul_overflow(__min_extent, __abs_stride)
@@ -310,7 +309,7 @@ public:
   {
     if constexpr (::cuda::std::__cccl_is_integer_v<_Index>)
     {
-      return ::cuda::std::cmp_greater_equal(__index, index_type{0}) && !::cuda::overflow_cast<index_type>(__index);
+      return ::cuda::std::cmp_greater_equal(__index, index_type{0}) && ::cuda::std::in_range<index_type>(__index);
     }
     else
     {
