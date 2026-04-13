@@ -158,10 +158,10 @@ void test_copy_stride_relaxed(
   using mapping_t = cuda::layout_stride_relaxed::mapping<extents_t>;
 
   extents_t ext(shape);
-  auto src_ptr = thrust::raw_pointer_cast(d_src.data()) + src_offset;
-  auto dst_ptr = thrust::raw_pointer_cast(d_dst.data()) + dst_offset;
-  mapping_t src_map(ext, strides_t(src_strides));
-  mapping_t dst_map(ext, strides_t(dst_strides));
+  auto src_ptr = thrust::raw_pointer_cast(d_src.data());
+  auto dst_ptr = thrust::raw_pointer_cast(d_dst.data());
+  mapping_t src_map(ext, strides_t(src_strides), src_offset);
+  mapping_t dst_map(ext, strides_t(dst_strides), dst_offset);
 
   cuda::device_mdspan<T, extents_t, cuda::layout_stride_relaxed> src(src_ptr, src_map);
   cuda::device_mdspan<T, extents_t, cuda::layout_stride_relaxed> dst(dst_ptr, dst_map);
