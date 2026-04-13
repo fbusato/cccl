@@ -44,7 +44,26 @@ struct __simd_storage<_Tp, __fixed_size<_Np>>
 {
   using value_type = _Tp;
 
-  _Tp __data[_Np]{}; // initialization required for constexpr constructor
+#if _CCCL_STD_VER >= 2020
+  _Tp __data[_Np]; // no initialization
+
+  _CCCL_API constexpr __simd_storage() noexcept
+  {
+    _CCCL_IF_CONSTEVAL
+    {
+      for (__simd_size_type __i = 0; __i < _Np; ++__i)
+      {
+        __data[__i] = _Tp{};
+      }
+    }
+  }
+
+  _CCCL_HIDE_FROM_ABI constexpr __simd_storage(const __simd_storage&)            = default;
+  _CCCL_HIDE_FROM_ABI constexpr __simd_storage& operator=(const __simd_storage&) = default;
+#else // ^^^ C++20 ^^^ / vvv C++17 vvv
+
+  _Tp __data[_Np]{};
+#endif // _CCCL_STD_VER < 2020
 
   [[nodiscard]] _CCCL_API constexpr _Tp __get(__simd_size_type __idx) const noexcept
   {
@@ -68,7 +87,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
 
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __broadcast(_Tp __v) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -81,7 +100,13 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __generate_init(_Generator&& __g, integer_sequence<__simd_size_type, _Is...>)
   {
-    return _SimdStorage{{__g(integral_constant<__simd_size_type, _Is>())...}};
+#if _CCCL_STD_VER >= 2020
+    _SimdStorage __result;
+    ((__result.__data[_Is] = __g(integral_constant<__simd_size_type, _Is>())), ...);
+    return __result;
+#else // ^^^ C++20 ^^^ / vvv C++17 vvv
+    return _SimdStorage{{ __g(integral_constant<__simd_size_type, _Is>())... }};
+#endif // _CCCL_STD_VER < 2020
   }
 
   template <typename _Generator>
@@ -112,7 +137,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
 
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage __negate(const _SimdStorage& __s) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -123,7 +148,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
 
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __bitwise_not(const _SimdStorage& __s) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -136,7 +161,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   _CCCL_DIAG_SUPPRESS_MSVC(4146) // unary minus applied to unsigned type
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __unary_minus(const _SimdStorage& __s) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -151,7 +176,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __plus(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -163,7 +188,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __minus(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -175,7 +200,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __multiplies(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -187,7 +212,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __divides(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -199,7 +224,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __modulo(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -213,7 +238,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __equal_to(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -225,7 +250,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __not_equal_to(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -237,7 +262,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __less(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -249,7 +274,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __less_equal(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -261,7 +286,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __greater(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -273,7 +298,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __greater_equal(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -287,7 +312,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __bitwise_and(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -299,7 +324,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __bitwise_or(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -311,7 +336,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __bitwise_xor(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -323,7 +348,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __shift_left(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -335,7 +360,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __shift_right(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result{};
+    _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {

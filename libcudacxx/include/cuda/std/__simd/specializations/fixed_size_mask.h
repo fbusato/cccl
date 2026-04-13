@@ -37,7 +37,27 @@ struct __mask_storage<_Bytes, __fixed_size<_Np>>
 {
   static constexpr size_t __element_bytes = _Bytes;
 
-  bool __data[_Np]{}; // initialization required for constexpr constructor
+#if _CCCL_STD_VER >= 2020
+  bool __data[_Np];
+
+  _CCCL_API constexpr __mask_storage() noexcept
+  {
+    _CCCL_IF_CONSTEVAL
+    {
+      for (__simd_size_type __i = 0; __i < _Np; ++__i)
+      {
+        __data[__i] = false;
+      }
+    }
+  }
+
+  _CCCL_HIDE_FROM_ABI constexpr __mask_storage(const __mask_storage&)            = default;
+  _CCCL_HIDE_FROM_ABI constexpr __mask_storage& operator=(const __mask_storage&) = default;
+
+#else // ^^^ C++20 ^^^ / vvv C++17 vvv
+
+  bool __data[_Np]{};
+#endif // _CCCL_STD_VER < 2020
 
   [[nodiscard]] _CCCL_API constexpr bool __get(__simd_size_type __idx) const noexcept
   {
@@ -60,7 +80,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
 
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage __broadcast(bool __v) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -73,9 +93,13 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __generate_init(_Generator&& __g, integer_sequence<__simd_size_type, _Is...>)
   {
-    _MaskStorage __result{};
+#if _CCCL_STD_VER >= 2020
+    _MaskStorage __result;
     ((__result.__data[_Is] = static_cast<bool>(__g(integral_constant<__simd_size_type, _Is>()))), ...);
     return __result;
+#else // ^^^ C++20 ^^^ / vvv C++17 vvv
+    return _MaskStorage{{ static_cast<bool>(__g(integral_constant<__simd_size_type, _Is>()))... }};
+#endif // _CCCL_STD_VER < 2020
   }
 
   template <typename _Generator>
@@ -89,7 +113,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __logic_and(const _MaskStorage& __lhs, const _MaskStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -101,7 +125,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __logic_or(const _MaskStorage& __lhs, const _MaskStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -115,7 +139,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __bitwise_and(const _MaskStorage& __lhs, const _MaskStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -127,7 +151,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __bitwise_or(const _MaskStorage& __lhs, const _MaskStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -139,7 +163,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage
   __bitwise_xor(const _MaskStorage& __lhs, const _MaskStorage& __rhs) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -150,7 +174,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
 
   [[nodiscard]] _CCCL_API static constexpr _MaskStorage __bitwise_not(const _MaskStorage& __s) noexcept
   {
-    _MaskStorage __result{};
+    _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
