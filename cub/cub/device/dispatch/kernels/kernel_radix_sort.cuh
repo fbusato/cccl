@@ -23,6 +23,7 @@
 #include <cub/device/dispatch/tuning/tuning_radix_sort.cuh>
 #include <cub/grid/grid_even_share.cuh>
 
+#include <cuda/__warp/warp_shuffle.h>
 #include <cuda/std/__algorithm/max.h>
 #include <cuda/std/__functional/operations.h>
 #include <cuda/std/__type_traits/conditional.h>
@@ -150,17 +151,17 @@ __launch_bounds__(PolicySelector{}(::cuda::arch_id{CUB_PTX_ARCH / 10}).scan.look
   static_assert(active_policy.algorithm == scan_algorithm::lookback);
   static constexpr scan_lookback_policy policy = active_policy.lookback;
   using ScanPolicy                             = AgentScanPolicy<
-                                0,
-                                0,
-                                void,
-                                policy.load_algorithm,
-                                policy.load_modifier,
-                                policy.store_algorithm,
-                                policy.scan_algorithm,
-                                NoScaling<policy.block_threads, policy.items_per_thread>,
-                                delay_constructor_t<policy.delay_constructor.kind,
-                                                    policy.delay_constructor.delay,
-                                                    policy.delay_constructor.l2_write_latency>>;
+    0,
+    0,
+    void,
+    policy.load_algorithm,
+    policy.load_modifier,
+    policy.store_algorithm,
+    policy.scan_algorithm,
+    NoScaling<policy.block_threads, policy.items_per_thread>,
+    delay_constructor_t<policy.delay_constructor.kind,
+                        policy.delay_constructor.delay,
+                        policy.delay_constructor.l2_write_latency>>;
 
   // Parameterize the AgentScan type for the current configuration
   using AgentScanT = scan::AgentScan<ScanPolicy, OffsetT*, OffsetT*, ::cuda::std::plus<>, OffsetT, OffsetT, OffsetT>;
@@ -402,7 +403,7 @@ __launch_bounds__(PolicySelector{}(::cuda::arch_id{CUB_PTX_ARCH / 10}).single_ti
   {
     // Register pressure work-around: moving num_items through shfl prevents compiler
     // from reusing guards/addressing from prior guarded loads
-    num_items = ShuffleIndex<warp_threads>(num_items, 0, 0xffffffff);
+    num_items = ::cuda::device::warp_shuffle_idx(num_items, 0);
 
     BlockLoadValues(temp_storage.load_values).Load(d_values_in, values, num_items);
 
@@ -416,7 +417,7 @@ __launch_bounds__(PolicySelector{}(::cuda::arch_id{CUB_PTX_ARCH / 10}).single_ti
       values,
       current_bit,
       end_bit,
-      bool_constant_v < Order == SortOrder::Descending >,
+      bool_constant_v<Order == SortOrder::Descending>,
       bool_constant_v<KEYS_ONLY>,
       decomposer);
 
@@ -497,15 +498,15 @@ __launch_bounds__(PolicySelector{}(::cuda::arch_id{CUB_PTX_ARCH / 10}).onesweep.
 {
   static constexpr radix_sort_onesweep_policy policy = PolicySelector{}(::cuda::arch_id{CUB_PTX_ARCH / 10}).onesweep;
   using OnesweepPolicyT                              = AgentRadixSortOnesweepPolicy<
-                                 policy.block_threads,
-                                 policy.items_per_thread,
-                                 void,
-                                 policy.rank_num_parts,
-                                 policy.rank_algorith,
-                                 policy.scan_algorithm,
-                                 policy.store_algorithm,
-                                 policy.radix_bits,
-                                 NoScaling<policy.block_threads, policy.items_per_thread>>;
+    policy.block_threads,
+    policy.items_per_thread,
+    void,
+    policy.rank_num_parts,
+    policy.rank_algorith,
+    policy.scan_algorithm,
+    policy.store_algorithm,
+    policy.radix_bits,
+    NoScaling<policy.block_threads, policy.items_per_thread>>;
 
   using AgentT =
     AgentRadixSortOnesweep<OnesweepPolicyT,
