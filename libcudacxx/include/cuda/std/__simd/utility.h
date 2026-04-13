@@ -21,6 +21,7 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/__cmath/pow2.h>
 #include <cuda/__memory/is_aligned.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__fwd/span.h>
@@ -147,6 +148,12 @@ _CCCL_API constexpr void __assert_load_store_alignment([[maybe_unused]] const _U
     }
   }
 }
+
+// used in load/store preconditions
+template <typename _TpIn>
+constexpr bool __is_cuda_vectoriazable_v =
+  is_trivially_copyable_v<_TpIn> // byte-copy is fine (memcpy)
+  && ::cuda::is_power_of_two(sizeof(_TpIn)); // e.g. char3 doesn't work: alignof(char3) == 1, sizeof(char3) == 3
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
