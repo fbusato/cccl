@@ -80,8 +80,8 @@ __global__ void __copy_contiguous_kernel(
   _CCCL_GRID_CONSTANT const __tensor_coord_iterator<_ExtentT, _Rank> __coord_iter,
   _CCCL_GRID_CONSTANT const _ExtentT __inner_size)
 {
-  using __partial_tensor_src  = ::cuda::experimental::__partial_tensor<_TpSrc, _StrideTIn, _Rank, _SrcAccessor>;
-  using __partial_tensor_dst  = ::cuda::experimental::__partial_tensor<_TpDst, _StrideTOut, _Rank, _DstAccessor>;
+  using __partial_tensor_src  = __partial_tensor<const _TpSrc, _StrideTIn, _Rank, _SrcAccessor>;
+  using __partial_tensor_dst  = __partial_tensor<_TpDst, _StrideTOut, _Rank, _DstAccessor>;
   const auto __thread_id      = ::cuda::gpu_thread.rank_as<_ExtentT>(::cuda::block, __config);
   const auto __block_idx      = ::cuda::block.index_as<_ExtentT>(::cuda::grid);
   constexpr auto __block_size = ::cuda::gpu_thread.count_as<int>(::cuda::block, __config);
