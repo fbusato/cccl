@@ -179,7 +179,8 @@ struct __partial_tensor
   //! @param[in] __coords Array of per-dimension coordinates
   //! @return Reference to the element at the computed offset
   template <typename _CoordT>
-  [[nodiscard]] _CCCL_DEVICE_API _Tp& operator()(const ::cuda::std::array<_CoordT, _Rank>& __coords) const noexcept
+  [[nodiscard]] _CCCL_DEVICE_API decltype(auto)
+  operator()(const ::cuda::std::array<_CoordT, _Rank>& __coords) const noexcept
   {
     _StrideT __offset = 0;
     _CCCL_PRAGMA_UNROLL_FULL()
