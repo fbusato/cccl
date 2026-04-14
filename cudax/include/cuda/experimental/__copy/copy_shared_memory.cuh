@@ -22,9 +22,9 @@
 #endif // no system header
 
 #include <cuda/__cmath/ceil_div.h>
+#include <cuda/__launch/configuration.h>
+#include <cuda/__launch/launch.h>
 #include <cuda/__stream/stream_ref.h>
-#include <cuda/launch>
-#include <cuda/std/__algorithm/min.h>
 #include <cuda/std/__algorithm/stable_sort.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__mdspan/default_accessor.h>
@@ -35,7 +35,6 @@
 #include <cuda/experimental/__copy/copy_shared_memory_utils.cuh>
 #include <cuda/experimental/__copy/tensor_iterator.cuh>
 #include <cuda/experimental/__copy_bytes/abs_integer.cuh>
-#include <cuda/experimental/__copy_bytes/tensor_query.cuh>
 #include <cuda/experimental/__copy_bytes/types.cuh>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -64,11 +63,10 @@ namespace cuda::experimental
 {
 //! @brief Shared-memory tiled transpose kernel for arbitrary-rank tensors.
 //!
-//! Each block processes one tile. Threads cooperatively iterate over tile elements with a stride
-//! loop. Full (interior) tiles use a two-phase shared-memory transpose: load source data into
-//! shared memory using source-coalesced ordering, then store from shared memory to destination
-//! using destination-natural ordering. Partial (boundary) tiles copy elements directly without
-//! shared memory.
+//! Each block processes one tile. Threads cooperatively iterate over tile elements with a stride loop. Full (interior)
+//! tiles use a two-phase shared-memory transpose: load source data into shared memory using source-coalesced ordering,
+//! then store from shared memory to destination using destination-natural ordering. Partial (boundary) tiles copy
+//! elements directly without shared memory.
 //!
 //! @param[in]  __config                Kernel launch configuration
 //! @param[in]  __src_ptr               Pointer to source data
@@ -78,10 +76,10 @@ namespace cuda::experimental
 //! @param[in]  __grid_iter             Coordinate iterator for grid tile decomposition
 //! @param[in]  __grid_tile_src_strides Per-dimension source strides scaled by tile sizes
 //! @param[in]  __grid_tile_dst_strides Per-dimension destination strides scaled by tile sizes
-//! @param[in]  __tile_perm_iter         Coordinate iterator for src-permuted tile decomposition
+//! @param[in]  __tile_perm_iter        Coordinate iterator for src-permuted tile decomposition
 //! @param[in]  __src_perm_src_strides  Src-permuted source strides for loading
 //! @param[in]  __tile_perm_smem_strides Src-permuted shared memory strides for loading
-//! @param[in]  __tile_natural_iter             Coordinate iterator for dst-natural tile decomposition
+//! @param[in]  __tile_natural_iter     Coordinate iterator for dst-natural tile decomposition
 //! @param[in]  __dst_strides           Per-dimension destination strides for storing
 //! @param[in]  __tile_total_size       Total number of elements in one tile
 //! @param[in]  __tile_sizes            Per-dimension tile extents
@@ -144,21 +142,26 @@ __global__ void __copy_shared_mem_kernel(
   }
 
   // Dispatch to Full-tile or Boundary case
-  const auto __tid          = ::cuda::gpu_thread.rank_as<int>(::cuda::block, __config);
-  const auto __block_stride = ::cuda::gpu_thread.count_as<int>(::cuda::block, __config);
+  const auto __tid           = ::cuda::gpu_thread.rank_as<int>(::cuda::block, __config);
+  const auto __block_stride  = ::cuda::gpu_thread.count_as<int>(::cuda::block, __config);
+  using __partial_tensor_src = __partial_tensor<const _TpSrc, _StrideTIn, _MaxRankUZ, _SrcAccessor>;
+  using __partial_tensor_dst = __partial_tensor<_TpDst, _StrideTOut, _MaxRankUZ, _DstAccessor>;
   //--------------------------------------------------------------------------------------------------------------------
   // Full-tile shared-memory transpose
   if (__is_full_tile)
   {
     using _Tp = ::cuda::std::remove_cv_t<_TpSrc>;
+    using __partial_tensor_smem =
+      __partial_tensor<_Tp, __tile_extent_t, _MaxRankUZ, ::cuda::std::default_accessor<_Tp>>;
+
     extern __shared__ char __smem_bytes[];
     auto* __smem = reinterpret_cast<_Tp*>(__smem_bytes);
 
     // (1) load src to shared memory by using the src/tile-permuted ordering
-    const __partial_tensor __src_tensor{__src_ptr, __src_perm_src_strides, __src_accessor};
-    const __partial_tensor __smem_tensor{__smem, __tile_perm_smem_strides, ::cuda::std::default_accessor<_Tp>{}};
+    const __partial_tensor_src __src_tensor{__src_ptr, __src_perm_src_strides, __src_accessor};
+    const __partial_tensor_smem __smem_tensor{__smem, __tile_perm_smem_strides, ::cuda::std::default_accessor<_Tp>{}};
 
-    for (int __i = __tid; __i < __tile_total_size; __i += __block_stride)
+    for (auto __i = __tid; __i < __tile_total_size; __i += __block_stride)
     {
       const auto __coords     = __tile_perm_iter(__i);
       __smem_tensor(__coords) = __src_tensor(__coords);
@@ -166,9 +169,9 @@ __global__ void __copy_shared_mem_kernel(
     __syncthreads();
 
     // (2) store from shared memory to destination by using the dst-natural ordering (row-major)
-    const __partial_tensor __dst_tensor{__dst_ptr, __dst_strides, __dst_accessor};
+    const __partial_tensor_dst __dst_tensor{__dst_ptr, __dst_strides, __dst_accessor};
 
-    for (int __i = __tid; __i < __tile_total_size; __i += __block_stride)
+    for (auto __i = __tid; __i < __tile_total_size; __i += __block_stride)
     {
       const auto __coords    = __tile_natural_iter(__i);
       __dst_tensor(__coords) = __smem[__i];
@@ -179,8 +182,8 @@ __global__ void __copy_shared_mem_kernel(
   else
   {
     using __uextent_t = ::cuda::std::make_unsigned_t<_ExtentT>;
-    const __partial_tensor __src_tensor{__src_ptr, __src_strides, __src_accessor};
-    const __partial_tensor __dst_tensor{__dst_ptr, __dst_strides, __dst_accessor};
+    const __partial_tensor_src __src_tensor{__src_ptr, __src_strides, __src_accessor};
+    const __partial_tensor_dst __dst_tensor{__dst_ptr, __dst_strides, __dst_accessor};
 
     // Find the partial tile sizes and total number of elements
     ::cuda::std::array<__tile_extent_t, __max_rank> __partial_tile_sizes{};
@@ -214,9 +217,8 @@ __global__ void __copy_shared_mem_kernel(
 
 //! @brief Launch the shared-memory tiled transpose kernel.
 //!
-//! Precomputes the src-coalesced permutation and tile geometry, constructs coordinate iterators,
-//! then launches one block per tile. Used for the "transpose case" where the destination has
-//! stride-1 in mode 0 and the source has stride-1 elsewhere.
+//! Precomputes the src-coalesced permutation and tile shapes, constructs coordinate iterators, then launches one
+//! block per tile.
 //!
 //! @pre `__src.__rank >= 2`
 //! @pre `__dst.__strides[0] == 1`
@@ -245,14 +247,15 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
   namespace cudax = ::cuda::experimental;
   using ::cuda::std::size_t;
   _CCCL_ASSERT(__src.__rank >= 2, "Rank must be at least 2 for shared memory transpose");
-  _CCCL_ASSERT(cudax::__same_extents(__src, __dst), "Source and destination ranks must be equal");
+  _CCCL_ASSERT(__src.__strides[0] != 1, "Source must not have stride-1 in mode 0");
+  _CCCL_ASSERT(__dst.__strides[0] == 1, "Destination must have stride-1 in mode 0");
 
   size_t __tile_total_size = 0;
   const auto __tile_sizes  = cudax::__find_shared_mem_tiling(__dst, __tile_total_size);
   const auto __rank        = __src.__rank;
 
   //--------------------------------------------------------------------------------------------------------------------
-  // Grid sizes and strides for block index decomposition
+  // Find the grid size (number of blocks) and strides for block index decomposition
   ::cuda::std::array<_ExtentT, _MaxRank> __grid_tile_sizes{};
   ::cuda::std::array<_StrideTIn, _MaxRank> __grid_tile_src_strides{};
   ::cuda::std::array<_StrideTOut, _MaxRank> __grid_tile_dst_strides{};
@@ -269,17 +272,17 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
     __grid_tile_sizes[__i] = 1;
   }
   //--------------------------------------------------------------------------------------------------------------------
-  // Src-coalesced permutation: sort modes by ascending |src_stride|
+  // source-coalesced permutation: sort modes by ascending |src_stride|
   ::cuda::std::array<int, _MaxRank> __src_perm{};
   for (size_t __i = 0; __i < _MaxRank; ++__i)
   {
-    __src_perm[__i] = __i;
+    __src_perm[__i] = static_cast<int>(__i);
   }
   ::cuda::std::stable_sort(__src_perm.begin(), __src_perm.begin() + __rank, [&](auto __a, auto __b) {
     return cudax::__abs_integer(__src.__strides[__a]) < cudax::__abs_integer(__src.__strides[__b]);
   });
   //--------------------------------------------------------------------------------------------------------------------
-  // Reordered arrays for loading src to shared memory (src-coalesced thread decomposition)
+  // Reordered arrays for loading src to shared memory based on the source-coalesced permutation
   ::cuda::std::array<_StrideTIn, _MaxRank> __src_perm_src_strides{};
   ::cuda::std::array<__tile_extent_t, _MaxRank> __tile_perm_sizes{};
   ::cuda::std::array<__tile_extent_t, _MaxRank> __tile_perm_smem_strides{};
@@ -302,10 +305,10 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
   }
   //--------------------------------------------------------------------------------------------------------------------
   // Construct coordinate iterators on the host (precomputed fast modulo/division)
-  // namely, given a linear tile index, compute the multi-dimensional coordinates
-  const __tensor_coord_iterator<_ExtentT, _MaxRank> __grid_iter(__grid_tile_sizes);
-  const __tensor_coord_iterator<__tile_extent_t, _MaxRank> __tile_perm_iter(__tile_perm_sizes);
-  const __tensor_coord_iterator<__tile_extent_t, _MaxRank> __tile_natural_iter(__tile_sizes);
+  // namely, given a linear index, compute the multi-dimensional coordinates
+  const __tensor_coord_iterator<_ExtentT, _MaxRank> __grid_iter{__grid_tile_sizes}; // grid tile index
+  const __tensor_coord_iterator<__tile_extent_t, _MaxRank> __tile_perm_iter{__tile_perm_sizes}; // src -> shared memory
+  const __tensor_coord_iterator<__tile_extent_t, _MaxRank> __tile_natural_iter{__tile_sizes}; // shared memory -> dst
   //--------------------------------------------------------------------------------------------------------------------
   // Launch the kernel
   using __value_type            = ::cuda::std::remove_cv_t<_TpIn>;

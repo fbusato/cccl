@@ -24,9 +24,10 @@
 #if !_CCCL_COMPILER(NVRTC)
 
 #  include <cuda/__cmath/ceil_div.h>
+#  include <cuda/__device/all_devices.h>
+#  include <cuda/__device/attributes.h>
+#  include <cuda/__device/device_ref.h>
 #  include <cuda/__driver/driver_api.h>
-#  include <cuda/devices>
-#  include <cuda/std/__algorithm/any_of.h>
 #  include <cuda/std/__algorithm/min.h>
 #  include <cuda/std/__cstddef/types.h>
 #  include <cuda/std/array>
@@ -37,6 +38,13 @@
 
 namespace cuda::experimental
 {
+//! Maximum tensor rank for which the shared-memory transpose kernel is instantiated. Higher ranks cause excessive
+//! register pressure (many rank-sized arrays and fully-unrolled loops).
+inline constexpr ::cuda::std::size_t __max_shared_mem_kernel_rank = 8;
+
+//! A tile size is always representable by an unsigned integer.
+using __tile_extent_t = unsigned;
+
 //! @brief Count the number of leading contiguous dimensions in a raw tensor.
 //!
 //! Starting from dimension 0, counts consecutive dimensions where `stride[0] == 1` and `stride[i] == stride[i-1] *
@@ -48,8 +56,7 @@ template <typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_
 [[nodiscard]] _CCCL_HOST_API ::cuda::std::size_t
 __num_contiguous_dimensions(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor) noexcept
 {
-  using __raw_tensor_t = __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>;
-  using __rank_t       = typename __raw_tensor_t::__rank_t;
+  using __rank_t = typename __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>::__rank_t;
   if (__tensor.__rank == 0 || __tensor.__strides[0] != 1)
   {
     return 0;
@@ -71,19 +78,15 @@ __num_contiguous_dimensions(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank
 //! @brief Return a device_ref for the current CUDA device.
 //!
 //! @return Device reference for the active CUDA context's device
-[[nodiscard]] _CCCL_HOST_API inline device_ref __current_device()
+[[nodiscard]] _CCCL_HOST_API inline ::cuda::device_ref __current_device() noexcept
 {
   const auto __dev_id = ::cuda::__driver::__cudevice_to_ordinal(::cuda::__driver::__ctxGetDevice());
   return ::cuda::devices[__dev_id];
 }
 
-//! Maximum extent of a single tile dimension, set to the warp size so that the innermost tile dimension maps to a full
-//! warp of coalesced accesses.
-inline constexpr ::cuda::std::size_t __max_tile_size = 32;
-
-//! Maximum tensor rank for which the shared-memory transpose kernel is instantiated. Higher ranks cause excessive
-//! register pressure (many rank-sized arrays and fully-unrolled loops).
-inline constexpr ::cuda::std::size_t __max_shared_mem_kernel_rank = 8;
+//! Maximum extent of a single tile dimension, set to the warp size so that the innermost tile dimension maps to a
+//! full warp of coalesced accesses.
+inline constexpr size_t __max_tile_size = 32;
 
 //! @brief Decide whether the shared-memory tiled transpose kernel is profitable.
 //!
@@ -102,36 +105,28 @@ template <typename _ExtentT,
           ::cuda::std::size_t _MaxRank>
 [[nodiscard]] _CCCL_HOST_API bool
 __use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank>& __src,
-                        const __raw_tensor<_ExtentT, _StrideTOut, _TpOut, _MaxRank>& __dst)
+                        const __raw_tensor<_ExtentT, _StrideTOut, _TpOut, _MaxRank>& __dst) noexcept
 {
   using ::cuda::std::size_t;
-  using __rank_t                = typename __raw_tensor<_ExtentT, _StrideTOut, _TpOut, _MaxRank>::__rank_t;
-  const size_t __num_contiguous = ::cuda::experimental::__num_contiguous_dimensions(__dst);
+  using __rank_t                    = typename __raw_tensor<_ExtentT, _StrideTOut, _TpOut, _MaxRank>::__rank_t;
+  const size_t __num_contiguous_dst = ::cuda::experimental::__num_contiguous_dimensions(__dst);
   // * destination is contiguous (in dimension 0) -> coalesced destination writes
-  // * source is not contiguous (already excluded by vectorized copy)
+  // * source is not contiguous (already excluded by vectorized/contiguous copy)
   // * there are at least two contiguous destination dimensions -> otherwise, direct copy is better
-  if (__src.__strides[0] == 1 || __dst.__strides[0] != 1 || __num_contiguous < 2)
+  if (__src.__strides[0] == 1 || __dst.__strides[0] != 1 || __num_contiguous_dst < 2)
   {
     return false;
   }
 
-  // * source has at least one dimension with extent not equal to 1 -> otherwise, shared memory makes no sense
-  const auto __ext_begin          = __src.__extents.cbegin();
-  const bool __has_non_one_extent = ::cuda::std::any_of(__ext_begin, __ext_begin + __src.__rank, [](auto __extent) {
-    return __extent != 1;
-  });
-  if (!__has_non_one_extent)
-  {
-    return false;
-  }
-
-  // * there are at least two contiguous destination dimensions -> otherwise, direct copy is better
-  // * the tile is large enough to benefits from coalesced memory accesses
+  // * the tile is large enough to benefits from coalesced memory accesses.
+  // algorithm:
+  // - accumulate the product of the tile sizes until the shared memory limit is reached
+  // - the tile size (which is at block level) is capped at the warp size to get coalesced accesses
   const auto __current_dev            = ::cuda::experimental::__current_device();
   const size_t __max_shared_mem_bytes = __current_dev.attribute<::cudaDevAttrMaxSharedMemoryPerBlock>();
   size_t __size_product               = 1;
   int __tile_rank                     = 0;
-  for (size_t __r = 0; __r < __num_contiguous; ++__r, ++__tile_rank)
+  for (size_t __r = 0; __r < __num_contiguous_dst; ++__r, ++__tile_rank)
   {
     const auto __tile_size_r = ::cuda::std::min(static_cast<size_t>(__dst.__extents[__r]), __max_tile_size);
     if (__size_product * __tile_size_r * sizeof(_TpOut) > __max_shared_mem_bytes)
@@ -140,47 +135,46 @@ __use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank
     }
     __size_product *= __tile_size_r;
   }
+  // if the final tile size is too small, exit
+  // 8 means each warp performs (block size / warp size) iterations >= 8
   if (__tile_rank < 2 || __size_product < __max_tile_size * 8)
   {
     return false;
   }
 
   // * there are enough tiles to keep the GPU busy (at least one full wave across all SMs)
-  size_t __num_tiles = 1;
-  for (__rank_t __r = 0; __r < __dst.__rank; ++__r)
+  size_t __num_tiles = 1; // __num_tiles == number of blocks
+  for (__rank_t __r = 0; __r < __tile_rank; ++__r)
   {
     const auto __extent    = static_cast<size_t>(__dst.__extents[__r]);
-    const auto __tile_size = (__r < __tile_rank) ? ::cuda::std::min(__extent, __max_tile_size) : size_t{1};
+    const auto __tile_size = ::cuda::std::min(__extent, __max_tile_size);
     __num_tiles *= ::cuda::ceil_div(__extent, __tile_size);
   }
   const size_t __num_sms = __current_dev.attribute<::cudaDevAttrMultiProcessorCount>();
   return __num_tiles >= __num_sms;
 }
 
-using __tile_extent_t = unsigned;
-
 //! @brief Compute the shared-memory tile sizes for a destination tensor.
 //!
 //! Greedily expands the tile across contiguous dimensions up to the warp-size cap per dimension and the device
 //! shared-memory limit. Dimensions beyond the tile rank are set to extent 1.
 //!
-//! @param[in]  __tensor         Destination raw tensor descriptor
+//! @param[in]  __tensor          Destination raw tensor descriptor
 //! @param[out] __tile_total_size Total number of elements in one tile (output)
 //! @return Per-dimension tile sizes (unused dimensions are 1)
 template <typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_t _MaxRank>
 [[nodiscard]] _CCCL_HOST_API ::cuda::std::array<__tile_extent_t, _MaxRank> __find_shared_mem_tiling(
-  const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor, ::cuda::std::size_t& __tile_total_size)
+  const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor, ::cuda::std::size_t& __tile_total_size) noexcept
 {
   using ::cuda::std::size_t;
-  namespace cudax                     = ::cuda::experimental;
-  const auto __current_dev            = cudax::__current_device();
+  const auto __current_dev            = ::cuda::experimental::__current_device();
   const size_t __max_shared_mem_bytes = __current_dev.attribute<::cudaDevAttrMaxSharedMemoryPerBlock>();
-  const size_t __num_contiguous       = cudax::__num_contiguous_dimensions(__tensor);
+  const size_t __num_contiguous_dst   = ::cuda::experimental::__num_contiguous_dimensions(__tensor);
 
   ::cuda::std::array<__tile_extent_t, _MaxRank> __tile_sizes{};
   __tile_total_size  = 1;
   size_t __tile_rank = 0;
-  for (size_t __r = 0; __r < __num_contiguous; ++__r, ++__tile_rank)
+  for (size_t __r = 0; __r < __num_contiguous_dst; ++__r, ++__tile_rank)
   {
     const auto __tile_size_r = ::cuda::std::min(static_cast<size_t>(__tensor.__extents[__r]), __max_tile_size);
     if (__tile_total_size * __tile_size_r * sizeof(_Tp) > __max_shared_mem_bytes)
@@ -199,12 +193,12 @@ template <typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_
 
 //! @brief Compute the thread block size for the shared-memory kernel.
 //!
-//! Balances occupancy by dividing the SM thread budget across as many blocks as the shared memory allows, then caps at
+//! Balances occupancy by dividing the SM threads across as many blocks as the shared memory allows, then caps at
 //! the device maximum.
 //!
 //! @param[in] __tile_total_bytes Shared memory required for one tile in bytes
 //! @return Thread block size
-[[nodiscard]] _CCCL_HOST_API inline int __find_thread_block_size(::cuda::std::size_t __tile_total_bytes)
+[[nodiscard]] _CCCL_HOST_API inline int __find_thread_block_size(::cuda::std::size_t __tile_total_bytes) noexcept
 {
   using ::cuda::std::size_t;
   const auto __dev                      = ::cuda::experimental::__current_device();

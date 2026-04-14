@@ -23,9 +23,6 @@
 
 #if !_CCCL_COMPILER(NVRTC)
 
-#  include <cuda/__utility/in_range.h>
-#  include <cuda/std/__algorithm/all_of.h>
-#  include <cuda/std/__algorithm/is_sorted.h>
 #  include <cuda/std/__algorithm/stable_sort.h>
 #  include <cuda/std/__cstddef/types.h>
 #  include <cuda/std/__mdspan/mdspan.h>
@@ -71,42 +68,6 @@ __same_extents(const __raw_tensor<_ExtentTIn, _StrideTIn, _TpIn, _MaxRankIn>& __
     }
   }
   return true;
-}
-
-//! @brief Check whether every active mode has shape strictly greater than 1.
-//!
-//! @pre `__tensor.__rank` is in [0, _MaxRank].
-//!
-//! @param[in] __tensor Raw tensor to inspect
-//! @return true if all shapes in [0, rank) are > 1; true for rank 0
-template <typename _Ep, typename _Sp, typename _Tp, ::cuda::std::size_t _MaxRank>
-[[nodiscard]] _CCCL_HOST_API bool __has_no_extent1_modes(const __raw_tensor<_Ep, _Sp, _Tp, _MaxRank>& __tensor) noexcept
-{
-  _CCCL_ASSERT(::cuda::in_range(__tensor.__rank, ::cuda::std::size_t{0}, _MaxRank),
-               "cudax::has_no_extent1_modes: Invalid tensor rank");
-  // clang-format off
-  return ::cuda::std::all_of(__tensor.__extents.cbegin(), __tensor.__extents.cbegin() + __tensor.__rank,
-    [](auto __extent) {
-      return __extent > 1;
-    }
-  ); // clang-format on
-}
-
-//! @brief Check whether the first `__rank` strides are in ascending order.
-//!
-//! @pre `__tensor.__rank` is in [0, _MaxRank].
-//!
-//! @param[in] __tensor Raw tensor to inspect
-//! @return true if strides[0..rank) are non-descending
-template <typename _Ep, typename _Sp, typename _Tp, ::cuda::std::size_t _MaxRank>
-[[nodiscard]] _CCCL_HOST_API bool __has_sorted_strides(const __raw_tensor<_Ep, _Sp, _Tp, _MaxRank>& __tensor) noexcept
-{
-  namespace cudax = ::cuda::experimental;
-  _CCCL_ASSERT(::cuda::in_range(__tensor.__rank, ::cuda::std::size_t{0}, _MaxRank), "Invalid tensor rank");
-  return ::cuda::std::is_sorted(
-    __tensor.__strides.cbegin(), __tensor.__strides.cbegin() + __tensor.__rank, [](auto __a, auto __b) {
-      return cudax::__abs_integer(__a) < cudax::__abs_integer(__b);
-    });
 }
 
 // lambdas are painful without --extended-lambda and when used with __host__ __device__ functions

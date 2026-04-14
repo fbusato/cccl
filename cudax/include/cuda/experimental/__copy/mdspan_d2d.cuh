@@ -48,6 +48,7 @@
 
 #  include <cuda/experimental/__copy/copy_contiguous.cuh>
 #  include <cuda/experimental/__copy/copy_optimized.cuh>
+#  include <cuda/experimental/__copy/copy_shared_memory.cuh>
 #  include <cuda/experimental/__copy/dispatch_by_vector.cuh>
 #  include <cuda/experimental/__copy/tensor_copy_utils.cuh>
 #  include <cuda/experimental/__copy/vector_access.cuh>

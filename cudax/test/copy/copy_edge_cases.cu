@@ -134,18 +134,11 @@ TEST_CASE("copy d2d contiguous scaled_accessor", "[copy][d2d][1d][accessor]")
 
 struct alignas(64) large_type_64
 {
-  char data[64];
+  cuda::std::array<char, 64> data;
 
-  bool operator==(const large_type_64& other) const
+  friend bool operator==(const large_type_64& __lhs, const large_type_64& __rhs)
   {
-    for (int i = 0; i < 64; ++i)
-    {
-      if (data[i] != other.data[i])
-      {
-        return false;
-      }
-    }
-    return true;
+    return __lhs.data == __rhs.data;
   }
 };
 
