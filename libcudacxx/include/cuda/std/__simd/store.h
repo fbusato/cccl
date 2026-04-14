@@ -90,7 +90,13 @@ _CCCL_API constexpr void __full_store_to_ptr(const basic_vec<_Tp, _Abi>& __v, _U
       constexpr auto __ptr_alignment  = ::cuda::std::max(__base_alignment, __overaligned_value_v<_Flags...>);
       constexpr auto __data_size      = __simd_size * sizeof(_Up);
 
+      // When _CCCL_IF_NOT_CONSTEVAL falls back to __builtin_is_constant_evaluated(),
+      // EDG requires locals to be initialized for the function to remain constexpr
+#if __cpp_if_consteval >= 202106L || _CCCL_HAS_IF_CONSTEVAL_IN_CXX20()
       _Up __tmp[__simd_size];
+#else
+      _Up __tmp[__simd_size] = {};
+#endif
       _CCCL_PRAGMA_UNROLL_FULL()
       for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
       {
@@ -105,7 +111,11 @@ _CCCL_API constexpr void __full_store_to_ptr(const basic_vec<_Tp, _Abi>& __v, _U
         };
         // nvcc performance bug: memcpy to pointer could not be vectorized
         auto __aligned_ptr = ::cuda::ptr_rebind<__aligned_t>(__ptr);
+#if __cpp_if_consteval >= 202106L || _CCCL_HAS_IF_CONSTEVAL_IN_CXX20()
         __aligned_t __data;
+#else
+        __aligned_t __data{};
+#endif
         ::cuda::std::memcpy(&__data, &__tmp, sizeof(__tmp));
         *::cuda::std::assume_aligned<__ptr_alignment>(__aligned_ptr) = __data;
       }
@@ -230,7 +240,7 @@ _CCCL_API constexpr void unchecked_store(
     static_assert(__static_range_size_v<_Range> >= basic_vec<_Tp, _Abi>::size(),
                   "unchecked_store requires ranges::size(r) >= V::size()");
   }
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::ranges::size(__r), __v.size),
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::ranges::size(__r), __v.size()),
                "unchecked_store requires ranges::size(r) >= V::size()");
   ::cuda::std::simd::__partial_store_to_ptr<_Tp, _Abi, _Up, _Flags...>(
     __v, ::cuda::std::ranges::data(__r), basic_vec<_Tp, _Abi>::size, __mask);
@@ -248,7 +258,7 @@ _CCCL_API constexpr void unchecked_store(const basic_vec<_Tp, _Abi>& __v, _Range
     static_assert(__static_range_size_v<_Range> >= basic_vec<_Tp, _Abi>::size(),
                   "unchecked_store requires ranges::size(r) >= V::size()");
   }
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::ranges::size(__r), __v.size),
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::ranges::size(__r), __v.size()),
                "unchecked_store requires ranges::size(r) >= V::size()");
   ::cuda::std::simd::__full_store_to_ptr<_Tp, _Abi, _Up, _Flags...>(__v, ::cuda::std::ranges::data(__r));
 }
@@ -264,7 +274,7 @@ _CCCL_API constexpr void unchecked_store(
   flags<_Flags...> = {})
 {
   using _Up = iter_value_t<_Ip>;
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(__n, __v.size), "unchecked_store requires n >= V::size()");
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(__n, __v.size()), "unchecked_store requires n >= V::size()");
   ::cuda::std::simd::__partial_store_to_ptr<_Tp, _Abi, _Up, _Flags...>(
     __v, ::cuda::std::to_address(__first), basic_vec<_Tp, _Abi>::size, __mask);
 }
@@ -276,7 +286,7 @@ _CCCL_API constexpr void
 unchecked_store(const basic_vec<_Tp, _Abi>& __v, _Ip __first, iter_difference_t<_Ip> __n, flags<_Flags...> = {})
 {
   using _Up = iter_value_t<_Ip>;
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(__n, __v.size), "unchecked_store requires n >= V::size()");
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(__n, __v.size()), "unchecked_store requires n >= V::size()");
   ::cuda::std::simd::__full_store_to_ptr<_Tp, _Abi, _Up, _Flags...>(__v, ::cuda::std::to_address(__first));
 }
 
@@ -292,7 +302,7 @@ _CCCL_API constexpr void unchecked_store(
   flags<_Flags...> = {})
 {
   using _Up = iter_value_t<_Ip>;
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::distance(__first, __last), __v.size),
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::distance(__first, __last), __v.size()),
                "unchecked_store requires distance(first, last) >= V::size()");
   ::cuda::std::simd::__partial_store_to_ptr<_Tp, _Abi, _Up, _Flags...>(
     __v, ::cuda::std::to_address(__first), basic_vec<_Tp, _Abi>::size, __mask);
@@ -305,7 +315,7 @@ _CCCL_REQUIRES(contiguous_iterator<_Ip> _CCCL_AND sized_sentinel_for<_Sp, _Ip> _
 _CCCL_API constexpr void unchecked_store(const basic_vec<_Tp, _Abi>& __v, _Ip __first, _Sp __last, flags<_Flags...> = {})
 {
   using _Up = iter_value_t<_Ip>;
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::distance(__first, __last), __v.size),
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::distance(__first, __last), __v.size()),
                "unchecked_store requires distance(first, last) >= V::size()");
   ::cuda::std::simd::__full_store_to_ptr<_Tp, _Abi, _Up, _Flags...>(__v, ::cuda::std::to_address(__first));
 }
