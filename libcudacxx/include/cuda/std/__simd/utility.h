@@ -146,6 +146,10 @@ _CCCL_API constexpr void __assert_load_store_alignment([[maybe_unused]] const _U
       _CCCL_ASSERT(::cuda::is_aligned(__data, __overaligned_alignment_v<_Flags...>),
                    "flag_overaligned<N> requires data to be aligned to N");
     }
+    else
+    {
+      _CCCL_ASSERT(::cuda::is_aligned(__data, alignof(_Up)), "data is not aligned to alignof(_Up)");
+    }
   }
 }
 

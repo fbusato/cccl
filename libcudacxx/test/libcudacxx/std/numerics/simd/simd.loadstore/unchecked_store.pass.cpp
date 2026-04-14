@@ -211,6 +211,29 @@ __host__ __device__ constexpr void test_round_trip()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// noexcept: public functions must NOT be noexcept
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_unchecked_store_not_noexcept()
+{
+  using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
+  using Mask = typename Vec::mask_type;
+  Vec vec(iota_generator<T>{});
+  cuda::std::array<T, N> arr{};
+  Mask mask(true);
+
+  // range overloads
+  static_assert(!noexcept(simd::unchecked_store(vec, arr, mask)));
+  static_assert(!noexcept(simd::unchecked_store(vec, arr)));
+  // iterator + count overloads
+  static_assert(!noexcept(simd::unchecked_store(vec, arr.data(), N, mask)));
+  static_assert(!noexcept(simd::unchecked_store(vec, arr.data(), N)));
+  // iterator + sentinel overloads
+  static_assert(!noexcept(simd::unchecked_store(vec, arr.data(), arr.data() + N, mask)));
+  static_assert(!noexcept(simd::unchecked_store(vec, arr.data(), arr.data() + N)));
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
 __host__ __device__ constexpr void test_type()
@@ -222,6 +245,7 @@ __host__ __device__ constexpr void test_type()
   test_unchecked_store_aligned<T, N>();
   test_unchecked_store_convert<T, N>();
   test_round_trip<T, N>();
+  test_unchecked_store_not_noexcept<T, N>();
 }
 
 DEFINE_BASIC_VEC_TEST()

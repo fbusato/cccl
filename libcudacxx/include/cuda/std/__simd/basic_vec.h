@@ -54,10 +54,11 @@ private:
 
   template <typename _Result, typename _Up, typename... _Flags>
   _CCCL_API friend constexpr _Result
-  __partial_load_from_ptr(const _Up*, __simd_size_type, const typename _Result::mask_type&);
+  __partial_load_from_ptr(const _Up*, __simd_size_type, const typename _Result::mask_type&, flags<_Flags...>) noexcept;
 
   template <typename _Result, typename _Up, typename... _Flags>
-  _CCCL_API friend constexpr _Result __full_load_from_ptr(const _Up*, const typename _Result::mask_type&);
+  _CCCL_API friend constexpr _Result
+  __full_load_from_ptr(const _Up*, const typename _Result::mask_type&, flags<_Flags...>) noexcept;
 
   using _Impl    = __simd_operations<_Tp, _Abi>;
   using _Storage = typename _Impl::_SimdStorage;
