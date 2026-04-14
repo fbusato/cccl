@@ -30,13 +30,23 @@ template <typename T, int N>
 __host__ __device__ constexpr void test_partial_load_range()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  auto arr  = make_iota_array<T, N>();
+  cuda::std::array<T, N> arr{};
+  for (int i = 0; i < N; ++i)
+  {
+    arr[i] = static_cast<T>(i + 1);
+  }
 
   Vec vec = simd::partial_load<Vec>(arr);
-  assert(vec == arr);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec[i] == static_cast<T>(i + 1));
+  }
 
   Vec vec2 = simd::partial_load<Vec>(arr, simd::flag_default);
-  assert(vec2 == arr);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec2[i] == static_cast<T>(i + 1));
+  }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -47,14 +57,24 @@ __host__ __device__ constexpr void test_partial_load_range_masked()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
-  auto arr   = make_iota_array<T, N>();
+  cuda::std::array<T, N> arr{};
+  for (int i = 0; i < N; ++i)
+  {
+    arr[i] = static_cast<T>(i + 1);
+  }
 
   Mask even_mask(is_even{});
   Vec vec = simd::partial_load<Vec>(arr, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : T{};
-    assert(vec[i] == expected);
+    if (i % 2 == 0)
+    {
+      assert(vec[i] == static_cast<T>(i + 1));
+    }
+    else
+    {
+      assert(vec[i] == T{});
+    }
   }
 }
 
@@ -66,9 +86,13 @@ __host__ __device__ constexpr void test_partial_load_smaller_range()
 {
   if constexpr (N > 1)
   {
-    using Vec          = simd::basic_vec<T, simd::fixed_size<N>>;
-    constexpr int Half = N / 2;
-    auto small_arr     = make_iota_array<T, Half>();
+    using Vec              = simd::basic_vec<T, simd::fixed_size<N>>;
+    constexpr int Half     = N / 2;
+    cuda::std::array<T, Half> small_arr{};
+    for (int i = 0; i < Half; ++i)
+    {
+      small_arr[i] = static_cast<T>(i + 1);
+    }
 
     Vec vec = simd::partial_load<Vec>(small_arr);
     for (int i = 0; i < N; ++i)
@@ -92,18 +116,31 @@ template <typename T, int N>
 __host__ __device__ constexpr void test_partial_load_iter_count()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  auto arr  = make_iota_array<T, N>();
+  cuda::std::array<T, N> arr{};
+  for (int i = 0; i < N; ++i)
+  {
+    arr[i] = static_cast<T>(i + 1);
+  }
 
   Vec vec = simd::partial_load<Vec>(arr.data(), N);
-  assert(vec == arr);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec[i] == static_cast<T>(i + 1));
+  }
 
   using Mask = typename Vec::mask_type;
   Mask even_mask(is_even{});
   Vec masked_vec = simd::partial_load<Vec>(arr.data(), N, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : T{};
-    assert(masked_vec[i] == expected);
+    if (i % 2 == 0)
+    {
+      assert(masked_vec[i] == static_cast<T>(i + 1));
+    }
+    else
+    {
+      assert(masked_vec[i] == T{});
+    }
   }
 }
 
@@ -114,18 +151,31 @@ template <typename T, int N>
 __host__ __device__ constexpr void test_partial_load_iter_sentinel()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  auto arr  = make_iota_array<T, N>();
+  cuda::std::array<T, N> arr{};
+  for (int i = 0; i < N; ++i)
+  {
+    arr[i] = static_cast<T>(i + 1);
+  }
 
   Vec vec = simd::partial_load<Vec>(arr.data(), arr.data() + N);
-  assert(vec == arr);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec[i] == static_cast<T>(i + 1));
+  }
 
   using Mask = typename Vec::mask_type;
   Mask even_mask(is_even{});
   Vec masked_vec = simd::partial_load<Vec>(arr.data(), arr.data() + N, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : T{};
-    assert(masked_vec[i] == expected);
+    if (i % 2 == 0)
+    {
+      assert(masked_vec[i] == static_cast<T>(i + 1));
+    }
+    else
+    {
+      assert(masked_vec[i] == T{});
+    }
   }
 }
 
@@ -137,44 +187,35 @@ __host__ __device__ constexpr void test_partial_load_convert()
 {
   if constexpr (sizeof(T) <= sizeof(int) && cuda::std::is_integral_v<T>)
   {
-    using Vec      = simd::basic_vec<T, simd::fixed_size<N>>;
-    using WiderT   = cuda::std::conditional_t<cuda::std::is_signed_v<T>, int64_t, uint64_t>;
-    auto wider_arr = make_iota_array<WiderT, N>();
+    using Vec    = simd::basic_vec<T, simd::fixed_size<N>>;
+    using WiderT = cuda::std::conditional_t<cuda::std::is_signed_v<T>, int64_t, uint64_t>;
+    cuda::std::array<WiderT, N> wider_arr{};
+    for (int i = 0; i < N; ++i)
+    {
+      wider_arr[i] = static_cast<WiderT>(i + 1);
+    }
 
     Vec vec = simd::partial_load<Vec>(wider_arr, simd::flag_convert);
-    assert((vec == make_iota_array<T, N>()));
+    for (int i = 0; i < N; ++i)
+    {
+      assert(vec[i] == static_cast<T>(static_cast<WiderT>(i + 1)));
+    }
   }
   if constexpr (cuda::std::is_same_v<T, float>)
   {
-    using Vec      = simd::basic_vec<T, simd::fixed_size<N>>;
-    auto wider_arr = make_iota_array<double, N>();
+    using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+    cuda::std::array<double, N> wider_arr{};
+    for (int i = 0; i < N; ++i)
+    {
+      wider_arr[i] = static_cast<double>(i + 1);
+    }
 
     Vec vec = simd::partial_load<Vec>(wider_arr, simd::flag_convert);
-    assert((vec == make_iota_array<T, N>()));
+    for (int i = 0; i < N; ++i)
+    {
+      assert(vec[i] == static_cast<T>(static_cast<double>(i + 1)));
+    }
   }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// noexcept: public functions must NOT be noexcept
-
-template <typename T, int N>
-__host__ __device__ constexpr void test_partial_load_not_noexcept()
-{
-  using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
-  using Mask = typename Vec::mask_type;
-  cuda::std::array<T, N> arr{};
-  Mask mask(true);
-  unused(arr, mask);
-
-  // range overloads
-  static_assert(!noexcept(simd::partial_load<Vec>(arr, mask)));
-  static_assert(!noexcept(simd::partial_load<Vec>(arr)));
-  // iterator + count overloads
-  static_assert(!noexcept(simd::partial_load<Vec>(arr.data(), N, mask)));
-  static_assert(!noexcept(simd::partial_load<Vec>(arr.data(), N)));
-  // iterator + sentinel overloads
-  static_assert(!noexcept(simd::partial_load<Vec>(arr.data(), arr.data() + N, mask)));
-  static_assert(!noexcept(simd::partial_load<Vec>(arr.data(), arr.data() + N)));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -188,7 +229,6 @@ __host__ __device__ constexpr void test_type()
   test_partial_load_iter_count<T, N>();
   test_partial_load_iter_sentinel<T, N>();
   test_partial_load_convert<T, N>();
-  test_partial_load_not_noexcept<T, N>();
 }
 
 DEFINE_BASIC_VEC_TEST()

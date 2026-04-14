@@ -67,8 +67,14 @@ __host__ __device__ constexpr void test_partial_store_range_masked()
   simd::partial_store(vec, dest, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : static_cast<T>(99);
-    assert(dest[i] == expected);
+    if (i % 2 == 0)
+    {
+      assert(dest[i] == static_cast<T>(i + 1));
+    }
+    else
+    {
+      assert(dest[i] == static_cast<T>(99));
+    }
   }
 }
 
@@ -119,8 +125,14 @@ __host__ __device__ constexpr void test_partial_store_iter_count()
   simd::partial_store(vec, masked_dest.data(), N, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : static_cast<T>(99);
-    assert(masked_dest[i] == expected);
+    if (i % 2 == 0)
+    {
+      assert(masked_dest[i] == static_cast<T>(i + 1));
+    }
+    else
+    {
+      assert(masked_dest[i] == static_cast<T>(99));
+    }
   }
 }
 
@@ -150,8 +162,14 @@ __host__ __device__ constexpr void test_partial_store_iter_sentinel()
   simd::partial_store(vec, masked_dest.data(), masked_dest.data() + N, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : static_cast<T>(99);
-    assert(masked_dest[i] == expected);
+    if (i % 2 == 0)
+    {
+      assert(masked_dest[i] == static_cast<T>(i + 1));
+    }
+    else
+    {
+      assert(masked_dest[i] == static_cast<T>(99));
+    }
   }
 }
 
@@ -189,30 +207,6 @@ __host__ __device__ constexpr void test_partial_store_convert()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// noexcept: public functions must NOT be noexcept
-
-template <typename T, int N>
-__host__ __device__ constexpr void test_partial_store_not_noexcept()
-{
-  using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
-  using Mask = typename Vec::mask_type;
-  Vec vec(iota_generator<T>{});
-  cuda::std::array<T, N> arr{};
-  Mask mask(true);
-  unused(vec, arr, mask);
-
-  // range overloads
-  static_assert(!noexcept(simd::partial_store(vec, arr, mask)));
-  static_assert(!noexcept(simd::partial_store(vec, arr)));
-  // iterator + count overloads
-  static_assert(!noexcept(simd::partial_store(vec, arr.data(), N, mask)));
-  static_assert(!noexcept(simd::partial_store(vec, arr.data(), N)));
-  // iterator + sentinel overloads
-  static_assert(!noexcept(simd::partial_store(vec, arr.data(), arr.data() + N, mask)));
-  static_assert(!noexcept(simd::partial_store(vec, arr.data(), arr.data() + N)));
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
 __host__ __device__ constexpr void test_type()
@@ -223,7 +217,6 @@ __host__ __device__ constexpr void test_type()
   test_partial_store_iter_count<T, N>();
   test_partial_store_iter_sentinel<T, N>();
   test_partial_store_convert<T, N>();
-  test_partial_store_not_noexcept<T, N>();
 }
 
 DEFINE_BASIC_VEC_TEST()

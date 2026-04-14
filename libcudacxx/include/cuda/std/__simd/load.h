@@ -90,10 +90,8 @@ __partial_load_from_ptr(const _Up* __ptr, __simd_size_type __count, const typena
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 0; __i < _Result::size; ++__i)
   {
-    if (__mask[__i] && __i < __count)
-    {
-      __result.__set(__i, static_cast<_Tp>(__ptr[__i]));
-    }
+    const auto __value = (__mask[__i] && __i < __count) ? static_cast<_Tp>(__ptr[__i]) : _Tp{};
+    __result.__set(__i, __value);
   }
   return __result;
 }
@@ -113,7 +111,13 @@ __full_load_from_ptr(const _Up* __ptr, const typename _Result::mask_type& __mask
       constexpr auto __ptr_alignment  = ::cuda::std::max(__base_alignment, __overaligned_value_v<_Flags...>);
       constexpr auto __data_size      = _Result::size * sizeof(_Up);
 
+      // When _CCCL_IF_NOT_CONSTEVAL falls back to __builtin_is_constant_evaluated(),
+      // EDG requires locals to be initialized for the function to remain constexpr
+#if __cpp_if_consteval >= 202106L || _CCCL_HAS_IF_CONSTEVAL_IN_CXX20()
       _Up __tmp[_Result::size];
+#else
+      _Up __tmp[_Result::size] = {};
+#endif
       // vectorized load from pointer
       if constexpr (__is_cuda_vectoriazable_v<_Up> && __ptr_alignment >= __data_size)
       {
