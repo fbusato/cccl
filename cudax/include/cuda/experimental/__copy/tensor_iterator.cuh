@@ -141,22 +141,22 @@ struct __tensor_coord_iterator
 
   //! @brief Returns the multi-dimensional coordinates for the given linear index.
   //!
-  //! @param[in] __index Linear tile index
+  //! @param[in] __in_arraydex Linear tile index
   //! @return Array of coordinates into the tensor
-  [[nodiscard]] _CCCL_API ::cuda::std::array<_ExtentT, _Rank> operator()(_ExtentT __index) const noexcept
+  [[nodiscard]] _CCCL_API ::cuda::std::array<_ExtentT, _Rank> operator()(_ExtentT __in_arraydex) const noexcept
   {
     if constexpr (_Rank == 1)
     {
-      return ::cuda::std::array<_ExtentT, _Rank>{{__index}};
+      return ::cuda::std::array<_ExtentT, _Rank>{{__in_arraydex}};
     }
     else
     {
-      ::cuda::std::array<_ExtentT, _Rank> __coords;
-      __coords[0] = __index % __extents_[0]; // __extent_products_[0] == 1
+      ::cuda::std::array<_ExtentT, _Rank> __coords{};
+      __coords[0] = __in_arraydex % __extents_[0]; // __extent_products_[0] == 1
       _CCCL_PRAGMA_UNROLL_FULL()
       for (int __i = 1; __i < _Rank; ++__i)
       {
-        __coords[__i] = (__index / __extent_products_[__i]) % __extents_[__i];
+        __coords[__i] = (__in_arraydex / __extent_products_[__i]) % __extents_[__i];
       }
       return __coords;
     }
@@ -179,7 +179,8 @@ struct __partial_tensor
   //! @param[in] __coords Array of per-dimension coordinates
   //! @return Reference to the element at the computed offset
   template <typename _CoordT>
-  [[nodiscard]] _CCCL_DEVICE_API _Tp& operator()(const ::cuda::std::array<_CoordT, _Rank>& __coords) const noexcept
+  [[nodiscard]] _CCCL_DEVICE_API decltype(auto)
+  operator()(const ::cuda::std::array<_CoordT, _Rank>& __coords) const noexcept
   {
     _StrideT __offset = 0;
     _CCCL_PRAGMA_UNROLL_FULL()

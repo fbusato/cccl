@@ -12,6 +12,7 @@
 #include <thrust/host_vector.h>
 
 #include <cuda/std/climits>
+#include <cuda/std/linalg>
 
 #include <stdexcept>
 
@@ -27,6 +28,42 @@ TEST_CASE("copy d2d scalar", "[copy][d2d][0d]")
 {
   thrust::host_vector<int> data(1, 42);
   test_copy<layout_right>(data, 1);
+}
+
+// src: int   (8):(1)
+// dst: float (8):(1)
+// __to_raw_tensor removes singleton dims, so we use N > 1 to avoid rank-0 tensors.
+// __are_byte_copyable is false when types differ → bypasses memcpy fast path.
+// __have_default_accessors is true, tile_size == tensor_size → path (1) DeviceTransform
+TEST_CASE("copy d2d different types", "[copy][d2d][1d][mixed_types]")
+{
+  namespace cudax = cuda::experimental;
+  constexpr int N = 8;
+  thrust::host_vector<int> h_src(N);
+  for (int i = 0; i < N; ++i)
+  {
+    h_src[i] = i * 10;
+  }
+  thrust::device_vector<int> d_src(h_src.begin(), h_src.end());
+  thrust::device_vector<float> d_dst(N, 0.0f);
+
+  using extents_t = cuda::std::dextents<int, 1>;
+  extents_t ext(N);
+  layout_right::mapping<extents_t> mapping(ext);
+
+  cuda::device_mdspan<int, extents_t, layout_right> src(thrust::raw_pointer_cast(d_src.data()), mapping);
+  cuda::device_mdspan<float, extents_t, layout_right> dst(thrust::raw_pointer_cast(d_dst.data()), mapping);
+
+  cudax::copy(src, dst, stream);
+  stream.sync();
+
+  thrust::host_vector<float> h_expected(N);
+  for (int i = 0; i < N; ++i)
+  {
+    h_expected[i] = static_cast<float>(i * 10);
+  }
+  thrust::host_vector<float> result(d_dst);
+  CUDAX_REQUIRE(result == h_expected);
 }
 
 // src: (0,0):(0,1)
@@ -49,6 +86,46 @@ TEST_CASE("copy d2d size 0", "[copy][d2d][zero_size]")
 
   thrust::host_vector<int> result(d_dst);
   CUDAX_REQUIRE(result[0] == 0);
+}
+
+/***********************************************************************************************************************
+ * Non-default accessor (scaled_accessor: scales element values by 2 on read)
+ **********************************************************************************************************************/
+
+// src: (128):(1) with scaled_accessor (scale factor = 2)
+// dst: (128):(1) with default_accessor
+// Bypasses the DeviceTransform contiguous path since __have_default_accessors is false
+TEST_CASE("copy d2d contiguous scaled_accessor", "[copy][d2d][1d][accessor]")
+{
+  namespace cudax = cuda::experimental;
+  constexpr int N = 128;
+
+  auto h_src = make_iota<int>(N);
+  thrust::device_vector<int> d_src(h_src.begin(), h_src.end());
+  thrust::device_vector<int> d_dst(N, 0);
+
+  using extents_t    = cuda::std::dextents<int, 1>;
+  using scaled_acc_t = cuda::std::linalg::scaled_accessor<int, cuda::std::default_accessor<int>>;
+  using dev_acc_t    = cuda::device_accessor<scaled_acc_t>;
+  using src_mdspan_t = cuda::device_mdspan<const int, extents_t, layout_right, scaled_acc_t>;
+  using dst_mdspan_t = cuda::device_mdspan<int, extents_t, layout_right>;
+  extents_t ext(N);
+  layout_right::mapping<extents_t> mapping(ext);
+
+  src_mdspan_t src(
+    thrust::raw_pointer_cast(d_src.data()), mapping, dev_acc_t{scaled_acc_t{2, cuda::std::default_accessor<int>{}}});
+  dst_mdspan_t dst(thrust::raw_pointer_cast(d_dst.data()), mapping);
+
+  cudax::copy(src, dst, stream);
+  stream.sync();
+
+  thrust::host_vector<int> h_expected(N);
+  for (int i = 0; i < N; ++i)
+  {
+    h_expected[i] = i * 2;
+  }
+  thrust::host_vector<int> result(d_dst);
+  CUDAX_REQUIRE(result == h_expected);
 }
 
 /***********************************************************************************************************************
@@ -86,6 +163,117 @@ TEST_CASE("copy d2d large element 64 bytes", "[copy][d2d][large_element]")
     }
   }
   test_copy<layout_right>(data, N);
+}
+
+/***********************************************************************************************************************
+ * Large element type (128 bytes), non-vectorizable contiguous kernel
+ **********************************************************************************************************************/
+
+struct alignas(64) large_type_128
+{
+  cuda::std::array<char, 128> data;
+
+  friend bool operator==(const large_type_128& __lhs, const large_type_128& __rhs)
+  {
+    return __lhs.data == __rhs.data;
+  }
+};
+
+// src: (4,512):(512,1), layout_right, sizeof(T) = 128
+// dst: (4,512):(512,1), layout_right, sizeof(T) = 128
+// sizeof(T) > __max_vector_access → __are_vectorizable_copy is false
+// inner_extent_bytes = 512 * 128 = 64KB >= __bytes_in_flight → path (2b)
+// 2D with outer dim > 1 → tile_size != tensor_size → bypasses DeviceTransform path (1)
+TEST_CASE("copy d2d large element 128 bytes 2D contiguous", "[copy][d2d][large_element]")
+{
+  constexpr int M = 4;
+  constexpr int N = 512;
+  thrust::host_vector<large_type_128> data(M * N);
+  for (int i = 0; i < M * N; ++i)
+  {
+    for (int j = 0; j < 128; ++j)
+    {
+      data[i].data[j] = static_cast<char>((i * 128 + j) % 128);
+    }
+  }
+  test_copy<layout_right>(data, M, N);
+}
+
+// src: (2,513):(1024,1), layout_stride, sizeof(T) = 128
+// dst: (2,513):(1024,1), layout_stride
+// Padded outer stride (1024 > 513) prevents coalescing → tile_size = 513 != tensor_size = 1026
+// inner_extent_bytes = 513 * 128 = 65664 >= __bytes_in_flight → path (2b)
+// __are_vectorizable_copy is false (alignof(128) > __max_vector_access)
+// _TileSize = 256, inner_size = 513 = 2 * 256 + 1 → last tile has 1 remaining element
+TEST_CASE("copy d2d contiguous kernel remainder", "[copy][d2d][contiguous][remainder]")
+{
+  constexpr int M  = 2;
+  constexpr int N  = 513;
+  constexpr int Ld = 1024;
+
+  cuda::std::array<int, 2> shape{M, N};
+  cuda::std::array<int, 2> strides{Ld, 1};
+
+  using extents_t     = cuda::std::dextents<int, 2>;
+  using mapping_t     = cuda::std::layout_stride::mapping<extents_t>;
+  const int span_size = static_cast<int>(mapping_t(extents_t(shape), strides).required_span_size());
+
+  thrust::host_vector<large_type_128> h_src(span_size);
+  for (int i = 0; i < span_size; ++i)
+  {
+    for (int j = 0; j < 128; ++j)
+    {
+      h_src[i].data[j] = static_cast<char>((i * 128 + j) % 128);
+    }
+  }
+
+  large_type_128 zero{};
+  thrust::host_vector<large_type_128> h_expected(span_size, zero);
+  for (int i = 0; i < M; ++i)
+  {
+    for (int j = 0; j < N; ++j)
+    {
+      h_expected[i * Ld + j] = h_src[i * Ld + j];
+    }
+  }
+
+  test_copy_strided(h_src, h_expected, shape, strides, strides);
+}
+
+/***********************************************************************************************************************
+ * Overaligned type (alignof > natural alignment, vectorizable via alignment-based check)
+ **********************************************************************************************************************/
+
+struct alignas(16) overaligned_int
+{
+  int value;
+
+  bool operator==(const overaligned_int& other) const
+  {
+    return value == other.value;
+  }
+};
+
+static_assert(sizeof(overaligned_int) == 16);
+static_assert(alignof(overaligned_int) == 16);
+static_assert(alignof(overaligned_int) >= sizeof(overaligned_int));
+
+// src: (2,4096):(4096,1), layout_right, sizeof(T) = 16, alignof(T) = 16
+// dst: (2,4096):(4096,1), layout_right
+// alignof(T) <= __max_vector_access → __are_vectorizable_copy is true
+// inner_extent_bytes = 4096 * 16 = 64KB >= __bytes_in_flight → path (2a)
+// 2D with outer dim > 1 → tile_size != tensor_size → bypasses DeviceTransform path (1)
+TEST_CASE("copy d2d overaligned type vectorized", "[copy][d2d][overaligned]")
+{
+  constexpr int M     = 2;
+  constexpr int N     = 4096;
+  constexpr int total = M * N;
+  thrust::host_vector<overaligned_int> data(total);
+  for (int i = 0; i < total; ++i)
+  {
+    data[i].value = i;
+  }
+  test_copy<layout_right>(data, M, N);
 }
 
 /***********************************************************************************************************************

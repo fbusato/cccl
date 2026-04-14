@@ -23,6 +23,7 @@
 
 #if !_CCCL_COMPILER(NVRTC)
 
+#  include <cuda/__mdspan/traits.h>
 #  include <cuda/__memory/ptr_alignment.h>
 #  include <cuda/__memory/ranges_overlap.h>
 #  include <cuda/__utility/in_range.h>
@@ -30,6 +31,8 @@
 #  include <cuda/std/__mdspan/mdspan.h>
 #  include <cuda/std/__memory/is_sufficiently_aligned.h>
 #  include <cuda/std/__numeric/gcd_lcm.h>
+#  include <cuda/std/__type_traits/conditional.h>
+#  include <cuda/std/__type_traits/is_const.h>
 
 #  include <cuda/experimental/__copy/vector_access.cuh>
 #  include <cuda/experimental/__copy_bytes/abs_integer.cuh>
@@ -85,6 +88,12 @@ __max_alignment(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor)
   return __elem_alignment * sizeof(_Tp);
 }
 
+template <::cuda::std::size_t _VectorBytes, typename _Tp>
+using __reshape_vector_type =
+  ::cuda::std::conditional_t<::cuda::std::is_const_v<_Tp>,
+                             const ::cuda::experimental::__vector_access_t<_VectorBytes>,
+                             ::cuda::experimental::__vector_access_t<_VectorBytes>>;
+
 //! @brief Reshape a raw tensor for vectorized access by widening the element type.
 //!
 //! @pre Mode 0 must be contiguous (stride == 1).
@@ -94,12 +103,6 @@ __max_alignment(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor)
 //! @tparam _VectorBytes Target vector width in bytes
 //! @param[in] __tensor Raw tensor with contiguous innermost mode
 //! @return Raw tensor with element type replaced by the vector type and adjusted extents/strides
-template <::cuda::std::size_t _VectorBytes, typename _Tp>
-using __reshape_vector_type =
-  ::cuda::std::conditional_t<::cuda::std::is_const_v<_Tp>,
-                             const ::cuda::experimental::__vector_access_t<_VectorBytes>,
-                             ::cuda::experimental::__vector_access_t<_VectorBytes>>;
-
 template <::cuda::std::size_t _VectorBytes, typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_t _MaxRank>
 [[nodiscard]]
 _CCCL_HOST_API __raw_tensor<_ExtentT, _StrideT, __reshape_vector_type<_VectorBytes, _Tp>, _MaxRank>
@@ -108,16 +111,19 @@ __reshape_vectorized(const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __te
   using __vector_t = __reshape_vector_type<_VectorBytes, _Tp>;
   using __rank_t   = typename __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>::__rank_t;
   static_assert(_VectorBytes % sizeof(_Tp) == 0, "vector size must be a multiple of element size");
+
   constexpr auto __elems_per_vector = _VectorBytes / sizeof(_Tp);
   _CCCL_ASSERT(__tensor.__strides[0] == 1, "innermost mode must be contiguous");
   _CCCL_ASSERT(__tensor.__extents[0] % __elems_per_vector == 0,
                "innermost extent must be divisible by elements per vector");
   _CCCL_ASSERT(::cuda::std::is_sufficiently_aligned<alignof(__vector_t)>(__tensor.__data),
                "tensor data is not sufficiently aligned to the extents and strides");
+
   const auto __data = reinterpret_cast<__vector_t*>(__tensor.__data);
   __raw_tensor<_ExtentT, _StrideT, __vector_t, _MaxRank> __result{
     __data, __tensor.__rank, __tensor.__extents, __tensor.__strides};
   __result.__extents[0] /= __elems_per_vector;
+
   for (__rank_t __i = 1; __i < __result.__rank; ++__i)
   {
     _CCCL_ASSERT(__result.__strides[__i] % _StrideT{__elems_per_vector} == 0,
@@ -174,8 +180,8 @@ __may_overlap(const ::cuda::std::mdspan<_Tp1, _Extents1, _LayoutPolicy1, _Access
     return false;
   }
   const auto* __a_begin = reinterpret_cast<const char*>(__a.data_handle());
-  const auto* __a_end   = __a_begin + __a.mapping().required_span_size() * sizeof(_Tp1);
   const auto* __b_begin = reinterpret_cast<const char*>(__b.data_handle());
+  const auto* __a_end   = __a_begin + __a.mapping().required_span_size() * sizeof(_Tp1);
   const auto* __b_end   = __b_begin + __b.mapping().required_span_size() * sizeof(_Tp2);
   return ::cuda::ranges_overlap(__a_begin, __a_end, __b_begin, __b_end);
 }

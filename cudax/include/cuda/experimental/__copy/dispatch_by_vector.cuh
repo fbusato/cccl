@@ -25,6 +25,7 @@
 
 #  include <cuda/std/__algorithm/min.h>
 #  include <cuda/std/__cstddef/types.h>
+#  include <cuda/std/__type_traits/integral_constant.h>
 
 #  include <cuda/experimental/__copy/tensor_copy_utils.cuh>
 #  include <cuda/experimental/__copy_bytes/types.cuh>
@@ -88,7 +89,9 @@ _CCCL_HOST_API void __dispatch_by_vector_size(
     __op(__src_recast, __dst_recast);
   };
   const auto __vector_size_bytes = cudax::__vector_size_bytes(__src, __dst);
+// 32-bytes aligned vector types have been introduced in CTK 13.0
 #  if _CCCL_CTK_AT_LEAST(13, 0)
+  static_assert(sizeof(_TpIn) <= 32);
   if constexpr (sizeof(_TpIn) <= 32)
   {
     if (__vector_size_bytes == 32)
@@ -97,6 +100,8 @@ _CCCL_HOST_API void __dispatch_by_vector_size(
       return;
     }
   }
+#  else // ^^^ _CCCL_CTK_AT_LEAST(13, 0) ^^^ / vvv _CCCL_CTK_BELOW(13, 0) vvv
+  static_assert(sizeof(_TpIn) <= 16);
 #  endif // _CCCL_CTK_AT_LEAST(13, 0)
   if constexpr (sizeof(_TpIn) <= 16)
   {
@@ -134,6 +139,7 @@ _CCCL_HOST_API void __dispatch_by_vector_size(
   {
     __call_vectorized(__const_vector_size<1>);
   }
+  // no fallthrough (sizeof(T) is never 0)
 }
 } // namespace cuda::experimental
 
