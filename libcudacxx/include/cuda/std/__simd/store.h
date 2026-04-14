@@ -66,8 +66,9 @@ _CCCL_API constexpr void __partial_store_to_ptr(
   const typename basic_vec<_Tp, _Abi>::mask_type& __mask)
 {
   ::cuda::std::simd::__check_store_preconditions<_Tp, _Abi, _Up, _Flags...>(__ptr);
+  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::size();
   _CCCL_PRAGMA_UNROLL_FULL()
-  for (__simd_size_type __i = 0; __i < basic_vec<_Tp, _Abi>::size; ++__i)
+  for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
   {
     if (__mask[__i] && __i < __count)
     {
@@ -80,7 +81,7 @@ template <typename _Tp, typename _Abi, typename _Up, typename... _Flags>
 _CCCL_API constexpr void __full_store_to_ptr(const basic_vec<_Tp, _Abi>& __v, _Up* __ptr)
 {
   ::cuda::std::simd::__check_store_preconditions<_Tp, _Abi, _Up, _Flags...>(__ptr);
-  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::size;
+  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::size();
 
   if constexpr (__has_aligned_flag_v<_Flags...> || __has_overaligned_flag_v<_Flags...>)
   {

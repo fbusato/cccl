@@ -85,10 +85,11 @@ __partial_load_from_ptr(const _Up* __ptr, __simd_size_type __count, const typena
 {
   using _Tp = typename _Result::value_type;
   ::cuda::std::simd::__check_load_preconditions<_Result, _Up, _Flags...>(__ptr);
+  constexpr auto __simd_size = _Result::size();
 
   _Result __result;
   _CCCL_PRAGMA_UNROLL_FULL()
-  for (__simd_size_type __i = 0; __i < _Result::size; ++__i)
+  for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
   {
     const auto __value = (__mask[__i] && __i < __count) ? static_cast<_Tp>(__ptr[__i]) : _Tp{};
     __result.__set(__i, __value);
@@ -109,14 +110,15 @@ __full_load_from_ptr(const _Up* __ptr, const typename _Result::mask_type& __mask
     {
       constexpr auto __base_alignment = alignment_v<_Result, _Up>; // minimum condition for pointer alignment
       constexpr auto __ptr_alignment  = ::cuda::std::max(__base_alignment, __overaligned_value_v<_Flags...>);
-      constexpr auto __data_size      = _Result::size * sizeof(_Up);
+      constexpr auto __simd_size      = _Result::size();
+      constexpr auto __data_size      = __simd_size * sizeof(_Up);
 
       // When _CCCL_IF_NOT_CONSTEVAL falls back to __builtin_is_constant_evaluated(),
       // EDG requires locals to be initialized for the function to remain constexpr
 #if __cpp_if_consteval >= 202106L || _CCCL_HAS_IF_CONSTEVAL_IN_CXX20()
-      _Up __tmp[_Result::size];
+      _Up __tmp[__simd_size];
 #else
-      _Up __tmp[_Result::size] = {};
+      _Up __tmp[__simd_size] = {};
 #endif
       // vectorized load from pointer
       if constexpr (__is_cuda_vectoriazable_v<_Up> && __ptr_alignment >= __data_size)
@@ -135,14 +137,14 @@ __full_load_from_ptr(const _Up* __ptr, const typename _Result::mask_type& __mask
       {
         const auto __aligned_ptr = ::cuda::std::assume_aligned<__ptr_alignment>(__ptr);
         _CCCL_PRAGMA_UNROLL_FULL()
-        for (__simd_size_type __i = 0; __i < _Result::size; ++__i)
+        for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
         {
           __tmp[__i] = __aligned_ptr[__i];
         }
       }
       _Result __result;
       _CCCL_PRAGMA_UNROLL_FULL()
-      for (__simd_size_type __i = 0; __i < _Result::size; ++__i)
+      for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
       {
         const auto __value = (!__mask[__i]) ? _Tp{} : static_cast<_Tp>(__tmp[__i]);
         __result.__set(__i, __value);

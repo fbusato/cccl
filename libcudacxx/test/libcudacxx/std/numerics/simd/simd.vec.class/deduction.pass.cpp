@@ -44,18 +44,11 @@
 template <typename T, int N>
 __host__ __device__ constexpr void test_range_deduction()
 {
-  cuda::std::array<T, N> arr{};
-  for (int i = 0; i < N; ++i)
-  {
-    arr[i] = static_cast<T>(i);
-  }
+  auto arr = make_iota_array<T, N>(0);
   simd::basic_vec vec(arr);
   static_assert(cuda::std::is_same_v<typename decltype(vec)::value_type, T>);
   static_assert(decltype(vec)::size() == N);
-  for (int i = 0; i < N; ++i)
-  {
-    assert(vec[i] == static_cast<T>(i));
-  }
+  assert(vec == arr);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -64,20 +57,13 @@ __host__ __device__ constexpr void test_range_deduction()
 template <typename T, int N>
 __host__ __device__ constexpr void test_span_deduction()
 {
-  cuda::std::array<T, N> arr{};
-  for (int i = 0; i < N; ++i)
-  {
-    arr[i] = static_cast<T>(i);
-  }
+  auto arr = make_iota_array<T, N>(0);
 
   const cuda::std::span<T, N> values(arr);
   simd::basic_vec vec(values);
   static_assert(cuda::std::is_same_v<typename decltype(vec)::value_type, T>);
   static_assert(decltype(vec)::size() == N);
-  for (int i = 0; i < N; ++i)
-  {
-    assert(vec[i] == static_cast<T>(i));
-  }
+  assert(vec == arr);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
