@@ -69,10 +69,12 @@ __global__ void __copy_optimized_kernel(
   _CCCL_GRID_CONSTANT const __tensor_coord_iterator<_ExtentT, _Rank> __coord_iter,
   _CCCL_GRID_CONSTANT const _ExtentT __tensor_size)
 {
-  const auto __idx    = ::cuda::gpu_thread.rank_as<_ExtentT>(::cuda::grid, __config);
-  const auto __stride = ::cuda::gpu_thread.count_as<_ExtentT>(::cuda::grid, __config);
-  const __partial_tensor __src{__src_ptr, __src_strides, __src_accessor};
-  const __partial_tensor __dst{__dst_ptr, __dst_strides, __dst_accessor};
+  using __partial_tensor_src = __partial_tensor<const _TpSrc, _StrideTIn, _Rank, _SrcAccessor>;
+  using __partial_tensor_dst = __partial_tensor<_TpDst, _StrideTOut, _Rank, _DstAccessor>;
+  const auto __idx           = ::cuda::gpu_thread.rank_as<_ExtentT>(::cuda::grid, __config);
+  const auto __stride        = ::cuda::gpu_thread.count_as<_ExtentT>(::cuda::grid, __config);
+  const __partial_tensor_src __src{__src_ptr, __src_strides, __src_accessor};
+  const __partial_tensor_dst __dst{__dst_ptr, __dst_strides, __dst_accessor};
 
   for (auto __i = __idx; __i < __tensor_size; __i += __stride)
   {
@@ -113,15 +115,15 @@ _CCCL_HOST_API void __copy_optimized(
   const auto __grid_size = ::cuda::ceil_div(__tensor_size, _ExtentT{__block_size});
   const auto __config    = ::cuda::make_config(::cuda::block_dims<__block_size>(), ::cuda::grid_dims(__grid_size));
   const auto& __kernel   = ::cuda::experimental::__copy_optimized_kernel<
-      decltype(__config),
-      _TpIn,
-      _TpOut,
-      _SrcAccessor,
-      _DstAccessor,
-      _ExtentT,
-      _StrideTIn,
-      _StrideTOut,
-      _Rank>;
+    decltype(__config),
+    _TpIn,
+    _TpOut,
+    _SrcAccessor,
+    _DstAccessor,
+    _ExtentT,
+    _StrideTIn,
+    _StrideTOut,
+    _Rank>;
 
   ::cuda::launch(
     __stream,
