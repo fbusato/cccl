@@ -68,14 +68,8 @@ __host__ __device__ constexpr void test_unchecked_store_range_masked()
   simd::unchecked_store(vec, dest, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    if (i % 2 == 0)
-    {
-      assert(dest[i] == static_cast<T>(i + 1));
-    }
-    else
-    {
-      assert(dest[i] == static_cast<T>(99));
-    }
+    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : static_cast<T>(99);
+    assert(dest[i] == expected);
   }
 }
 
@@ -105,14 +99,8 @@ __host__ __device__ constexpr void test_unchecked_store_iter_count()
   simd::unchecked_store(vec, masked_dest.data(), N, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    if (i % 2 == 0)
-    {
-      assert(masked_dest[i] == static_cast<T>(i + 1));
-    }
-    else
-    {
-      assert(masked_dest[i] == static_cast<T>(99));
-    }
+    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : static_cast<T>(99);
+    assert(masked_dest[i] == expected);
   }
 }
 
@@ -142,14 +130,8 @@ __host__ __device__ constexpr void test_unchecked_store_iter_sentinel()
   simd::unchecked_store(vec, masked_dest.data(), masked_dest.data() + N, even_mask);
   for (int i = 0; i < N; ++i)
   {
-    if (i % 2 == 0)
-    {
-      assert(masked_dest[i] == static_cast<T>(i + 1));
-    }
-    else
-    {
-      assert(masked_dest[i] == static_cast<T>(99));
-    }
+    T expected = (i % 2 == 0) ? static_cast<T>(i + 1) : static_cast<T>(99);
+    assert(masked_dest[i] == expected);
   }
 }
 
