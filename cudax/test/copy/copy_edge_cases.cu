@@ -162,7 +162,7 @@ TEST_CASE("copy d2d large element 64 bytes", "[copy][d2d][large_element]")
  * Large element type (128 bytes), non-vectorizable contiguous kernel
  **********************************************************************************************************************/
 
-struct alignas(128) large_type_128
+struct alignas(64) large_type_128
 {
   cuda::std::array<char, 128> data;
 
