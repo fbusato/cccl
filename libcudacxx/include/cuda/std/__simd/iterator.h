@@ -138,23 +138,30 @@ public:
   }
 
   [[nodiscard]] _CCCL_API friend constexpr bool
-  operator!=(const __simd_iterator __i, const ::cuda::std::default_sentinel_t __s) noexcept
+  operator!=(const __simd_iterator __i, const default_sentinel_t __s) noexcept
   {
     return !(__i == __s);
   }
 
   [[nodiscard]] _CCCL_API friend constexpr bool
-  operator!=(const ::cuda::std::default_sentinel_t __s, const __simd_iterator __i) noexcept
+  operator!=(const default_sentinel_t __s, const __simd_iterator __i) noexcept
   {
     return !(__i == __s);
   }
 
   [[nodiscard]] _CCCL_API friend constexpr bool
-  operator==(const ::cuda::std::default_sentinel_t __s, const __simd_iterator __i) noexcept
+  operator==(const default_sentinel_t __s, const __simd_iterator __i) noexcept
   {
     return __i == __s;
   }
+#endif // _CCCL_STD_VER <= 2017
 
+#if _LIBCUDACXX_HAS_SPACESHIP_OPERATOR()
+  [[nodiscard]] _CCCL_API friend constexpr auto operator<=>(const __simd_iterator __a, const __simd_iterator __b)
+  {
+    return __a.__offset_ <=> __b.__offset_;
+  }
+#else // ^^^ _LIBCUDACXX_HAS_SPACESHIP_OPERATOR() ^^^ / vvv !_LIBCUDACXX_HAS_SPACESHIP_OPERATOR() vvv
   [[nodiscard]] _CCCL_API friend constexpr bool operator<(const __simd_iterator& __a, const __simd_iterator& __b)
   {
     return __a.__offset_ < __b.__offset_;
@@ -174,12 +181,7 @@ public:
   {
     return !(__a < __b);
   }
-#else // ^^^ C++17 ^^^ / vvv C++20+ vvv
-  [[nodiscard]] _CCCL_API friend constexpr auto operator<=>(const __simd_iterator __a, const __simd_iterator __b)
-  {
-    return __a.__offset_ <=> __b.__offset_;
-  }
-#endif // C++20+
+#endif // !_LIBCUDACXX_HAS_SPACESHIP_OPERATOR()
 
   // [simd.iterator] arithmetic
 
