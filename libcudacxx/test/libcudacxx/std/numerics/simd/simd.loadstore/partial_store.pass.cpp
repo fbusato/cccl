@@ -199,6 +199,7 @@ __host__ __device__ constexpr void test_partial_store_not_noexcept()
   Vec vec(iota_generator<T>{});
   cuda::std::array<T, N> arr{};
   Mask mask(true);
+  unused(vec, arr, mask);
 
   // range overloads
   static_assert(!noexcept(simd::partial_store(vec, arr, mask)));
