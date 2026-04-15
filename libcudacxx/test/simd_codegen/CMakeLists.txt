@@ -11,10 +11,14 @@ endif()
 find_program(cuobjdump "cuobjdump" REQUIRED)
 find_program(bash "bash" REQUIRED)
 
-set(dump_and_check_script "${CMAKE_CURRENT_SOURCE_DIR}/../atomic_codegen/dump_and_check.bash")
+set(
+  dump_and_check_script
+  "${CMAKE_CURRENT_SOURCE_DIR}/../atomic_codegen/dump_and_check.bash"
+)
 
 # Files with both SM8X (8-byte) and SM10X (16-byte) checks
-set(simd_codegen_common_tests
+set(
+  simd_codegen_common_tests
   "${CMAKE_CURRENT_SOURCE_DIR}/load_store_i8.cu"
   "${CMAKE_CURRENT_SOURCE_DIR}/load_store_i16.cu"
   "${CMAKE_CURRENT_SOURCE_DIR}/load_store_i32.cu"
@@ -24,7 +28,8 @@ set(simd_codegen_common_tests
 )
 
 # Files with SM10X-only checks (N=1 skipped for 8-byte tier)
-set(simd_codegen_sm100_only_tests
+set(
+  simd_codegen_sm100_only_tests
   "${CMAKE_CURRENT_SOURCE_DIR}/load_store_i64.cu"
   "${CMAKE_CURRENT_SOURCE_DIR}/load_store_f64.cu"
 )
@@ -43,8 +48,7 @@ function(simd_codegen_add_tests arch prefix test_list)
 
     set_target_properties(
       ${target_name}
-      PROPERTIES
-        CUDA_ARCHITECTURES "${arch}"
+      PROPERTIES CUDA_ARCHITECTURES "${arch}"
     )
 
     # Clang stopped emitting PTX in clang20. Add flags to re-enable it.
@@ -52,7 +56,10 @@ function(simd_codegen_add_tests arch prefix test_list)
       CMAKE_CUDA_COMPILER_ID STREQUAL Clang
       AND CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 20
     )
-      target_compile_options(${target_name} PRIVATE "--cuda-include-ptx=sm_${arch}")
+      target_compile_options(
+        ${target_name}
+        PRIVATE "--cuda-include-ptx=sm_${arch}"
+      )
     endif()
 
     target_compile_options(${target_name} PRIVATE "-Wno-comment")
@@ -83,7 +90,11 @@ if (NOT "NVHPC" STREQUAL "${CMAKE_CXX_COMPILER_ID}")
 
   # SM100: 16-byte vectorized (CTK >= 12.9)
   if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.9)
-    set(simd_codegen_sm100_tests ${simd_codegen_common_tests} ${simd_codegen_sm100_only_tests})
+    set(
+      simd_codegen_sm100_tests
+      ${simd_codegen_common_tests}
+      ${simd_codegen_sm100_only_tests}
+    )
     simd_codegen_add_tests(100 SM10X simd_codegen_sm100_tests)
   endif()
 endif()
