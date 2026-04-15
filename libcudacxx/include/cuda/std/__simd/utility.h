@@ -156,7 +156,7 @@ _CCCL_API constexpr void __assert_load_store_alignment([[maybe_unused]] const _U
 
 // used in load/store preconditions
 template <typename _TpIn>
-constexpr bool __is_cuda_vectoriazable_v =
+inline constexpr bool __is_cuda_vectoriazable_v =
   (is_trivially_copyable_v<_TpIn> // byte-copy is fine (memcpy)
    || __is_extended_floating_point_v<_TpIn>)
   && ::cuda::is_power_of_two(sizeof(_TpIn)); // e.g. char3 doesn't work: alignof(char3) == 1, sizeof(char3) == 3
