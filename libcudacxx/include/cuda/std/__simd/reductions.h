@@ -31,6 +31,7 @@
 #include <cuda/std/__type_traits/always_false.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/type_identity.h>
+#include <cuda/std/__utility/declval.h>
 #include <cuda/std/limits>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -41,6 +42,10 @@ _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 template <typename _BinaryOp, typename _Tp>
 _CCCL_CONCEPT __reduction_binary_operation = _CCCL_REQUIRES_EXPR(
   (_BinaryOp, _Tp), const _BinaryOp __binary_op, const vec<_Tp, 1> __v)(_Same_as(vec<_Tp, 1>) __binary_op(__v, __v));
+
+template <typename _Tp, typename _BinaryOp>
+inline constexpr bool __is_nothrow_reduction_binary_operation_v = noexcept(
+  ::cuda::std::declval<const _BinaryOp&>()(::cuda::std::declval<vec<_Tp, 1>>(), ::cuda::std::declval<vec<_Tp, 1>>()));
 
 template <typename _Tp, typename _BinaryOp>
 constexpr bool __is_reduce_default_supported_operation_v =
@@ -80,7 +85,8 @@ template <typename _Tp, typename _BinaryOp>
 _CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation = ::cuda::std::plus<>)
 _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
 [[nodiscard]] _CCCL_API constexpr _Tp
-reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op = ::cuda::std::plus<>{})
+reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op = ::cuda::std::plus<>{}) noexcept(
+  __is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
 {
   vec<_Tp, 1> __result{__x[0]};
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -96,11 +102,12 @@ reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op = ::cuda::s
 // 2) unless BinaryOperation is one of plus<>, multiplies<>, bit_and<>, bit_or<>, or bit_xor<>
 _CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation)
 _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
-[[nodiscard]] _CCCL_API constexpr _Tp
-reduce(const basic_vec<_Tp, _Abi>& __x,
-       const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
-       _BinaryOperation __binary_op,
-       const ::cuda::std::type_identity_t<_Tp> __identity_element)
+[[nodiscard]] _CCCL_API constexpr _Tp reduce(
+  const basic_vec<_Tp, _Abi>& __x,
+  const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
+  _BinaryOperation __binary_op,
+  const ::cuda::std::type_identity_t<_Tp>
+    __identity_element) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
 {
   vec<_Tp, 1> __result{__identity_element};
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -120,7 +127,8 @@ _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp> _CCCL_AND
 [[nodiscard]] _CCCL_API constexpr _Tp
 reduce(const basic_vec<_Tp, _Abi>& __x,
        const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
-       _BinaryOperation __binary_op = ::cuda::std::plus<>{})
+       _BinaryOperation __binary_op =
+         ::cuda::std::plus<>{}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
 {
   return ::cuda::std::simd::reduce(
     __x, __mask, __binary_op, ::cuda::std::simd::__default_identity_element<_Tp, _BinaryOperation>());
