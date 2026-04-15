@@ -88,7 +88,7 @@ template <typename _Result, typename _Up, typename... _Flags>
 {
   using _Tp = typename _Result::value_type;
   ::cuda::std::simd::__check_load_preconditions<_Result>(__ptr, __flags);
-  constexpr auto __simd_size = _Result::size();
+  constexpr auto __simd_size = _Result::__size;
 
   _Result __result;
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -113,7 +113,7 @@ __full_load_from_ptr(const _Up* __ptr, const typename _Result::mask_type& __mask
     {
       constexpr auto __base_alignment = alignment_v<_Result, _Up>; // minimum condition for pointer alignment
       constexpr auto __ptr_alignment  = ::cuda::std::max(__base_alignment, __overaligned_value_v<_Flags...>);
-      constexpr auto __simd_size      = _Result::size();
+      constexpr auto __simd_size      = _Result::__size;
       constexpr auto __data_size      = __simd_size * sizeof(_Up);
 
       // When _CCCL_IF_NOT_CONSTEVAL falls back to __builtin_is_constant_evaluated(),
@@ -255,10 +255,10 @@ _CCCL_REQUIRES(ranges::contiguous_range<_Range> _CCCL_AND ranges::sized_range<_R
   using __result_t = __load_vec_t<_Vp, ranges::range_value_t<_Range>>;
   if constexpr (__has_static_size<_Range>)
   {
-    static_assert(__static_range_size_v<_Range> >= __result_t::size(),
+    static_assert(__static_range_size_v<_Range> >= __result_t::__size,
                   "unchecked_load requires ranges::size(r) >= V::size()");
   }
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::ranges::size(__r), __result_t::size()),
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::ranges::size(__r), __result_t::__size),
                "unchecked_load requires ranges::size(r) >= V::size()");
 
   return ::cuda::std::simd::__full_load_from_ptr<__result_t>(::cuda::std::ranges::data(__r), __mask, __f);
@@ -286,7 +286,7 @@ _CCCL_REQUIRES(contiguous_iterator<_Ip>)
   flags<_Flags...> __f = {})
 {
   using __result_t = __load_vec_t<_Vp, iter_value_t<_Ip>>;
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(__n, __result_t::size()), "unchecked_load requires n >= V::size()");
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(__n, __result_t::__size), "unchecked_load requires n >= V::size()");
 
   return ::cuda::std::simd::__full_load_from_ptr<__result_t>(::cuda::std::to_address(__first), __mask, __f);
 }
@@ -313,7 +313,7 @@ _CCCL_REQUIRES(contiguous_iterator<_Ip> _CCCL_AND sized_sentinel_for<_Sp, _Ip>)
   flags<_Flags...> __f = {})
 {
   using __result_t = __load_vec_t<_Vp, iter_value_t<_Ip>>;
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::distance(__first, __last), __result_t::size()),
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::distance(__first, __last), __result_t::__size),
                "unchecked_load requires distance(first, last) >= V::size()");
 
   return ::cuda::std::simd::__full_load_from_ptr<__result_t>(::cuda::std::to_address(__first), __mask, __f);
