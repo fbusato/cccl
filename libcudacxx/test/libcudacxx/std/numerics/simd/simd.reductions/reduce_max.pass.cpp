@@ -107,7 +107,7 @@ __host__ __device__ constexpr void test_reduce_max_masked_even()
   Vec v      = make_iota_vec<T, N>();
   Mask even(is_even{});
 
-  T result = simd::reduce_max(v, even);
+  T result   = simd::reduce_max(v, even);
   T expected = T{};
   for (int i = 0; i < N; ++i)
   {
