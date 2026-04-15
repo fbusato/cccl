@@ -28,12 +28,12 @@ template <typename T, int N>
 __host__ __device__ constexpr void test_reduce_min_basic()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  Vec v     = make_iota_vec<T, N>();
+  Vec vec   = make_iota_vec<T, N>();
 
-  static_assert(cuda::std::is_same_v<decltype(simd::reduce_min(v)), T>);
-  static_assert(noexcept(simd::reduce_min(v)));
+  static_assert(cuda::std::is_same_v<decltype(simd::reduce_min(vec)), T>);
+  static_assert(noexcept(simd::reduce_min(vec)));
 
-  T result = simd::reduce_min(v);
+  T result = simd::reduce_min(vec);
   assert(result == T{0});
 }
 
@@ -44,9 +44,9 @@ template <typename T, int N>
 __host__ __device__ constexpr void test_reduce_min_uniform()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  Vec v(T{7});
+  Vec vec(T{7});
 
-  assert(simd::reduce_min(v) == T{7});
+  assert(simd::reduce_min(vec) == T{7});
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -61,8 +61,8 @@ __host__ __device__ constexpr void test_reduce_min_last()
   {
     arr[i] = static_cast<T>(N - i);
   }
-  Vec v(arr);
-  assert(simd::reduce_min(v) == T{1});
+  Vec vec(arr);
+  assert(simd::reduce_min(vec) == T{1});
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -73,13 +73,13 @@ __host__ __device__ constexpr void test_reduce_min_masked_all()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
-  Vec v      = make_iota_vec<T, N>();
+  Vec vec    = make_iota_vec<T, N>();
   Mask all_true(true);
 
-  static_assert(cuda::std::is_same_v<decltype(simd::reduce_min(v, all_true)), T>);
-  static_assert(noexcept(simd::reduce_min(v, all_true)));
+  static_assert(cuda::std::is_same_v<decltype(simd::reduce_min(vec, all_true)), T>);
+  static_assert(noexcept(simd::reduce_min(vec, all_true)));
 
-  assert(simd::reduce_min(v, all_true) == T{0});
+  assert(simd::reduce_min(vec, all_true) == T{0});
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -90,10 +90,10 @@ __host__ __device__ constexpr void test_reduce_min_masked_none()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
-  Vec v(T{5});
+  Vec vec(T{5});
   Mask none_true(false);
 
-  assert(simd::reduce_min(v, none_true) == cuda::std::numeric_limits<T>::max());
+  assert(simd::reduce_min(vec, none_true) == cuda::std::numeric_limits<T>::max());
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -104,10 +104,10 @@ __host__ __device__ constexpr void test_reduce_min_masked_even()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
-  Vec v      = make_iota_vec<T, N>();
+  Vec vec    = make_iota_vec<T, N>();
   Mask even(is_even{});
 
-  T result = simd::reduce_min(v, even);
+  T result = simd::reduce_min(vec, even);
   assert(result == T{0});
 }
 
@@ -119,10 +119,10 @@ __host__ __device__ constexpr void test_reduce_min_masked_single()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
-  Vec v      = make_iota_vec<T, N>();
+  Vec vec    = make_iota_vec<T, N>();
 
   Mask last_only(is_index<N - 1>{});
-  assert(simd::reduce_min(v, last_only) == static_cast<T>(N - 1));
+  assert(simd::reduce_min(vec, last_only) == static_cast<T>(N - 1));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -132,8 +132,8 @@ template <typename T>
 __host__ __device__ constexpr void test_reduce_min_size_one()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<1>>;
-  Vec v(T{42});
-  assert(simd::reduce_min(v) == T{42});
+  Vec vec(T{42});
+  assert(simd::reduce_min(vec) == T{42});
 }
 
 //----------------------------------------------------------------------------------------------------------------------

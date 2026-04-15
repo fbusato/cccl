@@ -275,6 +275,7 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
     }
   }
   _CCCL_UNREACHABLE();
+  return 0; // unreachable (MSVC workaround)
 }
 
 template <::cuda::std::size_t _Bytes, typename _Abi>
@@ -290,6 +291,7 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
     }
   }
   _CCCL_UNREACHABLE();
+  return 0; // unreachable (MSVC workaround)
 }
 
 // Scalar bool overloads
