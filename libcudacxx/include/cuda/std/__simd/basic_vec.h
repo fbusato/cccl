@@ -29,6 +29,7 @@
 #include <cuda/std/__simd/concepts.h>
 #include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__simd/flag.h>
+#include <cuda/std/__simd/specializations/fixed_size_vec.h>
 #include <cuda/std/__simd/utility.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 
