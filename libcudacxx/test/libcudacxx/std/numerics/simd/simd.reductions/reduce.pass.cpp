@@ -21,6 +21,15 @@
 
 #include "../simd_test_utils.h"
 
+struct throwing_plus
+{
+  template <typename T1, typename T2>
+  __host__ __device__ constexpr auto operator()(T1 a, T2 b) const
+  {
+    return a + b;
+  }
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 // reduce with default plus<>
 
@@ -31,6 +40,7 @@ __host__ __device__ constexpr void test_reduce_plus()
   Vec v     = make_iota_vec<T, N>();
 
   static_assert(cuda::std::is_same_v<decltype(simd::reduce(v)), T>);
+  static_assert(noexcept(simd::reduce(v)));
 
   T result   = simd::reduce(v);
   T expected = T{};
@@ -50,6 +60,8 @@ __host__ __device__ constexpr void test_reduce_explicit_plus()
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec v(T{2});
 
+  static_assert(noexcept(simd::reduce(v, cuda::std::plus<>{})));
+
   T result = simd::reduce(v, cuda::std::plus<>{});
   assert(result == static_cast<T>(T{2} * static_cast<T>(N)));
 }
@@ -62,6 +74,8 @@ __host__ __device__ constexpr void test_reduce_multiplies()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec v(T{2});
+
+  static_assert(noexcept(simd::reduce(v, cuda::std::multiplies<>{})));
 
   T result = simd::reduce(v, cuda::std::multiplies<>{});
   T expected{1};
@@ -84,6 +98,7 @@ __host__ __device__ constexpr void test_reduce_masked_plus()
   Mask all_true(true);
 
   static_assert(cuda::std::is_same_v<decltype(simd::reduce(v, all_true)), T>);
+  static_assert(noexcept(simd::reduce(v, all_true)));
 
   T result_all = simd::reduce(v, all_true);
   T expected   = T{};
@@ -132,6 +147,8 @@ __host__ __device__ constexpr void test_reduce_masked_explicit_identity()
   Vec v(T{3});
   Mask all_true(true);
 
+  static_assert(noexcept(simd::reduce(v, all_true, cuda::std::plus<>{}, cuda::std::declval<T>())));
+
   T result = simd::reduce(v, all_true, cuda::std::plus<>{}, T{0});
   assert(result == static_cast<T>(T{3} * static_cast<T>(N)));
 
@@ -150,6 +167,8 @@ __host__ __device__ constexpr void test_reduce_masked_multiplies()
   using Mask = typename Vec::mask_type;
   Vec v(T{2});
   Mask all_true(true);
+
+  static_assert(noexcept(simd::reduce(v, all_true, cuda::std::multiplies<>{})));
 
   T result = simd::reduce(v, all_true, cuda::std::multiplies<>{});
   T expected{1};
@@ -173,11 +192,14 @@ __host__ __device__ constexpr void test_reduce_bit_and()
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
   Vec v(static_cast<T>(0xFF));
+  Mask none_true(false);
+
+  static_assert(noexcept(simd::reduce(v, cuda::std::bit_and<>{})));
+  static_assert(noexcept(simd::reduce(v, none_true, cuda::std::bit_and<>{})));
 
   T result = simd::reduce(v, cuda::std::bit_and<>{});
   assert(result == static_cast<T>(0xFF));
 
-  Mask none_true(false);
   T result_none = simd::reduce(v, none_true, cuda::std::bit_and<>{});
   assert(result_none == static_cast<T>(~T{}));
 }
@@ -191,11 +213,14 @@ __host__ __device__ constexpr void test_reduce_bit_or()
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
   Vec v(T{0});
+  Mask none_true(false);
+
+  static_assert(noexcept(simd::reduce(v, cuda::std::bit_or<>{})));
+  static_assert(noexcept(simd::reduce(v, none_true, cuda::std::bit_or<>{})));
 
   T result = simd::reduce(v, cuda::std::bit_or<>{});
   assert(result == T{0});
 
-  Mask none_true(false);
   T result_none = simd::reduce(v, none_true, cuda::std::bit_or<>{});
   assert(result_none == T{});
 }
@@ -209,13 +234,31 @@ __host__ __device__ constexpr void test_reduce_bit_xor()
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
   Vec v(T{1});
+  Mask none_true(false);
+
+  static_assert(noexcept(simd::reduce(v, cuda::std::bit_xor<>{})));
+  static_assert(noexcept(simd::reduce(v, none_true, cuda::std::bit_xor<>{})));
 
   T result = simd::reduce(v, cuda::std::bit_xor<>{});
   assert(result == static_cast<T>(N % 2 == 0 ? T{0} : T{1}));
 
-  Mask none_true(false);
   T result_none = simd::reduce(v, none_true, cuda::std::bit_xor<>{});
   assert(result_none == T{});
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// reduce noexcept with potentially-throwing operation
+
+template <typename T, int N>
+__host__ __device__ constexpr void test_reduce_throwing_op()
+{
+  using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
+  using Mask = typename Vec::mask_type;
+  Vec v{};
+  Mask m(true);
+
+  static_assert(!noexcept(simd::reduce(v, throwing_plus{})));
+  static_assert(!noexcept(simd::reduce(v, m, throwing_plus{}, T{})));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -243,6 +286,7 @@ __host__ __device__ constexpr void test_type()
   test_reduce_masked_even<T, N>();
   test_reduce_masked_explicit_identity<T, N>();
   test_reduce_masked_multiplies<T, N>();
+  test_reduce_throwing_op<T, N>();
   if constexpr (cuda::std::is_integral_v<T>)
   {
     test_reduce_bit_and<T, N>();
