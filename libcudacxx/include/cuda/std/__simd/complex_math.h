@@ -22,8 +22,8 @@
 #endif // no system header
 
 #include <cuda/std/__concepts/concept_macros.h>
-#include <cuda/std/__fwd/complex.h>
 #include <cuda/std/__simd/basic_vec.h>
+#include <cuda/std/__simd/exposition.h>
 #include <cuda/std/__simd/type_traits.h>
 #include <cuda/std/complex>
 
