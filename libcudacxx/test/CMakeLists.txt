@@ -88,3 +88,4 @@ endif()
 
 add_subdirectory(nvtarget)
 add_subdirectory(atomic_codegen)
+add_subdirectory(simd_codegen)

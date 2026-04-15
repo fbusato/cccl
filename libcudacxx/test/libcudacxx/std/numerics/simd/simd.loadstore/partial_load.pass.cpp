@@ -164,6 +164,7 @@ __host__ __device__ constexpr void test_partial_load_not_noexcept()
   using Mask = typename Vec::mask_type;
   cuda::std::array<T, N> arr{};
   Mask mask(true);
+  unused(arr, mask);
 
   // range overloads
   static_assert(!noexcept(simd::partial_load<Vec>(arr, mask)));
