@@ -25,12 +25,12 @@
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__concepts/convertible_to.h>
 #include <cuda/std/__concepts/equality_comparable.h>
-#include <cuda/std/__floating_point/conversion_rank_order.h>
 #include <cuda/std/__limits/numeric_limits.h>
 #include <cuda/std/__simd/abi.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integral.h>
+#include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/is_signed.h>
 #include <cuda/std/__type_traits/remove_cvref.h>
 #include <cuda/std/__type_traits/void_t.h>
@@ -60,38 +60,6 @@ template <typename _From, typename _To>
 constexpr bool __is_integral__value_preserving_v =
   is_integral_v<_From> && is_integral_v<_To> && numeric_limits<_From>::digits <= numeric_limits<_To>::digits
   && (!is_signed_v<_From> || is_signed_v<_To>);
-
-// The conversion from an arithmetic type U to a vectorizable type T is value-preserving if all possible
-// values of U can be represented with type T.
-template <typename _From, typename _To>
-constexpr bool __is_value_preserving_v =
-  __is_integral__value_preserving_v<_From, _To>
-  || (::cuda::is_floating_point_v<_From> && ::cuda::is_floating_point_v<_To>
-      && __fp_is_implicit_conversion_v<_From, _To>)
-  || (is_integral_v<_From> && ::cuda::is_floating_point_v<_To>
-      && numeric_limits<_From>::digits <= numeric_limits<_To>::digits);
-
-template <typename _From, typename _ValueType, typename = void>
-constexpr bool __is_constexpr_wrapper_value_preserving_v = false;
-
-// The standard requires checking whether the specific compile-time value From::value is representable by _ValueType,
-// not whether the entire source type is value-preserving.
-template <typename _From, typename _ValueType>
-constexpr bool __is_constexpr_wrapper_value_preserving_v<_From, _ValueType, void_t<decltype(_From::value)>> =
-  is_arithmetic_v<remove_cvref_t<decltype(_From::value)>>
-  && (static_cast<remove_cvref_t<decltype(_From::value)>>(static_cast<_ValueType>(_From::value)) == _From::value);
-
-// [simd.ctor] implicit value constructor
-// - From is not an arithmetic type and does not satisfy constexpr-wrapper-like,
-// - From is an arithmetic type and the conversion from From to value_type is value-preserving
-// - From satisfies constexpr-wrapper-like, remove_cvref_t<decltype(From​::​value)> is an arithmetic type, and
-//   From​::​value is representable by value_type.
-template <typename _Up, typename _ValueType, typename _From = remove_cvref_t<_Up>>
-_CCCL_CONCEPT __is_value_ctor_implicit =
-  convertible_to<_Up, _ValueType>
-  && ((!is_arithmetic_v<_From> && !__constexpr_wrapper_like<_From>)
-      || (is_arithmetic_v<_From> && __is_value_preserving_v<_From, _ValueType>)
-      || (__constexpr_wrapper_like<_From> && __is_constexpr_wrapper_value_preserving_v<_From, _ValueType>) );
 
 // [conv.rank], integer conversion rank for [simd.ctor] p7
 
@@ -152,6 +120,45 @@ inline constexpr int __fp_conversion_rank<long double> = 4;
 template <>
 inline constexpr int __fp_conversion_rank<__float128> = 5;
 #endif // _CCCL_HAS_FLOAT128()
+
+// Floating-point implicit conversion: source rank is strictly less (e.g. __half -> float),
+// or both types are identical (same rank, same type).
+// This correctly rejects __half <-> __nv_bfloat16 (same rank, different format).
+template <typename _From, typename _To>
+constexpr bool __is_fp_implicit_conversion_v =
+  (__fp_conversion_rank<_From> < __fp_conversion_rank<_To>) || is_same_v<_From, _To>;
+
+// The conversion from an arithmetic type U to a vectorizable type T is value-preserving if all possible
+// values of U can be represented with type T.
+template <typename _From, typename _To>
+constexpr bool __is_value_preserving_v =
+  __is_integral__value_preserving_v<_From, _To>
+  || (::cuda::is_floating_point_v<_From> && ::cuda::is_floating_point_v<_To>
+      && __is_fp_implicit_conversion_v<_From, _To>)
+  || (is_integral_v<_From> && ::cuda::is_floating_point_v<_To>
+      && numeric_limits<_From>::digits <= numeric_limits<_To>::digits);
+
+template <typename _From, typename _ValueType, typename = void>
+constexpr bool __is_constexpr_wrapper_value_preserving_v = false;
+
+// The standard requires checking whether the specific compile-time value From::value is representable by _ValueType,
+// not whether the entire source type is value-preserving.
+template <typename _From, typename _ValueType>
+constexpr bool __is_constexpr_wrapper_value_preserving_v<_From, _ValueType, void_t<decltype(_From::value)>> =
+  is_arithmetic_v<remove_cvref_t<decltype(_From::value)>>
+  && (static_cast<remove_cvref_t<decltype(_From::value)>>(static_cast<_ValueType>(_From::value)) == _From::value);
+
+// [simd.ctor] implicit value constructor
+// - From is not an arithmetic type and does not satisfy constexpr-wrapper-like,
+// - From is an arithmetic type and the conversion from From to value_type is value-preserving
+// - From satisfies constexpr-wrapper-like, remove_cvref_t<decltype(From​::​value)> is an arithmetic type, and
+//   From​::​value is representable by value_type.
+template <typename _Up, typename _ValueType, typename _From = remove_cvref_t<_Up>>
+_CCCL_CONCEPT __is_value_ctor_implicit =
+  convertible_to<_Up, _ValueType>
+  && ((!is_arithmetic_v<_From> && !__constexpr_wrapper_like<_From>)
+      || (is_arithmetic_v<_From> && __is_value_preserving_v<_From, _ValueType>)
+      || (__constexpr_wrapper_like<_From> && __is_constexpr_wrapper_value_preserving_v<_From, _ValueType>) );
 
 // [simd.ctor] p7: explicit(see below) for basic_vec(const basic_vec<U, UAbi>&)
 // explicit evaluates to true if either:
