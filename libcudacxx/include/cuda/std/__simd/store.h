@@ -67,7 +67,7 @@ _CCCL_API constexpr void __partial_store_to_ptr(
   flags<_Flags...> __flags = {}) noexcept
 {
   ::cuda::std::simd::__check_store_preconditions<_Tp, _Abi>(__ptr, __flags);
-  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::size();
+  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::__size;
 
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
@@ -84,7 +84,7 @@ _CCCL_API constexpr void
 __full_store_to_ptr(const basic_vec<_Tp, _Abi>& __v, _Up* const __ptr, flags<_Flags...> __flags) noexcept
 {
   ::cuda::std::simd::__check_store_preconditions<_Tp, _Abi>(__ptr, __flags);
-  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::size();
+  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::__size;
 
   if constexpr (__has_aligned_flag_v<_Flags...> || __has_overaligned_flag_v<_Flags...>)
   {
@@ -241,7 +241,7 @@ _CCCL_API constexpr void unchecked_store(
   const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
   flags<_Flags...> __f = {})
 {
-  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::size();
+  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::__size;
   if constexpr (__has_static_size<_Range>)
   {
     static_assert(__static_range_size_v<_Range> >= __simd_size,
@@ -261,7 +261,7 @@ _CCCL_API constexpr void unchecked_store(const basic_vec<_Tp, _Abi>& __v, _Range
 {
   if constexpr (__has_static_size<_Range>)
   {
-    static_assert(__static_range_size_v<_Range> >= basic_vec<_Tp, _Abi>::size(),
+    static_assert(__static_range_size_v<_Range> >= basic_vec<_Tp, _Abi>::__size,
                   "unchecked_store requires ranges::size(r) >= V::size()");
   }
   _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::ranges::size(__r), __v.size()),
@@ -310,7 +310,7 @@ _CCCL_API constexpr void unchecked_store(
 {
   _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::distance(__first, __last), __v.size()),
                "unchecked_store requires distance(first, last) >= V::size()");
-  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::size();
+  constexpr auto __simd_size = basic_vec<_Tp, _Abi>::__size;
 
   ::cuda::std::simd::__partial_store_to_ptr(__v, ::cuda::std::to_address(__first), __simd_size, __mask, __f);
 }
