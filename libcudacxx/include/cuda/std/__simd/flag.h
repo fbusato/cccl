@@ -22,6 +22,7 @@
 #endif // no system header
 
 #include <cuda/__cmath/pow2.h>
+#include <cuda/__memory/is_valid_alignment.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__type_traits/is_same.h>
 

@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _CUDA_STD___SIMD_SPECIALIZATIONS_FIXED_SIZE_SIMPLE_MASK_H
-#define _CUDA_STD___SIMD_SPECIALIZATIONS_FIXED_SIZE_SIMPLE_MASK_H
+#ifndef _CUDA_STD___SIMD_SPECIALIZATIONS_FIXED_SIZE_MASK_H
+#define _CUDA_STD___SIMD_SPECIALIZATIONS_FIXED_SIZE_MASK_H
 
 #include <cuda/std/detail/__config>
 
@@ -188,4 +188,4 @@ _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 
-#endif // _CUDA_STD___SIMD_SPECIALIZATIONS_FIXED_SIZE_SIMPLE_MASK_H
+#endif // _CUDA_STD___SIMD_SPECIALIZATIONS_FIXED_SIZE_MASK_H
