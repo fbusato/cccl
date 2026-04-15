@@ -43,23 +43,24 @@
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
 template <typename _Tp>
-constexpr bool __is_abi_tag_v = false;
+inline constexpr bool __is_abi_tag_v = false;
 
 template <__simd_size_type _Np>
-constexpr bool __is_abi_tag_v<__fixed_size<_Np>> = true;
+inline constexpr bool __is_abi_tag_v<__fixed_size<_Np>> = true;
 
 //----------------------------------------------------------------------------------------------------------------------
 // __can_generate_v
 
 template <typename _Tp, typename _Generator, __simd_size_type _Idx, typename = void>
-constexpr bool __is_well_formed = false;
+inline constexpr bool __is_well_formed = false;
 
 template <typename _Tp, typename _Generator, __simd_size_type _Idx>
-constexpr bool __is_well_formed<_Tp,
-                                _Generator,
-                                _Idx,
-                                void_t<decltype(declval<_Generator>()(integral_constant<__simd_size_type, _Idx>()))>> =
-  is_convertible_v<decltype(declval<_Generator>()(integral_constant<__simd_size_type, _Idx>())), _Tp>;
+inline constexpr bool
+  __is_well_formed<_Tp,
+                   _Generator,
+                   _Idx,
+                   void_t<decltype(declval<_Generator>()(integral_constant<__simd_size_type, _Idx>()))>> =
+    is_convertible_v<decltype(declval<_Generator>()(integral_constant<__simd_size_type, _Idx>())), _Tp>;
 
 template <typename _Tp, typename _Generator, __simd_size_type... _Indices>
 [[nodiscard]]
@@ -69,22 +70,23 @@ _CCCL_API constexpr bool __can_generate(integer_sequence<__simd_size_type, _Indi
 }
 
 template <typename _Tp, typename _Generator, __simd_size_type _Size>
-constexpr bool __can_generate_v = __can_generate<_Tp, _Generator>(make_integer_sequence<__simd_size_type, _Size>());
+inline constexpr bool __can_generate_v =
+  __can_generate<_Tp, _Generator>(make_integer_sequence<__simd_size_type, _Size>());
 
 //----------------------------------------------------------------------------------------------------------------------
 // __is_compatible_range_v
 
 template <typename _Range, typename = void>
-constexpr bool __has_tuple_size_v = false;
+inline constexpr bool __has_tuple_size_v = false;
 
 template <typename _Range>
-constexpr bool __has_tuple_size_v<_Range, void_t<decltype(tuple_size<remove_cvref_t<_Range>>::value)>> = true;
+inline constexpr bool __has_tuple_size_v<_Range, void_t<decltype(tuple_size<remove_cvref_t<_Range>>::value)>> = true;
 
 template <typename _Range, typename = void>
-constexpr bool __has_static_extent_v = false;
+inline constexpr bool __has_static_extent_v = false;
 
 template <typename _Range>
-constexpr bool __has_static_extent_v<_Range, void_t<decltype(remove_cvref_t<_Range>::extent)>> =
+inline constexpr bool __has_static_extent_v<_Range, void_t<decltype(remove_cvref_t<_Range>::extent)>> =
   remove_cvref_t<_Range>::extent != dynamic_extent;
 
 // Proxy for ranges::size(r) is a constant expression.
@@ -106,21 +108,21 @@ template <typename _Range>
 }
 
 template <typename _Range>
-constexpr __simd_size_type __static_range_size_v = __get_static_range_size<_Range>();
+inline constexpr __simd_size_type __static_range_size_v = __get_static_range_size<_Range>();
 
 // This trait is defined at namespace scope (not as a static member of basic_vec) because GCC 13 rejects partial
 // specialization of static member variable templates. The static-size detection intentionally avoids directly using
 // tuple_size_v<T> in the guard because that causes a hard error (instead of SFINAE) on NVCC with
 // clang-19/clang-14/nvc++ when T is an incomplete specialization of tuple_size.
 template <typename _Range>
-constexpr bool __is_compatible_range_guard_v =
+inline constexpr bool __is_compatible_range_guard_v =
   __has_static_size<_Range> && ranges::contiguous_range<_Range> && ranges::sized_range<_Range>;
 
 template <typename _Tp, __simd_size_type _Size, typename _Range, bool = __is_compatible_range_guard_v<_Range>>
-constexpr bool __is_compatible_range_v = false;
+inline constexpr bool __is_compatible_range_v = false;
 
 template <typename _Tp, __simd_size_type _Size, typename _Range>
-constexpr bool __is_compatible_range_v<_Tp, _Size, _Range, true> =
+inline constexpr bool __is_compatible_range_v<_Tp, _Size, _Range, true> =
   (__static_range_size_v<_Range> == _Size) //
   && __is_vectorizable_v<ranges::range_value_t<_Range>> //
   && __explicitly_convertible_to<_Tp, ranges::range_value_t<_Range>>;

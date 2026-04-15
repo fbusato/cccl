@@ -57,7 +57,7 @@ _CCCL_CONCEPT __constexpr_wrapper_like = _CCCL_REQUIRES_EXPR((_Tp))(
 // Covers all integral types including character types (char16_t, char32_t, wchar_t, char8_t),
 // which are excluded by __cccl_is_integer_v
 template <typename _From, typename _To>
-constexpr bool __is_integral__value_preserving_v =
+inline constexpr bool __is_integral__value_preserving_v =
   is_integral_v<_From> && is_integral_v<_To> && numeric_limits<_From>::digits <= numeric_limits<_To>::digits
   && (!is_signed_v<_From> || is_signed_v<_To>);
 
@@ -125,13 +125,13 @@ inline constexpr int __fp_conversion_rank<__float128> = 5;
 // or both types are identical (same rank, same type).
 // This correctly rejects __half <-> __nv_bfloat16 (same rank, different format).
 template <typename _From, typename _To>
-constexpr bool __is_fp_implicit_conversion_v =
+inline constexpr bool __is_fp_implicit_conversion_v =
   (__fp_conversion_rank<_From> < __fp_conversion_rank<_To>) || is_same_v<_From, _To>;
 
 // The conversion from an arithmetic type U to a vectorizable type T is value-preserving if all possible
 // values of U can be represented with type T.
 template <typename _From, typename _To>
-constexpr bool __is_value_preserving_v =
+inline constexpr bool __is_value_preserving_v =
   __is_integral__value_preserving_v<_From, _To>
   || (::cuda::is_floating_point_v<_From> && ::cuda::is_floating_point_v<_To>
       && __is_fp_implicit_conversion_v<_From, _To>)
@@ -139,12 +139,12 @@ constexpr bool __is_value_preserving_v =
       && numeric_limits<_From>::digits <= numeric_limits<_To>::digits);
 
 template <typename _From, typename _ValueType, typename = void>
-constexpr bool __is_constexpr_wrapper_value_preserving_v = false;
+inline constexpr bool __is_constexpr_wrapper_value_preserving_v = false;
 
 // The standard requires checking whether the specific compile-time value From::value is representable by _ValueType,
 // not whether the entire source type is value-preserving.
 template <typename _From, typename _ValueType>
-constexpr bool __is_constexpr_wrapper_value_preserving_v<_From, _ValueType, void_t<decltype(_From::value)>> =
+inline constexpr bool __is_constexpr_wrapper_value_preserving_v<_From, _ValueType, void_t<decltype(_From::value)>> =
   is_arithmetic_v<remove_cvref_t<decltype(_From::value)>>
   && (static_cast<remove_cvref_t<decltype(_From::value)>>(static_cast<_ValueType>(_From::value)) == _From::value);
 
@@ -166,7 +166,7 @@ _CCCL_CONCEPT __is_value_ctor_implicit =
 //   - both U and value_type are integral and integer_conversion_rank(U) > rank(value_type), or
 //   - both U and value_type are floating-point and fp_conversion_rank(U) > rank(value_type)
 template <typename _Up, typename _ValueType>
-constexpr bool __is_vec_ctor_explicit =
+inline constexpr bool __is_vec_ctor_explicit =
   !__is_value_preserving_v<_Up, _ValueType>
   || (is_integral_v<_Up> && is_integral_v<_ValueType>
       && __integer_conversion_rank<_Up> > __integer_conversion_rank<_ValueType>)

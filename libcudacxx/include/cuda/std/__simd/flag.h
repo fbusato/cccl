@@ -45,22 +45,22 @@ struct __overaligned_flag
 };
 
 template <typename _Tp>
-constexpr bool __is_flag_type_v = false;
+inline constexpr bool __is_flag_type_v = false;
 
 template <>
-constexpr bool __is_flag_type_v<__convert_flag> = true;
+inline constexpr bool __is_flag_type_v<__convert_flag> = true;
 
 template <>
-constexpr bool __is_flag_type_v<__aligned_flag> = true;
+inline constexpr bool __is_flag_type_v<__aligned_flag> = true;
 
 template <size_t _Np>
-constexpr bool __is_flag_type_v<__overaligned_flag<_Np>> = true;
+inline constexpr bool __is_flag_type_v<__overaligned_flag<_Np>> = true;
 
 template <typename _Flag>
-constexpr size_t __overaligned_value_v = 0;
+inline constexpr size_t __overaligned_value_v = 0;
 
 template <size_t _Np>
-constexpr size_t __overaligned_value_v<__overaligned_flag<_Np>> = _Np;
+inline constexpr size_t __overaligned_value_v<__overaligned_flag<_Np>> = _Np;
 
 // [simd.flags.overview], class template flags
 
@@ -91,19 +91,19 @@ inline constexpr flags<__convert_flag> flag_convert{};
 inline constexpr flags<__aligned_flag> flag_aligned{};
 
 template <size_t _Np>
-constexpr flags<__overaligned_flag<_Np>> flag_overaligned{};
+inline constexpr flags<__overaligned_flag<_Np>> flag_overaligned{};
 
 template <typename... _Flags>
-constexpr bool __has_convert_flag_v = (false || ... || is_same_v<_Flags, __convert_flag>);
+inline constexpr bool __has_convert_flag_v = (false || ... || is_same_v<_Flags, __convert_flag>);
 
 template <typename... _Flags>
-constexpr bool __has_aligned_flag_v = (false || ... || is_same_v<_Flags, __aligned_flag>);
+inline constexpr bool __has_aligned_flag_v = (false || ... || is_same_v<_Flags, __aligned_flag>);
 
 template <typename... _Flags>
-constexpr bool __has_overaligned_flag_v = (false || ... || (__overaligned_value_v<_Flags> != 0));
+inline constexpr bool __has_overaligned_flag_v = (false || ... || (__overaligned_value_v<_Flags> != 0));
 
 template <typename... _Flags>
-constexpr size_t __overaligned_alignment_v = (size_t{0} | ... | __overaligned_value_v<_Flags>);
+inline constexpr size_t __overaligned_alignment_v = (size_t{0} | ... | __overaligned_value_v<_Flags>);
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 

@@ -47,7 +47,7 @@ struct alignment<basic_vec<_Tp, _Abi>, _Up>
 };
 
 template <typename _Tp, typename _Up = typename _Tp::value_type>
-constexpr size_t alignment_v = alignment<_Tp, _Up>::value;
+inline constexpr size_t alignment_v = alignment<_Tp, _Up>::value;
 
 // [simd.traits], rebind
 template <typename _Tp, typename _Vp>
