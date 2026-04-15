@@ -23,6 +23,7 @@
 
 #include <cuda/__utility/in_range.h>
 #include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__fwd/complex.h>
 #include <cuda/std/__ranges/concepts.h>
 #include <cuda/std/__ranges/data.h>
 #include <cuda/std/__simd/basic_mask.h>
@@ -30,12 +31,23 @@
 #include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__simd/flag.h>
 #include <cuda/std/__simd/specializations/fixed_size_vec.h>
+#include <cuda/std/__simd/type_traits.h>
 #include <cuda/std/__simd/utility.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
+
+// [simd.expos]
+
+// Disambiguates the converting constructor from the complex constructor when _ValueType is complex
+// and _Up is its underlying real type
+template <typename _ValueType, typename _Up, bool = __is_complex_vectorizable_v<_ValueType>>
+inline constexpr bool __is_complex_real_type_v = false;
+
+template <typename _ValueType, typename _Up>
+inline constexpr bool __is_complex_real_type_v<_ValueType, _Up, true> = is_same_v<_Up, typename _ValueType::value_type>;
 
 // [simd.class], class template basic_vec
 template <typename _Tp, typename _Abi>
@@ -48,6 +60,9 @@ public:
 private:
   static_assert(__is_vectorizable_v<_Tp>, "basic_vec requires a vectorizable type");
   static_assert(__is_abi_tag_v<_Abi>, "basic_vec requires a valid ABI tag");
+
+  template <typename, typename>
+  friend class basic_vec;
 
   template <size_t, typename>
   friend class basic_mask;
@@ -117,7 +132,8 @@ public:
   // [simd.ctor] converting constructor from basic_vec<U, UAbi> (explicit overload)
   _CCCL_TEMPLATE(typename _Up, typename _UAbi)
   _CCCL_REQUIRES((__simd_size_v<_Up, _UAbi> == __size) _CCCL_AND(__explicitly_convertible_to<value_type, _Up>)
-                   _CCCL_AND(__is_vec_ctor_explicit<_Up, value_type>))
+                   _CCCL_AND(__is_vec_ctor_explicit<_Up, value_type>)
+                     _CCCL_AND(!__is_complex_real_type_v<value_type, _Up>))
   _CCCL_API constexpr explicit basic_vec(const basic_vec<_Up, _UAbi>& __v) noexcept
   {
     _CCCL_PRAGMA_UNROLL_FULL()
@@ -130,7 +146,8 @@ public:
   // [simd.ctor] converting constructor from basic_vec<U, UAbi> (implicit overload)
   _CCCL_TEMPLATE(typename _Up, typename _UAbi)
   _CCCL_REQUIRES((__simd_size_v<_Up, _UAbi> == __size) _CCCL_AND(__explicitly_convertible_to<value_type, _Up>)
-                   _CCCL_AND(!__is_vec_ctor_explicit<_Up, value_type>))
+                   _CCCL_AND(!__is_vec_ctor_explicit<_Up, value_type>)
+                     _CCCL_AND(!__is_complex_real_type_v<value_type, _Up>))
   _CCCL_API constexpr basic_vec(const basic_vec<_Up, _UAbi>& __v) noexcept
   {
     _CCCL_PRAGMA_UNROLL_FULL()
@@ -148,7 +165,6 @@ public:
   {}
 
   // [simd.ctor] range constructor
-
   template <typename _Range>
   static constexpr bool __is_compatible_range = __is_compatible_range_v<value_type, __size, _Range>;
 
@@ -184,8 +200,18 @@ public:
     }
   }
 
-  // TODO(fbusato): add complex constructor
-  // constexpr basic_vec(const real-type& __reals, const real-type& __imags = {}) noexcept;
+  // [simd.ctor] complex constructor
+  _CCCL_TEMPLATE(typename _Up = _Tp)
+  _CCCL_REQUIRES(__is_cuda_std_complex_v<_Up>)
+  _CCCL_API constexpr basic_vec(const rebind_t<typename _Up::value_type, basic_vec>& __reals,
+                                const rebind_t<typename _Up::value_type, basic_vec>& __imags = {}) noexcept
+  {
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
+    {
+      __s_.__set(__i, value_type(__reals[__i], __imags[__i]));
+    }
+  }
 
   // [simd.subscr], basic_vec subscript operators
 
@@ -199,11 +225,55 @@ public:
   // template<simd-integral _Idx>
   //   constexpr resize_t<_Idx::size(), basic_vec> operator[](const _Idx& __indices) const;
 
-  // TODO(fbusato): [simd.complex.access], basic_vec complex accessors
-  // constexpr real-type real() const noexcept;
-  // constexpr real-type imag() const noexcept;
-  // constexpr void real(const real-type& __v) noexcept;
-  // constexpr void imag(const real-type& __v) noexcept;
+  // [simd.complex.access], basic_vec complex accessors
+
+  _CCCL_TEMPLATE(typename _Up = _Tp)
+  _CCCL_REQUIRES(__is_cuda_std_complex_v<_Up>)
+  [[nodiscard]] _CCCL_API constexpr rebind_t<typename _Up::value_type, basic_vec> real() const noexcept
+  {
+    rebind_t<typename _Up::value_type, basic_vec> __ret;
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
+    {
+      __ret.__s_.__set(__i, (*this)[__i].real());
+    }
+    return __ret;
+  }
+
+  _CCCL_TEMPLATE(typename _Up = _Tp)
+  _CCCL_REQUIRES(__is_cuda_std_complex_v<_Up>)
+  [[nodiscard]] _CCCL_API constexpr rebind_t<typename _Up::value_type, basic_vec> imag() const noexcept
+  {
+    rebind_t<typename _Up::value_type, basic_vec> __ret;
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
+    {
+      __ret.__s_.__set(__i, (*this)[__i].imag());
+    }
+    return __ret;
+  }
+
+  _CCCL_TEMPLATE(typename _Up = _Tp)
+  _CCCL_REQUIRES(__is_cuda_std_complex_v<_Up>)
+  _CCCL_API constexpr void real(const rebind_t<typename _Up::value_type, basic_vec>& __v) noexcept
+  {
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
+    {
+      __s_.__set(__i, value_type(__v[__i], (*this)[__i].imag()));
+    }
+  }
+
+  _CCCL_TEMPLATE(typename _Up = _Tp)
+  _CCCL_REQUIRES(__is_cuda_std_complex_v<_Up>)
+  _CCCL_API constexpr void imag(const rebind_t<typename _Up::value_type, basic_vec>& __v) noexcept
+  {
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (__simd_size_type __i = 0; __i < __size; ++__i)
+    {
+      __s_.__set(__i, value_type((*this)[__i].real(), __v[__i]));
+    }
+  }
 
   // [simd.unary], basic_vec unary operators
 
