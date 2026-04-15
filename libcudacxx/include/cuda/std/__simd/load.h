@@ -124,7 +124,7 @@ __full_load_from_ptr(const _Up* __ptr, const typename _Result::mask_type& __mask
       _Up __tmp[__simd_size] = {};
 #endif
       // vectorized load from pointer
-      if constexpr (__is_cuda_vectoriazable_v<_Up> && __ptr_alignment >= __data_size)
+      if constexpr (__is_cuda_vectoriazable_v<_Up> && __simd_size > 1 && __ptr_alignment >= __data_size)
       {
         struct alignas(__data_size) __aligned_t
         {

@@ -107,7 +107,7 @@ __full_store_to_ptr(const basic_vec<_Tp, _Abi>& __v, _Up* const __ptr, flags<_Fl
         __tmp[__i] = static_cast<_Up>(__v[__i]);
       }
       // vectorized store to pointer
-      if constexpr (__is_cuda_vectoriazable_v<_Up> && __ptr_alignment >= __data_size)
+      if constexpr (__is_cuda_vectoriazable_v<_Up> && __simd_size > 1 && __ptr_alignment >= __data_size)
       {
         struct alignas(__data_size) __aligned_t
         {
