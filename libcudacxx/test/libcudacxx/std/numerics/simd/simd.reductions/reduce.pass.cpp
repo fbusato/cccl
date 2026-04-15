@@ -32,7 +32,7 @@ __host__ __device__ constexpr void test_reduce_plus()
 
   static_assert(cuda::std::is_same_v<decltype(simd::reduce(v)), T>);
 
-  T result = simd::reduce(v);
+  T result   = simd::reduce(v);
   T expected = T{};
   for (int i = 0; i < N; ++i)
   {
@@ -86,7 +86,7 @@ __host__ __device__ constexpr void test_reduce_masked_plus()
   static_assert(cuda::std::is_same_v<decltype(simd::reduce(v, all_true)), T>);
 
   T result_all = simd::reduce(v, all_true);
-  T expected = T{};
+  T expected   = T{};
   for (int i = 0; i < N; ++i)
   {
     expected = static_cast<T>(expected + static_cast<T>(i));
@@ -109,7 +109,7 @@ __host__ __device__ constexpr void test_reduce_masked_even()
   Vec v      = make_iota_vec<T, N>();
   Mask even(is_even{});
 
-  T result = simd::reduce(v, even);
+  T result   = simd::reduce(v, even);
   T expected = T{};
   for (int i = 0; i < N; ++i)
   {
