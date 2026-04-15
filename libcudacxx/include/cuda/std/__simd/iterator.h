@@ -66,8 +66,11 @@ public:
   _CCCL_HIDE_FROM_ABI constexpr __simd_iterator& operator=(const __simd_iterator&) noexcept = default;
 
   // non-const to const converting constructor
+  // workaround for MSVC (cannot used is_const_v<_Vp>)
+  // _Vp = const T:  const T == const T
+  // _Vp = T:        const T != T
   _CCCL_TEMPLATE(typename _Up = remove_const_t<_Vp>)
-  _CCCL_REQUIRES(is_const_v<_Vp> _CCCL_AND is_same_v<_Up, remove_const_t<_Vp>>)
+  _CCCL_REQUIRES(is_same_v<const _Up, _Vp>)
   _CCCL_API constexpr __simd_iterator(const __simd_iterator<_Up>& __i)
       : __data_{__i.__data_}
       , __offset_{__i.__offset_}
