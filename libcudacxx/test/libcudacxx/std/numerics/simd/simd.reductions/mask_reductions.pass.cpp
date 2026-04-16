@@ -32,7 +32,12 @@
 // constexpr simd-size-type reduce_min_index(same_as<bool> auto);
 // constexpr simd-size-type reduce_max_index(same_as<bool> auto);
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // all_of

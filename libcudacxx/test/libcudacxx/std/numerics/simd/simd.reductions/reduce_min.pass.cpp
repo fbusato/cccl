@@ -19,7 +19,14 @@
 //   constexpr T reduce_min(const basic_vec<T, Abi>&,
 //                          const typename basic_vec<T, Abi>::mask_type&) noexcept;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/array>
+#include <cuda/std/cassert>
+#include <cuda/std/limits>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // reduce_min without mask

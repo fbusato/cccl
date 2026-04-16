@@ -19,7 +19,14 @@
 //   constexpr T reduce(const basic_vec<T, Abi>&, const typename basic_vec<T, Abi>::mask_type&,
 //                      BinaryOperation = {}, type_identity_t<T> identity_element = see below);
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/functional>
+#include <cuda/std/type_traits>
+#include <cuda/std/utility>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 struct throwing_plus
 {
