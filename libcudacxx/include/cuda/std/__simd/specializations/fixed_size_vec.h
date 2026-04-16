@@ -22,7 +22,7 @@
 #endif // no system header
 
 #include <cuda/__utility/in_range.h>
-#include <cuda/std/__simd/declaration.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__utility/integer_sequence.h>
 

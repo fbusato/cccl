@@ -27,7 +27,7 @@
 #include <cuda/std/__ranges/data.h>
 #include <cuda/std/__simd/basic_mask.h>
 #include <cuda/std/__simd/concepts.h>
-#include <cuda/std/__simd/declaration.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__simd/flag.h>
 #include <cuda/std/__simd/specializations/fixed_size_vec.h>
 #include <cuda/std/__simd/utility.h>
@@ -72,7 +72,7 @@ private:
   using _Impl    = __simd_operations<_Tp, _Abi>;
   using _Storage = typename _Impl::_SimdStorage;
 
-  _Storage __s_;
+  _Storage __s_{};
 
   struct __storage_tag_t
   {};

@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _CUDA_STD___SIMD_DECLARATION_H
-#define _CUDA_STD___SIMD_DECLARATION_H
+#ifndef _CUDA_STD___FWD_SIMD_H
+#define _CUDA_STD___FWD_SIMD_H
 
 #include <cuda/std/detail/__config>
 
@@ -59,4 +59,4 @@ _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
 
-#endif // _CUDA_STD___SIMD_DECLARATION_H
+#endif // _CUDA_STD___FWD_SIMD_H
