@@ -19,9 +19,14 @@
 // basic_vec(Range&&, Ts...) -> basic_vec<range_value_t<Range>, deduce-abi-t<...>>;
 // basic_vec(basic_mask<Bytes, Abi>) -> basic_vec<integer-from<Bytes>, Abi>;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/array>
+#include <cuda/std/cassert>
 #include <cuda/std/span>
+#include <cuda/std/type_traits>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // deduction from range

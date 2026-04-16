@@ -17,7 +17,13 @@
 // constexpr bitset<size()> to_bitset() const noexcept;
 // constexpr unsigned long long to_ullong() const;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/bitset>
+#include <cuda/std/cassert>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // implicit conversion to basic_vec (sizeof(U) == Bytes)

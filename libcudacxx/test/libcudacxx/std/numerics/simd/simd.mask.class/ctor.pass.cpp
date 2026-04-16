@@ -18,10 +18,16 @@
 // constexpr basic_mask(const bitset<size()>&) noexcept;                        // bitset
 // constexpr explicit basic_mask(unsigned-integer) noexcept;                    // unsigned integer
 
+#include <cuda/std/__algorithm/min.h>
+#include <cuda/std/__simd_>
+#include <cuda/std/__type_traits/num_bits.h>
 #include <cuda/std/bitset>
+#include <cuda/std/cassert>
+#include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // member types and size

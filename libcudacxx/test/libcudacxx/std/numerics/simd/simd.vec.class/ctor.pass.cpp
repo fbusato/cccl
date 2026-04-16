@@ -20,9 +20,16 @@
 // constexpr basic_vec(Range&&, flags<> = {});                                      // range
 // constexpr basic_vec(Range&&, const mask_type&, flags<> = {});                    // masked range
 
+#include <cuda/std/__simd_>
+#include <cuda/std/array>
+#include <cuda/std/cassert>
+#include <cuda/std/cstdint>
 #include <cuda/std/span>
+#include <cuda/std/type_traits>
+#include <cuda/std/utility>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // member types and size

@@ -16,7 +16,12 @@
 // friend constexpr basic_mask& operator|=(basic_mask&, const basic_mask&) noexcept;
 // friend constexpr basic_mask& operator^=(basic_mask&, const basic_mask&) noexcept;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 template <int Bytes>
 __host__ __device__ constexpr void test_and()

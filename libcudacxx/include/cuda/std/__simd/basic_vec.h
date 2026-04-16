@@ -23,11 +23,11 @@
 
 #include <cuda/__utility/in_range.h>
 #include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__ranges/concepts.h>
 #include <cuda/std/__ranges/data.h>
 #include <cuda/std/__simd/basic_mask.h>
 #include <cuda/std/__simd/concepts.h>
-#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__simd/flag.h>
 #include <cuda/std/__simd/specializations/fixed_size_vec.h>
 #include <cuda/std/__simd/utility.h>
