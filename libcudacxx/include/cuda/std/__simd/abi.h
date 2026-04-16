@@ -36,6 +36,7 @@ struct __fixed_size; // internal ABI tag
 template <__simd_size_type _Np>
 using fixed_size = __fixed_size<_Np>; // implementation-defined ABI
 
+// TODO(fbusato): this could be optimized by using max access size / sizeof(T)
 template <typename>
 using native = fixed_size<1>; // implementation-defined ABI
 

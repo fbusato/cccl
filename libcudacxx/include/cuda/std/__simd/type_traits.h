@@ -23,8 +23,8 @@
 
 #include <cuda/__memory/is_valid_alignment.h>
 #include <cuda/std/__cstddef/types.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__simd/abi.h>
-#include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__simd/exposition.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 
@@ -47,7 +47,7 @@ struct alignment<basic_vec<_Tp, _Abi>, _Up>
 };
 
 template <typename _Tp, typename _Up = typename _Tp::value_type>
-constexpr size_t alignment_v = alignment<_Tp, _Up>::value;
+inline constexpr size_t alignment_v = alignment<_Tp, _Up>::value;
 
 // [simd.traits], rebind
 template <typename _Tp, typename _Vp>

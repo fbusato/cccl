@@ -24,15 +24,16 @@
 #include <cuda/__utility/in_range.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__fwd/complex.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__ranges/concepts.h>
 #include <cuda/std/__ranges/data.h>
 #include <cuda/std/__simd/basic_mask.h>
 #include <cuda/std/__simd/concepts.h>
-#include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__simd/flag.h>
 #include <cuda/std/__simd/specializations/fixed_size_vec.h>
 #include <cuda/std/__simd/type_traits.h>
 #include <cuda/std/__simd/utility.h>
+#include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -50,45 +51,63 @@ template <typename _ValueType, typename _Up>
 inline constexpr bool __is_complex_real_type_v<_ValueType, _Up, true> = is_same_v<_Up, typename _ValueType::value_type>;
 
 // [simd.class], class template basic_vec
+
+// If basic_vec<T, Abi> is disabled, the specialization has a deleted default constructor, deleted destructor, deleted
+// copy constructor, and deleted copy assignment. In addition only the value_type, abi_type, and mask_type members are
+// present.
+template <typename _Tp, typename _Abi, typename>
+class basic_vec
+{
+public:
+  using value_type = _Tp;
+  using abi_type   = _Abi;
+  using mask_type  = basic_mask<sizeof(_Tp), _Abi>;
+
+  _CCCL_HIDE_FROM_ABI basic_vec()                            = delete;
+  _CCCL_HIDE_FROM_ABI ~basic_vec()                           = delete;
+  _CCCL_HIDE_FROM_ABI basic_vec(const basic_vec&)            = delete;
+  _CCCL_HIDE_FROM_ABI basic_vec& operator=(const basic_vec&) = delete;
+};
+
+// basic_vec<T, Abi> is enabled when T is a vectorizable type and there exists N in [1, 64] derived from
+// deduce-abi-t<T, N>
 template <typename _Tp, typename _Abi>
-class basic_vec : public __simd_operations<_Tp, _Abi>
+class basic_vec<_Tp, _Abi, enable_if_t<__is_vectorizable_v<_Tp> && __is_enabled_abi_v<_Abi>>>
+    : public __simd_operations<_Tp, _Abi>
 {
 public:
   using value_type = _Tp;
   using mask_type  = basic_mask<sizeof(value_type), _Abi>;
 
 private:
-  static_assert(__is_vectorizable_v<_Tp>, "basic_vec requires a vectorizable type");
-  static_assert(__is_abi_tag_v<_Abi>, "basic_vec requires a valid ABI tag");
-
-  template <typename, typename>
+  template <typename, typename, typename>
   friend class basic_vec;
 
-  template <size_t, typename>
+  template <size_t, typename, typename>
   friend class basic_mask;
 
   using _Impl    = __simd_operations<_Tp, _Abi>;
   using _Storage = typename _Impl::_SimdStorage;
 
-  _Storage __s_;
+  _Storage __s_{};
 
   struct __storage_tag_t
   {};
   static constexpr __storage_tag_t __storage_tag{};
 
-  _CCCL_API constexpr basic_vec(_Storage __s, __storage_tag_t) noexcept
+  _CCCL_API constexpr basic_vec(const _Storage __s, __storage_tag_t) noexcept
       : __s_{__s}
   {}
 
   // Friend comparison operators (e.g. operator==) cannot access basic_mask's private constructor directly (friendship
   // is not transitive). This function is required to access the private constructor of basic_mask.
-  _CCCL_API static constexpr mask_type __make_mask(typename mask_type::_Storage __s) noexcept
+  _CCCL_API static constexpr mask_type __make_mask(const typename mask_type::_Storage __s) noexcept
   {
     return mask_type{__s, mask_type::__storage_tag};
   }
 
   // operator[] is const only. We need this function to set values
-  _CCCL_API constexpr void __set(__simd_size_type __i, value_type __v) noexcept
+  _CCCL_API constexpr void __set(const __simd_size_type __i, const value_type __v) noexcept
   {
     __s_.__set(__i, __v);
   }
@@ -117,21 +136,21 @@ public:
 
   // [simd.ctor] value broadcast constructor (explicit overload)
   _CCCL_TEMPLATE(typename _Up)
-  _CCCL_REQUIRES((__explicitly_convertible_to<value_type, _Up>) _CCCL_AND(!__is_value_ctor_implicit<_Up, value_type>))
+  _CCCL_REQUIRES((__explicitly_convertible_to<_Up, value_type>) _CCCL_AND(!__is_value_ctor_implicit<_Up, value_type>))
   _CCCL_API constexpr explicit basic_vec(_Up&& __v) noexcept
       : __s_{_Impl::__broadcast(static_cast<value_type>(__v))}
   {}
 
   // [simd.ctor] value broadcast constructor (implicit overload)
   _CCCL_TEMPLATE(typename _Up)
-  _CCCL_REQUIRES((__explicitly_convertible_to<value_type, _Up>) _CCCL_AND(__is_value_ctor_implicit<_Up, value_type>))
+  _CCCL_REQUIRES((__explicitly_convertible_to<_Up, value_type>) _CCCL_AND(__is_value_ctor_implicit<_Up, value_type>))
   _CCCL_API constexpr basic_vec(_Up&& __v) noexcept
       : __s_{_Impl::__broadcast(static_cast<value_type>(__v))}
   {}
 
   // [simd.ctor] converting constructor from basic_vec<U, UAbi> (explicit overload)
   _CCCL_TEMPLATE(typename _Up, typename _UAbi)
-  _CCCL_REQUIRES((__simd_size_v<_Up, _UAbi> == __size) _CCCL_AND(__explicitly_convertible_to<value_type, _Up>)
+  _CCCL_REQUIRES((__simd_size_v<_Up, _UAbi> == __size) _CCCL_AND(__explicitly_convertible_to<_Up, value_type>)
                    _CCCL_AND(__is_vec_ctor_explicit<_Up, value_type>)
                      _CCCL_AND(!__is_complex_real_type_v<value_type, _Up>))
   _CCCL_API constexpr explicit basic_vec(const basic_vec<_Up, _UAbi>& __v) noexcept
@@ -145,7 +164,7 @@ public:
 
   // [simd.ctor] converting constructor from basic_vec<U, UAbi> (implicit overload)
   _CCCL_TEMPLATE(typename _Up, typename _UAbi)
-  _CCCL_REQUIRES((__simd_size_v<_Up, _UAbi> == __size) _CCCL_AND(__explicitly_convertible_to<value_type, _Up>)
+  _CCCL_REQUIRES((__simd_size_v<_Up, _UAbi> == __size) _CCCL_AND(__explicitly_convertible_to<_Up, value_type>)
                    _CCCL_AND(!__is_vec_ctor_explicit<_Up, value_type>)
                      _CCCL_AND(!__is_complex_real_type_v<value_type, _Up>))
   _CCCL_API constexpr basic_vec(const basic_vec<_Up, _UAbi>& __v) noexcept
@@ -175,7 +194,7 @@ public:
   {
     static_assert(__has_convert_flag_v<_Flags...> || __is_value_preserving_v<ranges::range_value_t<_Range>, value_type>,
                   "Conversion from range_value_t<R> to value_type is not value-preserving; use flag_convert");
-    const auto __data = ranges::data(__range);
+    const auto __data = ::cuda::std::ranges::data(__range);
     __assert_load_store_alignment<basic_vec, ranges::range_value_t<_Range>, _Flags...>(__data);
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __size; ++__i)
@@ -215,7 +234,7 @@ public:
 
   // [simd.subscr], basic_vec subscript operators
 
-  [[nodiscard]] _CCCL_API constexpr value_type operator[](__simd_size_type __i) const
+  [[nodiscard]] _CCCL_API constexpr value_type operator[](const __simd_size_type __i) const
   {
     _CCCL_ASSERT(::cuda::in_range(__i, __simd_size_type{0}, __size), "Index is out of bounds");
     return __s_.__get(__i);
@@ -414,14 +433,16 @@ public:
 
   _CCCL_TEMPLATE(typename _Up = _Tp)
   _CCCL_REQUIRES(__has_shift_left_size<_Up>)
-  [[nodiscard]] _CCCL_API friend constexpr basic_vec operator<<(const basic_vec& __lhs, __simd_size_type __n) noexcept
+  [[nodiscard]] _CCCL_API friend constexpr basic_vec
+  operator<<(const basic_vec& __lhs, const __simd_size_type __n) noexcept
   {
     return __lhs << basic_vec{__n};
   }
 
   _CCCL_TEMPLATE(typename _Up = _Tp)
   _CCCL_REQUIRES(__has_shift_right_size<_Up>)
-  [[nodiscard]] _CCCL_API friend constexpr basic_vec operator>>(const basic_vec& __lhs, __simd_size_type __n) noexcept
+  [[nodiscard]] _CCCL_API friend constexpr basic_vec
+  operator>>(const basic_vec& __lhs, const __simd_size_type __n) noexcept
   {
     return __lhs >> basic_vec{__n};
   }
@@ -500,14 +521,14 @@ public:
 
   _CCCL_TEMPLATE(typename _Up = _Tp)
   _CCCL_REQUIRES(__has_shift_left_size<_Up>)
-  _CCCL_API friend constexpr basic_vec& operator<<=(basic_vec& __lhs, __simd_size_type __n) noexcept
+  _CCCL_API friend constexpr basic_vec& operator<<=(basic_vec& __lhs, const __simd_size_type __n) noexcept
   {
     return __lhs = __lhs << __n;
   }
 
   _CCCL_TEMPLATE(typename _Up = _Tp)
   _CCCL_REQUIRES(__has_shift_right_size<_Up>)
-  _CCCL_API friend constexpr basic_vec& operator>>=(basic_vec& __lhs, __simd_size_type __n) noexcept
+  _CCCL_API friend constexpr basic_vec& operator>>=(basic_vec& __lhs, const __simd_size_type __n) noexcept
   {
     return __lhs = __lhs >> __n;
   }
@@ -561,13 +582,6 @@ public:
   //   const mask_type&, const basic_vec&, const basic_vec&) noexcept;
 };
 
-// GCC fails when the deduction guides are marked __host__ __device__, while it is requires for other cases, e.g. clang
-#if !_CCCL_COMPILER(GCC)
-#  define _CCCL_API_DEDUCTION_GUIDE _CCCL_API
-#else // ^^^ _CCCL_COMPILER(GCC) ^^^ / vvv !_CCCL_COMPILER(GCC) vvv
-#  define _CCCL_API_DEDUCTION_GUIDE
-#endif // !_CCCL_COMPILER(GCC)
-
 // [simd.ctor] deduction guide from contiguous sized range
 // Deduces vec<range_value_t<R>, static_cast<simd-size-type>(ranges::size(r))>
 //    * it is not possible to use the alias "vec" for the deduction guide
@@ -576,7 +590,7 @@ public:
 _CCCL_TEMPLATE(typename _Range, typename... _Ts)
 _CCCL_REQUIRES(
   ranges::contiguous_range<_Range> _CCCL_AND ranges::sized_range<_Range> _CCCL_AND __has_static_size<_Range>)
-_CCCL_API_DEDUCTION_GUIDE basic_vec(_Range&&, _Ts...)
+_CCCL_HOST_DEVICE basic_vec(_Range&&, _Ts...)
   -> basic_vec<ranges::range_value_t<_Range>,
                __deduce_abi_t<ranges::range_value_t<_Range>, __static_range_size_v<_Range>>>;
 
@@ -588,7 +602,7 @@ _CCCL_API_DEDUCTION_GUIDE basic_vec(_Range&&, _Ts...)
 // The deduced type is equivalent to decltype(+k), i.e. basic_vec<__integer_from<Bytes>, Abi>
 _CCCL_TEMPLATE(size_t _Bytes, typename _Abi)
 _CCCL_REQUIRES(__has_unary_plus<basic_mask<_Bytes, _Abi>>)
-_CCCL_API_DEDUCTION_GUIDE basic_vec(basic_mask<_Bytes, _Abi>) -> basic_vec<__integer_from<_Bytes>, _Abi>;
+_CCCL_HOST_DEVICE basic_vec(basic_mask<_Bytes, _Abi>) -> basic_vec<__integer_from<_Bytes>, _Abi>;
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 

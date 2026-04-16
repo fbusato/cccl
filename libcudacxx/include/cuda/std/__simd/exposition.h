@@ -26,7 +26,7 @@
 #include <cuda/std/__fwd/complex.h>
 #include <cuda/std/__simd/abi.h>
 #include <cuda/std/__type_traits/is_const.h>
-#include <cuda/std/__type_traits/is_integral.h>
+#include <cuda/std/__type_traits/is_extended_arithmetic.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/is_volatile.h>
 #include <cuda/std/__type_traits/make_nbit_int.h>
@@ -52,20 +52,19 @@ inline constexpr bool __is_complex_vectorizable_v<::cuda::std::complex<_Tp>> = :
 // std::float16_t, std::float32_t, and std::float64_t if defined ([basic.extended.fp]); and
 // complex<T> where T is a vectorizable floating-point type.
 template <typename _Tp>
-constexpr bool __is_vectorizable_v =
-  (((is_integral_v<_Tp> || ::cuda::is_floating_point_v<_Tp>) && !is_same_v<_Tp, bool>)
-   || __is_complex_vectorizable_v<_Tp>)
-  && !is_const_v<_Tp> && !is_volatile_v<_Tp>;
+inline constexpr bool __is_vectorizable_v =
+  (__is_extended_arithmetic_v<_Tp> || __is_complex_vectorizable_v<_Tp>) && !is_same_v<_Tp, bool> && !is_const_v<_Tp>
+  && !is_volatile_v<_Tp>;
 
 // [simd.expos], simd-complex-value-type
 template <typename _Tp>
 using __simd_complex_value_type = typename _Tp::value_type;
 
 template <typename _Tp, typename _Abi>
-constexpr __simd_size_type __simd_size_v = 0;
+inline constexpr __simd_size_type __simd_size_v = 0;
 
 template <typename _Tp, __simd_size_type _Np>
-constexpr __simd_size_type __simd_size_v<_Tp, fixed_size<_Np>> = _Np;
+inline constexpr __simd_size_type __simd_size_v<_Tp, fixed_size<_Np>> = _Np;
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
