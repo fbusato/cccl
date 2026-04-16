@@ -25,9 +25,9 @@
 #include <cuda/std/__concepts/same_as.h>
 #include <cuda/std/__concepts/totally_ordered.h>
 #include <cuda/std/__functional/operations.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__simd/basic_mask.h>
 #include <cuda/std/__simd/basic_vec.h>
-#include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__type_traits/always_false.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/type_identity.h>
