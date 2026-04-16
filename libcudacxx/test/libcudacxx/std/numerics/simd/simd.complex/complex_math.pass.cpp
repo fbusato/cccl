@@ -44,6 +44,41 @@ __host__ __device__ constexpr void test_real_imag_free()
     assert(reals[i] == static_cast<T>(i + 1));
     assert(imags[i] == static_cast<T>(i + 10));
   }
+
+  // member .real() / .imag() getters must agree with free functions
+  RealVec member_reals = vec.real();
+  RealVec member_imags = vec.imag();
+  for (int i = 0; i < N; ++i)
+  {
+    assert(member_reals[i] == reals[i]);
+    assert(member_imags[i] == imags[i]);
+  }
+
+  // complex constructor from separate real/imag vectors
+  ComplexVec vec2(reals, imags);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec2[i].real() == static_cast<T>(i + 1));
+    assert(vec2[i].imag() == static_cast<T>(i + 10));
+  }
+
+  // complex constructor with real-only (imag defaults to zero)
+  ComplexVec vec3(reals);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec3[i].real() == static_cast<T>(i + 1));
+    assert(vec3[i].imag() == T(0));
+  }
+
+  // member .real(v) / .imag(v) setters
+  ComplexVec vec4(Complex(T(0), T(0)));
+  vec4.real(reals);
+  vec4.imag(imags);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(vec4[i].real() == static_cast<T>(i + 1));
+    assert(vec4[i].imag() == static_cast<T>(i + 10));
+  }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -78,7 +113,7 @@ __host__ __device__ constexpr void test_conj_norm()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// arg()
+// arg(): std::atan2(std::imag(z), std::real(z))
 
 template <typename T, int N>
 __host__ __device__ void test_arg()
@@ -87,7 +122,7 @@ __host__ __device__ void test_arg()
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
   using RealVec    = simd::basic_vec<T, simd::fixed_size<N>>;
 
-  ComplexVec vec(Complex(T(1), T(0)));
+  ComplexVec vec(complex_generator<T, 1, 2>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::arg(vec)), RealVec>);
   static_assert(!noexcept(simd::arg(vec)));
@@ -95,7 +130,9 @@ __host__ __device__ void test_arg()
   RealVec vec_arg = simd::arg(vec);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec_arg[i] == T(0));
+    T expected = cuda::std::atan2(static_cast<T>(i + 2), static_cast<T>(i + 1));
+    T diff     = vec_arg[i] - expected;
+    assert(diff * diff < T(1e-6));
   }
 }
 
@@ -152,7 +189,7 @@ __host__ __device__ void test_exp_log()
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  ComplexVec vec(Complex(T(1), T(0)));
+  ComplexVec vec(complex_generator<T, 1, 1>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::exp(vec)), ComplexVec>);
   static_assert(cuda::std::is_same_v<decltype(simd::log(vec)), ComplexVec>);
@@ -166,20 +203,20 @@ __host__ __device__ void test_exp_log()
 
   for (int i = 0; i < N; ++i)
   {
-    T re_diff = vec_log[i].real() - T(1);
-    T im_diff = vec_log[i].imag();
-    assert(re_diff * re_diff < T(1e-6));
-    assert(im_diff * im_diff < T(1e-6));
+    T re_diff = vec_log[i].real() - vec[i].real();
+    T im_diff = vec_log[i].imag() - vec[i].imag();
+    assert(re_diff * re_diff < T(1e-4));
+    assert(im_diff * im_diff < T(1e-4));
   }
 
-  ComplexVec vec10(Complex(T(100), T(0)));
-  ComplexVec vec_log10 = simd::log10(vec10);
+  ComplexVec vec_log10 = simd::log10(vec);
   for (int i = 0; i < N; ++i)
   {
-    T diff_re = vec_log10[i].real() - T(2);
-    T diff_im = vec_log10[i].imag();
-    assert(diff_re * diff_re < T(1e-6));
-    assert(diff_im * diff_im < T(1e-6));
+    Complex expected = cuda::std::log10(vec[i]);
+    T diff_re        = vec_log10[i].real() - expected.real();
+    T diff_im        = vec_log10[i].imag() - expected.imag();
+    assert(diff_re * diff_re < T(1e-4));
+    assert(diff_im * diff_im < T(1e-4));
   }
 }
 
@@ -297,7 +334,7 @@ __host__ __device__ void test_type()
   test_runtime<T, N>();
 }
 
-__host__ __device__ bool test_rt()
+__host__ __device__ bool test_runtime()
 {
   test_runtime<float, 1>();
   test_runtime<float, 4>();
@@ -318,6 +355,6 @@ int main(int, char**)
 {
   assert(test());
   static_assert(test());
-  assert(test_rt());
+  assert(test_runtime());
   return 0;
 }

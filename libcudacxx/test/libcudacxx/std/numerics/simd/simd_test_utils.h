@@ -187,6 +187,29 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
     _SIMD_TEST_INT128()                                           \
     return true;                                                  \
   }
+
+// Complex types only use float and double for constexpr tests.
+// __half and __nv_bfloat16 are tested via DEFINE_BASIC_VEC_TEST_RUNTIME().
+
+#define DEFINE_COMPLEX_TEST()                                     \
+  __host__ __device__ constexpr bool test()                       \
+  {                                                               \
+    test_type<float, 1>();                                        \
+    test_type<float, 4>();                                        \
+    test_type<double, 1>();                                       \
+    test_type<double, 4>();                                       \
+    return true;                                                  \
+  }
+
+#define DEFINE_COMPLEX_TEST_NONCONSTEXPR()                        \
+  __host__ __device__ bool test()                                 \
+  {                                                               \
+    test_type<float, 1>();                                        \
+    test_type<float, 4>();                                        \
+    test_type<double, 1>();                                       \
+    test_type<double, 4>();                                       \
+    return true;                                                  \
+  }
 // clang-format on
 
 #endif // SIMD_TEST_UTILS_H

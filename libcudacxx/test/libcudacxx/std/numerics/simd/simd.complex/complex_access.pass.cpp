@@ -119,27 +119,8 @@ __host__ __device__ constexpr void test_type()
   test_setters<T, N>();
 }
 
-__host__ __device__ constexpr bool test()
-{
-  test_type<float, 1>();
-  test_type<float, 4>();
-  test_type<double, 1>();
-  test_type<double, 4>();
-  return true;
-}
-
-__host__ __device__ bool test_runtime()
-{
-#if _LIBCUDACXX_HAS_NVFP16()
-  test_type<__half, 1>();
-  test_type<__half, 4>();
-#endif // _LIBCUDACXX_HAS_NVFP16()
-#if _LIBCUDACXX_HAS_NVBF16()
-  test_type<__nv_bfloat16, 1>();
-  test_type<__nv_bfloat16, 4>();
-#endif // _LIBCUDACXX_HAS_NVBF16()
-  return true;
-}
+DEFINE_COMPLEX_TEST()
+DEFINE_BASIC_VEC_TEST_RUNTIME()
 
 int main(int, char**)
 {
