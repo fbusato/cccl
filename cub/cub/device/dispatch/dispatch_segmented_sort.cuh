@@ -182,7 +182,7 @@ template <typename LargeKernelT,
           typename BeginOffsetIteratorT,
           typename EndOffsetIteratorT,
           typename KernelLauncherFactory>
-__launch_bounds__(1) CUB_DETAIL_KERNEL_ATTRIBUTES void DeviceSegmentedSortContinuationKernel(
+__launch_bounds__(1) _CCCL_KERNEL_ATTRIBUTES void DeviceSegmentedSortContinuationKernel(
   _CCCL_GRID_CONSTANT const LargeKernelT large_kernel,
   _CCCL_GRID_CONSTANT const SmallKernelT small_kernel,
   _CCCL_GRID_CONSTANT const local_segment_index_t num_segments,
@@ -321,15 +321,15 @@ struct policy_selector_from_hub
         sp::WARP_THREADS,
         sp::ITEMS_PER_THREAD,
         sp::LOAD_ALGORITHM,
-        sp::STORE_ALGORITHM,
-        sp::LOAD_MODIFIER},
+        sp::LOAD_MODIFIER,
+        sp::STORE_ALGORITHM},
       sub_warp_merge_sort_policy{
         mp::BLOCK_THREADS,
         mp::WARP_THREADS,
         mp::ITEMS_PER_THREAD,
         mp::LOAD_ALGORITHM,
-        mp::STORE_ALGORITHM,
-        mp::LOAD_MODIFIER},
+        mp::LOAD_MODIFIER,
+        mp::STORE_ALGORITHM},
       ap::PARTITIONING_THRESHOLD};
   }
 };

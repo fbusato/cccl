@@ -13,7 +13,12 @@
 // template<class T, simd-size-type N> using vec  = ...;
 // template<class T, simd-size-type N> using mask = ...;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // vec<T, N> resolves to basic_vec<T, deduce-abi-t<T, N>>

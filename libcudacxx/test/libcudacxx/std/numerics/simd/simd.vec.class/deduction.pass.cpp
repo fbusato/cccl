@@ -8,24 +8,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-// (CTAD bug) Deduction guides fail with:
-//   * gcc: all nvcc+gcc configs (EDG frontend bug)
-//   * nvrtc (EDG frontend bug)
-//   * msvc: all nvcc+msvc configs (MSVC CTAD limitation)
-//   * nvcc+clang C++17 (EDG frontend bug)
-//
-// while they work with:
-//
-//   * nvcc+clang C++20: PASS
-//   * clang-cuda: PASS
-//   * nvc++: PASS
+// CTAD is unsupported on MSVC.
 
-// error: error: no instance of constructor "cuda::std::simd::basic_vec" matches the argument list
-
-// UNSUPPORTED: gcc
-// UNSUPPORTED: nvrtc
 // UNSUPPORTED: msvc
-// UNSUPPORTED: nvcc && clang && c++17
 
 // <cuda/std/__simd_>
 
@@ -34,9 +19,14 @@
 // basic_vec(Range&&, Ts...) -> basic_vec<range_value_t<Range>, deduce-abi-t<...>>;
 // basic_vec(basic_mask<Bytes, Abi>) -> basic_vec<integer-from<Bytes>, Abi>;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/array>
+#include <cuda/std/cassert>
 #include <cuda/std/span>
+#include <cuda/std/type_traits>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // deduction from range

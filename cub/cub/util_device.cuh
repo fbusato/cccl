@@ -60,7 +60,7 @@ namespace detail
  * \brief Empty kernel for querying PTX manifest metadata (e.g., version) for the current device
  */
 template <typename T>
-CUB_DETAIL_KERNEL_ATTRIBUTES void EmptyKernel()
+_CCCL_KERNEL_ATTRIBUTES void EmptyKernel()
 {}
 } // namespace detail
 
@@ -411,7 +411,7 @@ CUB_RUNTIME_FUNCTION inline cudaError_t SmVersionUncached(int& sm_version, int d
       break;
     }
     sm_version = major * 100 + minor * 10;
-  } while (0);
+  } while (false);
 
   return error;
 }

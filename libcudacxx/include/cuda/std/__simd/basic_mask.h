@@ -25,13 +25,16 @@
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__concepts/same_as.h>
 #include <cuda/std/__cstddef/types.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__iterator/default_sentinel.h>
-#include <cuda/std/__simd/declaration.h>
 #include <cuda/std/__simd/iterator.h>
 #include <cuda/std/__simd/specializations/fixed_size_mask.h>
 #include <cuda/std/__simd/utility.h>
+#include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/integral_constant.h>
-#include <cuda/std/__type_traits/is_unsigned_integer.h>
+#include <cuda/std/__type_traits/is_integral.h>
+#include <cuda/std/__type_traits/is_same.h>
+#include <cuda/std/__type_traits/is_unsigned.h>
 #include <cuda/std/__type_traits/num_bits.h>
 #include <cuda/std/bitset>
 
@@ -39,13 +42,37 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
-// [simd.mask.class], class template basic_mask
-template <size_t _Bytes, typename _Abi>
-class basic_mask : public __mask_operations<_Bytes, _Abi>
-{
-  static_assert(__is_abi_tag_v<_Abi>, "basic_mask requires a valid ABI tag");
+template <size_t _Bytes>
+inline constexpr bool __is_vectorizable_byte_size_v =
+  (_Bytes == 1 || _Bytes == 2 || _Bytes == 4 || _Bytes == 8
+#if _CCCL_HAS_INT128()
+   || _Bytes == 16
+#endif // _CCCL_HAS_INT128()
+  );
 
-  template <typename, typename>
+// If basic_mask<Bytes, Abi> is disabled, the specialization has a deleted default constructor, deleted destructor,
+// deleted copy constructor, and deleted copy assignment. In addition only the value_type and abi_type members are
+// present.
+template <size_t _Bytes, typename _Abi, typename>
+class basic_mask
+{
+public:
+  using value_type = bool;
+  using abi_type   = _Abi;
+
+  _CCCL_HIDE_FROM_ABI basic_mask()                             = delete;
+  _CCCL_HIDE_FROM_ABI ~basic_mask()                            = delete;
+  _CCCL_HIDE_FROM_ABI basic_mask(const basic_mask&)            = delete;
+  _CCCL_HIDE_FROM_ABI basic_mask& operator=(const basic_mask&) = delete;
+};
+
+// basic_mask<Bytes, Abi> is enabled when there exists a vectorizable type T with sizeof(T) == Bytes and N in [1, 64]
+// derived from deduce-abi-t<T, N>
+template <size_t _Bytes, typename _Abi>
+class basic_mask<_Bytes, _Abi, enable_if_t<__is_vectorizable_byte_size_v<_Bytes> && __is_enabled_abi_v<_Abi>>>
+    : public __mask_operations<_Bytes, _Abi>
+{
+  template <typename, typename, typename>
   friend class basic_vec;
 
   using _Impl    = __mask_operations<_Bytes, _Abi>;
@@ -57,7 +84,7 @@ class basic_mask : public __mask_operations<_Bytes, _Abi>
   {};
   static constexpr __storage_tag_t __storage_tag{};
 
-  _CCCL_API constexpr basic_mask(_Storage __v, __storage_tag_t) noexcept
+  _CCCL_API constexpr basic_mask(const _Storage __v, __storage_tag_t) noexcept
       : __s_{__v}
   {}
 
@@ -104,7 +131,7 @@ public:
 
   _CCCL_TEMPLATE(typename _Up)
   _CCCL_REQUIRES(same_as<_Up, value_type>)
-  _CCCL_API constexpr explicit basic_mask(_Up __v) noexcept
+  _CCCL_API constexpr explicit basic_mask(const _Up __v) noexcept
       : __s_{_Impl::__broadcast(__v)}
   {}
 
@@ -138,8 +165,8 @@ public:
   }
 
   _CCCL_TEMPLATE(typename _Tp)
-  _CCCL_REQUIRES((__cccl_is_unsigned_integer_v<_Tp>) )
-  _CCCL_API constexpr explicit basic_mask(_Tp __val) noexcept
+  _CCCL_REQUIRES(is_integral_v<_Tp> _CCCL_AND is_unsigned_v<_Tp> _CCCL_AND(!is_same_v<_Tp, value_type>))
+  _CCCL_API constexpr explicit basic_mask(const _Tp __val) noexcept
       : __s_{_Impl::__broadcast(false)}
   {
     constexpr auto __num_bits = __simd_size_type{__num_bits_v<_Tp>};
@@ -153,7 +180,7 @@ public:
 
   // [simd.mask.subscr], basic_mask subscript operators
 
-  [[nodiscard]] _CCCL_API constexpr value_type operator[](__simd_size_type __i) const
+  [[nodiscard]] _CCCL_API constexpr value_type operator[](const __simd_size_type __i) const
   {
     _CCCL_ASSERT(::cuda::in_range(__i, __simd_size_type{0}, __size), "Index is out of bounds");
     return static_cast<bool>(__s_.__get(__i));
@@ -170,46 +197,22 @@ public:
     return {_Impl::__bitwise_not(__s_), __storage_tag};
   }
 
-  template <size_t _ByteSize>
-  static constexpr bool __has_integer_from_v =
-    (_ByteSize == 1 || _ByteSize == 2 || _ByteSize == 4 || _ByteSize == 8
-#if _CCCL_HAS_INT128()
-     || _ByteSize == 16
-#endif // _CCCL_HAS_INT128()
-    );
+  using __unary_return_t = basic_vec<__integer_from<_Bytes>, _Abi>;
 
-  _CCCL_TEMPLATE(size_t _Bp = _Bytes)
-  _CCCL_REQUIRES(__has_integer_from_v<_Bp>)
-  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_Bp>, _Abi> operator+() const noexcept
+  [[nodiscard]] _CCCL_API constexpr __unary_return_t operator+() const noexcept
   {
-    return static_cast<basic_vec<__integer_from<_Bp>, _Abi>>(*this);
+    return static_cast<__unary_return_t>(*this);
   }
 
-  _CCCL_TEMPLATE(size_t _Bp = _Bytes)
-  _CCCL_REQUIRES((!__has_integer_from_v<_Bp>) )
-  _CCCL_API void operator+() const noexcept = delete;
-
-  _CCCL_TEMPLATE(size_t _Bp = _Bytes)
-  _CCCL_REQUIRES(__has_integer_from_v<_Bp>)
-  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_Bp>, _Abi> operator-() const noexcept
+  [[nodiscard]] _CCCL_API constexpr __unary_return_t operator-() const noexcept
   {
-    return -static_cast<basic_vec<__integer_from<_Bp>, _Abi>>(*this);
+    return -static_cast<__unary_return_t>(*this);
   }
 
-  _CCCL_TEMPLATE(size_t _Bp = _Bytes)
-  _CCCL_REQUIRES((!__has_integer_from_v<_Bp>) )
-  _CCCL_API void operator-() const noexcept = delete;
-
-  _CCCL_TEMPLATE(size_t _Bp = _Bytes)
-  _CCCL_REQUIRES(__has_integer_from_v<_Bp>)
-  [[nodiscard]] _CCCL_API constexpr basic_vec<__integer_from<_Bp>, _Abi> operator~() const noexcept
+  [[nodiscard]] _CCCL_API constexpr __unary_return_t operator~() const noexcept
   {
-    return ~static_cast<basic_vec<__integer_from<_Bp>, _Abi>>(*this);
+    return ~static_cast<__unary_return_t>(*this);
   }
-
-  _CCCL_TEMPLATE(size_t _Bp = _Bytes)
-  _CCCL_REQUIRES((!__has_integer_from_v<_Bp>) )
-  _CCCL_API void operator~() const noexcept = delete;
 
   // [simd.mask.conv], basic_mask conversions
 

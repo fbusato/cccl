@@ -21,11 +21,10 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/__type_traits/is_floating_point.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__simd/abi.h>
 #include <cuda/std/__type_traits/is_const.h>
-#include <cuda/std/__type_traits/is_integral.h>
+#include <cuda/std/__type_traits/is_extended_arithmetic.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/is_volatile.h>
 #include <cuda/std/__type_traits/make_nbit_int.h>
@@ -44,8 +43,7 @@ using __integer_from = __make_nbit_int_t<_Bytes * 8, true>;
 // TODO(fbusato) complex<T> where T is a vectorizable floating-point type.
 template <typename _Tp>
 inline constexpr bool __is_vectorizable_v =
-  (is_integral_v<_Tp> || ::cuda::is_floating_point_v<_Tp>)
-  && !is_same_v<_Tp, bool> && !is_const_v<_Tp> && !is_volatile_v<_Tp>;
+  __is_extended_arithmetic_v<_Tp> && !is_same_v<_Tp, bool> && !is_const_v<_Tp> && !is_volatile_v<_Tp>;
 
 template <typename _Tp, typename _Abi>
 inline constexpr __simd_size_type __simd_size_v = 0;
