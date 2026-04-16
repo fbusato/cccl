@@ -44,26 +44,11 @@ struct __simd_storage<_Tp, __fixed_size<_Np>>
 {
   using value_type = _Tp;
 
-#if _CCCL_STD_VER >= 2020
-  _Tp __data[_Np]; // no initialization
+  _Tp __data[_Np]{};
 
-  _CCCL_API constexpr __simd_storage() noexcept
-  {
-    _CCCL_IF_CONSTEVAL
-    {
-      for (__simd_size_type __i = 0; __i < _Np; ++__i)
-      {
-        __data[__i] = _Tp{};
-      }
-    }
-  }
-
+  _CCCL_HIDE_FROM_ABI constexpr __simd_storage()                                 = default;
   _CCCL_HIDE_FROM_ABI constexpr __simd_storage(const __simd_storage&)            = default;
   _CCCL_HIDE_FROM_ABI constexpr __simd_storage& operator=(const __simd_storage&) = default;
-#else // ^^^ C++20 ^^^ / vvv C++17 vvv
-
-  _Tp __data[_Np]{};
-#endif // _CCCL_STD_VER < 2020
 
   [[nodiscard]] _CCCL_API constexpr _Tp __get(__simd_size_type __idx) const noexcept
   {

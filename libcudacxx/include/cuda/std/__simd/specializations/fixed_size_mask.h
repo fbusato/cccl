@@ -37,27 +37,11 @@ struct __mask_storage<_Bytes, __fixed_size<_Np>>
 {
   static constexpr size_t __element_bytes = _Bytes;
 
-#if _CCCL_STD_VER >= 2020
-  bool __data[_Np];
-
-  _CCCL_API constexpr __mask_storage() noexcept
-  {
-    _CCCL_IF_CONSTEVAL
-    {
-      for (__simd_size_type __i = 0; __i < _Np; ++__i)
-      {
-        __data[__i] = false;
-      }
-    }
-  }
-
-  _CCCL_HIDE_FROM_ABI constexpr __mask_storage(const __mask_storage&)            = default;
-  _CCCL_HIDE_FROM_ABI constexpr __mask_storage& operator=(const __mask_storage&) = default;
-
-#else // ^^^ C++20 ^^^ / vvv C++17 vvv
-
   bool __data[_Np]{};
-#endif // _CCCL_STD_VER < 2020
+
+  _CCCL_HIDE_FROM_ABI constexpr __mask_storage() noexcept                                 = default;
+  _CCCL_HIDE_FROM_ABI constexpr __mask_storage(const __mask_storage&) noexcept            = default;
+  _CCCL_HIDE_FROM_ABI constexpr __mask_storage& operator=(const __mask_storage&) noexcept = default;
 
   [[nodiscard]] _CCCL_API constexpr bool __get(__simd_size_type __idx) const noexcept
   {
