@@ -262,6 +262,9 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
   return __count;
 }
 
+_CCCL_DIAG_PUSH
+_CCCL_DIAG_SUPPRESS_MSVC(4702) // unreachable code
+
 template <::cuda::std::size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const basic_mask<_Bytes, _Abi>& __k)
 {
@@ -275,7 +278,6 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
     }
   }
   _CCCL_UNREACHABLE();
-  return 0; // unreachable (MSVC workaround)
 }
 
 template <::cuda::std::size_t _Bytes, typename _Abi>
@@ -291,8 +293,9 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
     }
   }
   _CCCL_UNREACHABLE();
-  return 0; // unreachable (MSVC workaround)
 }
+
+_CCCL_DIAG_POP
 
 // Scalar bool overloads
 
