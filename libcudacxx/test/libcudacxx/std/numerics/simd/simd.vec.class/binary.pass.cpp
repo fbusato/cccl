@@ -25,7 +25,12 @@
 // friend constexpr basic_vec operator<<(const basic_vec&, simd-size-type) noexcept;
 // friend constexpr basic_vec operator>>(const basic_vec&, simd-size-type) noexcept;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 template <typename T, int N>
 __host__ __device__ constexpr void test_arithmetic()

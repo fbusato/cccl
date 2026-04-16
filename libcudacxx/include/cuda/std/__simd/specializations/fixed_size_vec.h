@@ -22,7 +22,7 @@
 #endif // no system header
 
 #include <cuda/__utility/in_range.h>
-#include <cuda/std/__simd/declaration.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__utility/integer_sequence.h>
 
@@ -44,34 +44,19 @@ struct __simd_storage<_Tp, __fixed_size<_Np>>
 {
   using value_type = _Tp;
 
-#if _CCCL_STD_VER >= 2020
-  _Tp __data[_Np]; // no initialization
+  _Tp __data[_Np]{};
 
-  _CCCL_API constexpr __simd_storage() noexcept
-  {
-    _CCCL_IF_CONSTEVAL
-    {
-      for (__simd_size_type __i = 0; __i < _Np; ++__i)
-      {
-        __data[__i] = _Tp{};
-      }
-    }
-  }
-
+  _CCCL_HIDE_FROM_ABI constexpr __simd_storage()                                 = default;
   _CCCL_HIDE_FROM_ABI constexpr __simd_storage(const __simd_storage&)            = default;
   _CCCL_HIDE_FROM_ABI constexpr __simd_storage& operator=(const __simd_storage&) = default;
-#else // ^^^ C++20 ^^^ / vvv C++17 vvv
 
-  _Tp __data[_Np]{};
-#endif // _CCCL_STD_VER < 2020
-
-  [[nodiscard]] _CCCL_API constexpr _Tp __get(__simd_size_type __idx) const noexcept
+  [[nodiscard]] _CCCL_API constexpr _Tp __get(const __simd_size_type __idx) const noexcept
   {
     _CCCL_ASSERT(::cuda::in_range(__idx, __simd_size_type{0}, _Np), "Index is out of bounds");
     return __data[__idx];
   }
 
-  _CCCL_API constexpr void __set(__simd_size_type __idx, _Tp __v) noexcept
+  _CCCL_API constexpr void __set(const __simd_size_type __idx, const _Tp __v) noexcept
   {
     _CCCL_ASSERT(::cuda::in_range(__idx, __simd_size_type{0}, _Np), "Index is out of bounds");
     __data[__idx] = __v;
@@ -85,7 +70,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   using _SimdStorage = __simd_storage<_Tp, __fixed_size<_Np>>;
   using _MaskStorage = __mask_storage<sizeof(_Tp), __fixed_size<_Np>>;
 
-  [[nodiscard]] _CCCL_API static constexpr _SimdStorage __broadcast(_Tp __v) noexcept
+  [[nodiscard]] _CCCL_API static constexpr _SimdStorage __broadcast(const _Tp __v) noexcept
   {
     _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()

@@ -44,11 +44,12 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
-template <typename _Tp>
-inline constexpr bool __is_abi_tag_v = false;
+template <typename _Abi>
+inline constexpr bool __is_enabled_abi_v = false;
 
+// c++ specification sets 1 <= N <= 64
 template <__simd_size_type _Np>
-inline constexpr bool __is_abi_tag_v<__fixed_size<_Np>> = true;
+inline constexpr bool __is_enabled_abi_v<__fixed_size<_Np>> = (_Np >= 1 && _Np <= 64);
 
 //----------------------------------------------------------------------------------------------------------------------
 // __can_generate_v
@@ -66,7 +67,7 @@ inline constexpr bool
 
 template <typename _Tp, typename _Generator, __simd_size_type... _Indices>
 [[nodiscard]]
-_CCCL_API constexpr bool __can_generate(integer_sequence<__simd_size_type, _Indices...>) noexcept
+_CCCL_API _CCCL_CONSTEVAL bool __can_generate(integer_sequence<__simd_size_type, _Indices...>) noexcept
 {
   return (true && ... && __is_well_formed<_Tp, _Generator, _Indices>);
 }
@@ -96,7 +97,7 @@ template <typename _Range>
 _CCCL_CONCEPT __has_static_size = __has_tuple_size_v<_Range> || __has_static_extent_v<_Range>;
 
 template <typename _Range>
-[[nodiscard]] _CCCL_API constexpr __simd_size_type __get_static_range_size() noexcept
+[[nodiscard]] _CCCL_API _CCCL_CONSTEVAL __simd_size_type __get_static_range_size() noexcept
 {
   using __range_t = remove_cvref_t<_Range>;
   if constexpr (__has_tuple_size_v<_Range>)
@@ -127,7 +128,7 @@ template <typename _Tp, __simd_size_type _Size, typename _Range>
 inline constexpr bool __is_compatible_range_v<_Tp, _Size, _Range, true> =
   (__static_range_size_v<_Range> == _Size) //
   && __is_vectorizable_v<ranges::range_value_t<_Range>> //
-  && __explicitly_convertible_to<_Tp, ranges::range_value_t<_Range>>;
+  && __explicitly_convertible_to<ranges::range_value_t<_Range>, _Tp>;
 
 //----------------------------------------------------------------------------------------------------------------------
 // [simd.flags] alignment assertion for load/store pointers

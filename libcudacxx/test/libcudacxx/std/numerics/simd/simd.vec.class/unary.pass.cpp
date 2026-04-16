@@ -21,7 +21,12 @@
 // constexpr basic_vec  operator+() const noexcept;
 // constexpr basic_vec  operator-() const noexcept;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 TEST_DIAG_SUPPRESS_MSVC(4146) // unary minus operator applied to unsigned type, result still unsigned
 
