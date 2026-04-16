@@ -24,15 +24,16 @@
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__concepts/same_as.h>
 #include <cuda/std/__concepts/totally_ordered.h>
+#include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__functional/operations.h>
 #include <cuda/std/__fwd/simd.h>
+#include <cuda/std/__limits/numeric_limits.h>
 #include <cuda/std/__simd/basic_mask.h>
 #include <cuda/std/__simd/basic_vec.h>
 #include <cuda/std/__type_traits/always_false.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/type_identity.h>
 #include <cuda/std/__utility/declval.h>
-#include <cuda/std/limits>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -48,33 +49,31 @@ inline constexpr bool __is_nothrow_reduction_binary_operation_v = noexcept(
   ::cuda::std::declval<const _BinaryOp&>()(::cuda::std::declval<vec<_Tp, 1>>(), ::cuda::std::declval<vec<_Tp, 1>>()));
 
 template <typename _Tp, typename _BinaryOp>
-constexpr bool __is_reduce_default_supported_operation_v =
-  ::cuda::std::is_same_v<_BinaryOp, ::cuda::std::plus<>> //
-  || ::cuda::std::is_same_v<_BinaryOp, ::cuda::std::multiplies<>>
-  || ::cuda::std::is_same_v<_BinaryOp, ::cuda::std::bit_and<>>
-  || ::cuda::std::is_same_v<_BinaryOp, ::cuda::std::bit_or<>>
-  || ::cuda::std::is_same_v<_BinaryOp, ::cuda::std::bit_xor<>>;
+inline constexpr bool __is_reduce_default_supported_operation_v =
+  is_same_v<_BinaryOp, plus<>> //
+  || is_same_v<_BinaryOp, multiplies<>> //
+  || is_same_v<_BinaryOp, bit_and<>> //
+  || is_same_v<_BinaryOp, bit_or<>> //
+  || is_same_v<_BinaryOp, bit_xor<>>;
 
 template <typename _Tp, typename _BinaryOp>
 [[nodiscard]] _CCCL_API constexpr _Tp __default_identity_element() noexcept
 {
-  if constexpr (::cuda::std::is_same_v<_BinaryOp, ::cuda::std::plus<>>
-                || ::cuda::std::is_same_v<_BinaryOp, ::cuda::std::bit_or<>>
-                || ::cuda::std::is_same_v<_BinaryOp, ::cuda::std::bit_xor<>>)
+  if constexpr (is_same_v<_BinaryOp, plus<>> || is_same_v<_BinaryOp, bit_or<>> || is_same_v<_BinaryOp, bit_xor<>>)
   {
     return _Tp{};
   }
-  else if constexpr (::cuda::std::is_same_v<_BinaryOp, ::cuda::std::multiplies<>>)
+  else if constexpr (is_same_v<_BinaryOp, multiplies<>>)
   {
     return _Tp(1);
   }
-  else if constexpr (::cuda::std::is_same_v<_BinaryOp, ::cuda::std::bit_and<>>)
+  else if constexpr (is_same_v<_BinaryOp, bit_and<>>)
   {
     return static_cast<_Tp>(~_Tp{});
   }
   else
   {
-    static_assert(::cuda::std::__always_false_v<_Tp>,
+    static_assert(__always_false_v<_Tp>,
                   "No default identity element for this BinaryOperation; provide one explicitly");
     return _Tp{};
   }
@@ -82,11 +81,11 @@ template <typename _Tp, typename _BinaryOp>
 
 // [simd.reductions], reduce
 
-_CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation = ::cuda::std::plus<>)
+_CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation = plus<>)
 _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
-[[nodiscard]] _CCCL_API constexpr _Tp
-reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op = ::cuda::std::plus<>{}) noexcept(
-  __is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
+[[nodiscard]] _CCCL_API constexpr _Tp reduce(
+  const basic_vec<_Tp, _Abi>& __x,
+  _BinaryOperation __binary_op = plus<>{}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
 {
   vec<_Tp, 1> __result{__x[0]};
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -106,7 +105,7 @@ _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
   const basic_vec<_Tp, _Abi>& __x,
   const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
   _BinaryOperation __binary_op,
-  const ::cuda::std::type_identity_t<_Tp>
+  const type_identity_t<_Tp>
     __identity_element) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
 {
   vec<_Tp, 1> __result{__identity_element};
@@ -121,14 +120,14 @@ _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
   return __result[0];
 }
 
-_CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation = ::cuda::std::plus<>)
+_CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation = plus<>)
 _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp> _CCCL_AND
                  __is_reduce_default_supported_operation_v<_Tp, _BinaryOperation>)
 [[nodiscard]] _CCCL_API constexpr _Tp
 reduce(const basic_vec<_Tp, _Abi>& __x,
        const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
-       _BinaryOperation __binary_op =
-         ::cuda::std::plus<>{}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
+       const _BinaryOperation __binary_op =
+         plus<>{}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
 {
   return ::cuda::std::simd::reduce(
     __x, __mask, __binary_op, ::cuda::std::simd::__default_identity_element<_Tp, _BinaryOperation>());
@@ -137,7 +136,7 @@ reduce(const basic_vec<_Tp, _Abi>& __x,
 // [simd.reductions], reduce_min
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
-_CCCL_REQUIRES(::cuda::std::totally_ordered<_Tp>)
+_CCCL_REQUIRES(totally_ordered<_Tp>)
 [[nodiscard]] _CCCL_API constexpr _Tp reduce_min(const basic_vec<_Tp, _Abi>& __x) noexcept
 {
   auto __result = __x[0];
@@ -154,11 +153,11 @@ _CCCL_REQUIRES(::cuda::std::totally_ordered<_Tp>)
 }
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
-_CCCL_REQUIRES(::cuda::std::totally_ordered<_Tp>)
+_CCCL_REQUIRES(totally_ordered<_Tp>)
 [[nodiscard]] _CCCL_API constexpr _Tp
 reduce_min(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __mask) noexcept
 {
-  auto __result = ::cuda::std::numeric_limits<_Tp>::max();
+  auto __result = numeric_limits<_Tp>::max();
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 0; __i < __x.__size; ++__i)
   {
@@ -177,7 +176,7 @@ reduce_min(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>:
 // [simd.reductions], reduce_max
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
-_CCCL_REQUIRES(::cuda::std::totally_ordered<_Tp>)
+_CCCL_REQUIRES(totally_ordered<_Tp>)
 [[nodiscard]] _CCCL_API constexpr _Tp reduce_max(const basic_vec<_Tp, _Abi>& __x) noexcept
 {
   auto __result = __x[0];
@@ -194,11 +193,11 @@ _CCCL_REQUIRES(::cuda::std::totally_ordered<_Tp>)
 }
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
-_CCCL_REQUIRES(::cuda::std::totally_ordered<_Tp>)
+_CCCL_REQUIRES(totally_ordered<_Tp>)
 [[nodiscard]] _CCCL_API constexpr _Tp
 reduce_max(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __mask) noexcept
 {
-  auto __result = ::cuda::std::numeric_limits<_Tp>::lowest();
+  auto __result = numeric_limits<_Tp>::lowest();
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 0; __i < __x.__size; ++__i)
   {
@@ -216,7 +215,7 @@ reduce_max(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>:
 
 // [simd.mask.reductions], mask reductions
 
-template <::cuda::std::size_t _Bytes, typename _Abi>
+template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr bool all_of(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -230,7 +229,7 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
   return true;
 }
 
-template <::cuda::std::size_t _Bytes, typename _Abi>
+template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr bool any_of(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -244,13 +243,13 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
   return false;
 }
 
-template <::cuda::std::size_t _Bytes, typename _Abi>
+template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr bool none_of(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
   return !::cuda::std::simd::any_of(__k);
 }
 
-template <::cuda::std::size_t _Bytes, typename _Abi>
+template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_count(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
   __simd_size_type __count = 0;
@@ -265,7 +264,7 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
 _CCCL_DIAG_PUSH
 _CCCL_DIAG_SUPPRESS_MSVC(4702) // unreachable code
 
-template <::cuda::std::size_t _Bytes, typename _Abi>
+template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const basic_mask<_Bytes, _Abi>& __k)
 {
   _CCCL_ASSERT(::cuda::std::simd::any_of(__k), "No bits are set");
@@ -280,7 +279,7 @@ template <::cuda::std::size_t _Bytes, typename _Abi>
   _CCCL_UNREACHABLE();
 }
 
-template <::cuda::std::size_t _Bytes, typename _Abi>
+template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const basic_mask<_Bytes, _Abi>& __k)
 {
   _CCCL_ASSERT(::cuda::std::simd::any_of(__k), "No bits are set");
@@ -300,44 +299,44 @@ _CCCL_DIAG_POP
 // Scalar bool overloads
 
 _CCCL_TEMPLATE(typename _Tp)
-_CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr bool all_of(_Tp __x) noexcept
+_CCCL_REQUIRES(same_as<_Tp, bool>)
+[[nodiscard]] _CCCL_API constexpr bool all_of(const _Tp __x) noexcept
 {
   return __x;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
-_CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr bool any_of(_Tp __x) noexcept
+_CCCL_REQUIRES(same_as<_Tp, bool>)
+[[nodiscard]] _CCCL_API constexpr bool any_of(const _Tp __x) noexcept
 {
   return __x;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
-_CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr bool none_of(_Tp __x) noexcept
+_CCCL_REQUIRES(same_as<_Tp, bool>)
+[[nodiscard]] _CCCL_API constexpr bool none_of(const _Tp __x) noexcept
 {
   return !__x;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
-_CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_count(_Tp __x) noexcept
+_CCCL_REQUIRES(same_as<_Tp, bool>)
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_count(const _Tp __x) noexcept
 {
   return __x;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
-_CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(_Tp __x)
+_CCCL_REQUIRES(same_as<_Tp, bool>)
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const _Tp __x)
 {
   _CCCL_ASSERT(__x, "No bits are set");
   return 0;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
-_CCCL_REQUIRES(::cuda::std::same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(_Tp __x)
+_CCCL_REQUIRES(same_as<_Tp, bool>)
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const _Tp __x)
 {
   _CCCL_ASSERT(__x, "No bits are set");
   return 0;
