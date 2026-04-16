@@ -18,10 +18,16 @@
 // constexpr basic_mask(const bitset<size()>&) noexcept;                        // bitset
 // constexpr explicit basic_mask(unsigned-integer) noexcept;                    // unsigned integer
 
+#include <cuda/std/__algorithm/min.h>
+#include <cuda/std/__simd_>
+#include <cuda/std/__type_traits/num_bits.h>
 #include <cuda/std/bitset>
+#include <cuda/std/cassert>
+#include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // member types and size
@@ -213,6 +219,17 @@ __host__ __device__ constexpr void test_sfinae()
 
   // unsigned integer: must be explicit
   static_assert(!cuda::std::is_convertible_v<uint32_t, Mask>);
+  // unsigned integer: signed integers are rejected
+  static_assert(!cuda::std::is_constructible_v<Mask, int>);
+  static_assert(!cuda::std::is_constructible_v<Mask, long long>);
+  // unsigned integer: bool is rejected by the unsigned-integer overload (explicit is allowed with the bool overload)
+  static_assert(!cuda::std::is_convertible_v<bool, Mask>);
+  // unsigned integer: unsigned character types are accepted
+  static_assert(cuda::std::is_constructible_v<Mask, char16_t>);
+  static_assert(cuda::std::is_constructible_v<Mask, char32_t>);
+#if _CCCL_HAS_CHAR8_T()
+  static_assert(cuda::std::is_constructible_v<Mask, char8_t>);
+#endif // _CCCL_HAS_CHAR8_T()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -263,8 +280,37 @@ __host__ __device__ constexpr bool test()
   return true;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+// [simd.mask.overview] enable/disable boundary: basic_mask<Bytes, fixed_size<N>> is enabled iff Bytes is a
+// vectorizable byte size and N in [1, 64]
+
+__host__ __device__ constexpr void test_enable_abi_boundary()
+{
+  // enabled at the range boundaries
+  static_assert(cuda::std::is_default_constructible_v<simd::basic_mask<4, simd::fixed_size<1>>>);
+  static_assert(cuda::std::is_default_constructible_v<simd::basic_mask<4, simd::fixed_size<64>>>);
+
+  // disabled outside the [1, 64] range
+  static_assert(!cuda::std::is_default_constructible_v<simd::basic_mask<4, simd::fixed_size<0>>>);
+  static_assert(!cuda::std::is_default_constructible_v<simd::basic_mask<4, simd::fixed_size<65>>>);
+  static_assert(!cuda::std::is_default_constructible_v<simd::basic_mask<4, simd::fixed_size<100>>>);
+  static_assert(!cuda::std::is_default_constructible_v<simd::basic_mask<4, simd::fixed_size<-1>>>);
+
+  // the disabled specialization has all special members deleted
+  using DisabledMask = simd::basic_mask<4, simd::fixed_size<65>>;
+  static_assert(!cuda::std::is_default_constructible_v<DisabledMask>);
+  static_assert(!cuda::std::is_copy_constructible_v<DisabledMask>);
+  static_assert(!cuda::std::is_copy_assignable_v<DisabledMask>);
+  static_assert(!cuda::std::is_destructible_v<DisabledMask>);
+
+  // the disabled specialization still exposes value_type / abi_type
+  static_assert(cuda::std::is_same_v<DisabledMask::value_type, bool>);
+  static_assert(cuda::std::is_same_v<DisabledMask::abi_type, simd::fixed_size<65>>);
+}
+
 int main(int, char**)
 {
+  test_enable_abi_boundary();
   assert(test());
   static_assert(test());
   return 0;

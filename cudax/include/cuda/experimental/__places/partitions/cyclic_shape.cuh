@@ -27,8 +27,13 @@
 
 #include <cuda/experimental/__stf/utility/dimensions.cuh>
 
-namespace cuda::experimental::stf
+namespace cuda::experimental::places
 {
+using ::cuda::experimental::stf::box;
+using ::cuda::experimental::stf::dim4;
+using ::cuda::experimental::stf::each;
+using ::cuda::experimental::stf::pos4;
+
 /**
  * @brief An cyclic shape is a shape or rank 'dimensions' where the bounds are
  * explicit in each dimension, and where we jump between elements with a
@@ -263,7 +268,7 @@ UNITTEST("cyclic_shape<3>")
     // for (const auto& p: pos) {
     //    ::std::cout << p << ", ";
     //}
-    // ::std::cout << ")" << ::std::endl;
+    // ::std::cout << ")" << ::'\n';
     EXPECT(cnt < expected_cnt);
     cnt++;
   }
@@ -313,7 +318,7 @@ UNITTEST("apply cyclic ")
         // for (const auto& p: pos) {
         //    ::std::cout << p << ", ";
         //}
-        // ::std::cout << ")" << ::std::endl;
+        // ::std::cout << ")" << ::'\n';
 
         // avoid infinite loops
         EXPECT(cnt < expected_cnt);
@@ -327,4 +332,4 @@ UNITTEST("apply cyclic ")
   EXPECT(cnt == expected_cnt);
 };
 #endif // UNITTESTED_FILE
-} // namespace cuda::experimental::stf
+} // namespace cuda::experimental::places

@@ -14,7 +14,12 @@
 //
 // constexpr value_type operator[](simd-size-type) const noexcept;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // subscript read-back
