@@ -181,7 +181,7 @@ __host__ __device__ void test_proj()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// exp, log, log10 round-trips
+// exp, log, log10
 
 template <typename T, int N>
 __host__ __device__ void test_exp_log()
@@ -199,12 +199,21 @@ __host__ __device__ void test_exp_log()
   static_assert(!noexcept(simd::log10(vec)));
 
   ComplexVec vec_exp = simd::exp(vec);
-  ComplexVec vec_log = simd::log(vec_exp);
-
   for (int i = 0; i < N; ++i)
   {
-    T re_diff = vec_log[i].real() - vec[i].real();
-    T im_diff = vec_log[i].imag() - vec[i].imag();
+    Complex expected = cuda::std::exp(vec[i]);
+    T re_diff        = vec_exp[i].real() - expected.real();
+    T im_diff        = vec_exp[i].imag() - expected.imag();
+    assert(re_diff * re_diff < T(1e-4));
+    assert(im_diff * im_diff < T(1e-4));
+  }
+
+  ComplexVec vec_log = simd::log(vec);
+  for (int i = 0; i < N; ++i)
+  {
+    Complex expected = cuda::std::log(vec[i]);
+    T re_diff        = vec_log[i].real() - expected.real();
+    T im_diff        = vec_log[i].imag() - expected.imag();
     assert(re_diff * re_diff < T(1e-4));
     assert(im_diff * im_diff < T(1e-4));
   }
