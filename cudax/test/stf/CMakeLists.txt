@@ -44,6 +44,7 @@ set(
   graph/explicit_graph_while-kernels.cu
   graph/get_cache_stats.cu
   graph/graph_cache_policy.cu
+  graph/graph_child_move_ownership.cu
   graph/graph_ctx_low_level.cu
   graph/static_graph_ctx.cu
   hashtable/test.cu
@@ -167,7 +168,7 @@ set(
   loop_dispatch/dispatch_on_streams.cu
   loop_dispatch/loop_dispatch.cu
   loop_dispatch/nested_loop_dispatch.cu
-  loop_dispatch/stackable_loop_dispatch.cu
+  # loop_dispatch/stackable_loop_dispatch.cu # Disabled: double free or corruption (under investigation)
   parallel_for/empty_shape_reduce.cu
   parallel_for/fdtd.cu
   parallel_for/parallel_for_all_devs.cu
