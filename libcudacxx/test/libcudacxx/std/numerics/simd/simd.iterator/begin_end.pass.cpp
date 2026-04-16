@@ -18,7 +18,14 @@
 // constexpr default_sentinel_t end() const noexcept;
 // constexpr default_sentinel_t cend() const noexcept;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/cstddef>
+#include <cuda/std/iterator>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // type aliases and begin/end on basic_vec

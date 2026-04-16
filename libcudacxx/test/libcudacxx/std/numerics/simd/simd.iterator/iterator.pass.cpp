@@ -15,7 +15,12 @@
 // dereference, increment/decrement, compound assignment,
 // arithmetic, comparisons, sentinel
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/iterator>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // dereference and subscript

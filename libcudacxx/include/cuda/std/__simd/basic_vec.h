@@ -118,12 +118,12 @@ public:
     return {*this, 0};
   }
 
-  [[nodiscard]] _CCCL_API constexpr ::cuda::std::default_sentinel_t end() const noexcept
+  [[nodiscard]] _CCCL_API constexpr default_sentinel_t end() const noexcept
   {
     return {};
   }
 
-  [[nodiscard]] _CCCL_API constexpr ::cuda::std::default_sentinel_t cend() const noexcept
+  [[nodiscard]] _CCCL_API constexpr default_sentinel_t cend() const noexcept
   {
     return {};
   }
