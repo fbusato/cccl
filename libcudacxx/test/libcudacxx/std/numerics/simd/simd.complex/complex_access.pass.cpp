@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-// Part of libcu++ in the CUDA C++ Core Libraries,
+// Part of libcu++ in the CUDA Complex++ Core Libraries,
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
@@ -12,11 +12,9 @@
 
 // [simd.ctor] complex constructor, [simd.complex.access] complex accessors: real(), imag()
 
-#include <cuda/std/__simd_>
-#include <cuda/std/cassert>
 #include <cuda/std/complex>
 
-#include "test_macros.h"
+#include "../simd_test_utils.h"
 
 namespace simd = cuda::std::simd;
 
@@ -26,25 +24,28 @@ namespace simd = cuda::std::simd;
 template <typename T, int N>
 __host__ __device__ constexpr void test_complex_ctor()
 {
-  using C    = cuda::std::complex<T>;
-  using Vec  = simd::basic_vec<C, simd::fixed_size<N>>;
-  using FVec = simd::basic_vec<T, simd::fixed_size<N>>;
+  using Complex    = cuda::std::complex<T>;
+  using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
+  using RealVec    = simd::basic_vec<T, simd::fixed_size<N>>;
 
-  FVec reals([](auto i) { return static_cast<T>(i + 1); });
-  FVec imags([](auto i) { return static_cast<T>(i + 10); });
+  RealVec reals(offset_generator<T, 1>{});
+  RealVec imags(offset_generator<T, 10>{});
 
-  Vec v(reals, imags);
+  static_assert(noexcept(ComplexVec(reals, imags)));
+  static_assert(noexcept(ComplexVec(reals)));
+
+  ComplexVec vec(reals, imags);
   for (int i = 0; i < N; ++i)
   {
-    assert(v[i].real() == static_cast<T>(i + 1));
-    assert(v[i].imag() == static_cast<T>(i + 10));
+    assert(vec[i].real() == static_cast<T>(i + 1));
+    assert(vec[i].imag() == static_cast<T>(i + 10));
   }
 
-  Vec v_real_only(reals);
+  ComplexVec vec_real_only(reals);
   for (int i = 0; i < N; ++i)
   {
-    assert(v_real_only[i].real() == static_cast<T>(i + 1));
-    assert(v_real_only[i].imag() == T(0));
+    assert(vec_real_only[i].real() == static_cast<T>(i + 1));
+    assert(vec_real_only[i].imag() == T(0));
   }
 }
 
@@ -54,55 +55,57 @@ __host__ __device__ constexpr void test_complex_ctor()
 template <typename T, int N>
 __host__ __device__ constexpr void test_getters()
 {
-  using C   = cuda::std::complex<T>;
-  using Vec = simd::basic_vec<C, simd::fixed_size<N>>;
+  using Complex    = cuda::std::complex<T>;
+  using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  Vec v([](auto i) { return C(static_cast<T>(i), static_cast<T>(i * 10)); });
+  ComplexVec vec(complex_generator<T, 0, 10>{});
 
-  auto reals = v.real();
-  auto imags = v.imag();
+  auto reals = vec.real();
+  auto imags = vec.imag();
 
   static_assert(cuda::std::is_same_v<decltype(reals), simd::basic_vec<T, simd::fixed_size<N>>>);
   static_assert(cuda::std::is_same_v<decltype(imags), simd::basic_vec<T, simd::fixed_size<N>>>);
-
-  static_assert(noexcept(v.real()));
-  static_assert(noexcept(v.imag()));
+  static_assert(noexcept(vec.real()));
+  static_assert(noexcept(vec.imag()));
 
   for (int i = 0; i < N; ++i)
   {
     assert(reals[i] == static_cast<T>(i));
-    assert(imags[i] == static_cast<T>(i * 10));
+    assert(imags[i] == static_cast<T>(i + 10));
   }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// real(v) / imag(v) setters
+// real(vec) / imag(vec) setters
 
 template <typename T, int N>
 __host__ __device__ constexpr void test_setters()
 {
-  using C   = cuda::std::complex<T>;
-  using Vec = simd::basic_vec<C, simd::fixed_size<N>>;
-  using FVec = simd::basic_vec<T, simd::fixed_size<N>>;
+  using Complex    = cuda::std::complex<T>;
+  using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
+  using RealVec    = simd::basic_vec<T, simd::fixed_size<N>>;
 
-  Vec v(C(T(1), T(2)));
+  ComplexVec vec(Complex(T(1), T(2)));
 
-  FVec new_reals([](auto i) { return static_cast<T>(i + 100); });
-  v.real(new_reals);
+  static_assert(noexcept(vec.real(cuda::std::declval<const RealVec&>())));
+  static_assert(noexcept(vec.imag(cuda::std::declval<const RealVec&>())));
+
+  RealVec new_reals(offset_generator<T, 100>{});
+  vec.real(new_reals);
 
   for (int i = 0; i < N; ++i)
   {
-    assert(v[i].real() == static_cast<T>(i + 100));
-    assert(v[i].imag() == T(2));
+    assert(vec[i].real() == static_cast<T>(i + 100));
+    assert(vec[i].imag() == T(2));
   }
 
-  FVec new_imags([](auto i) { return static_cast<T>(i + 200); });
-  v.imag(new_imags);
+  RealVec new_imags(offset_generator<T, 200>{});
+  vec.imag(new_imags);
 
   for (int i = 0; i < N; ++i)
   {
-    assert(v[i].real() == static_cast<T>(i + 100));
-    assert(v[i].imag() == static_cast<T>(i + 200));
+    assert(vec[i].real() == static_cast<T>(i + 100));
+    assert(vec[i].imag() == static_cast<T>(i + 200));
   }
 }
 
@@ -125,9 +128,23 @@ __host__ __device__ constexpr bool test()
   return true;
 }
 
+__host__ __device__ bool test_runtime()
+{
+#if _LIBCUDACXX_HAS_NVFP16()
+  test_type<__half, 1>();
+  test_type<__half, 4>();
+#endif // _LIBCUDACXX_HAS_NVFP16()
+#if _LIBCUDACXX_HAS_NVBF16()
+  test_type<__nv_bfloat16, 1>();
+  test_type<__nv_bfloat16, 4>();
+#endif // _LIBCUDACXX_HAS_NVBF16()
+  return true;
+}
+
 int main(int, char**)
 {
   assert(test());
   static_assert(test());
+  assert(test_runtime());
   return 0;
 }

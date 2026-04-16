@@ -13,6 +13,7 @@
 
 #include <cuda/std/__simd_>
 #include <cuda/std/array>
+#include <cuda/std/complex>
 #include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
 
@@ -75,6 +76,26 @@ struct iota_generator
   __host__ __device__ constexpr T operator()(I i) const noexcept
   {
     return static_cast<T>(i + 1);
+  }
+};
+
+template <typename T, int Offset>
+struct offset_generator
+{
+  template <typename I>
+  __host__ __device__ constexpr T operator()(I i) const noexcept
+  {
+    return static_cast<T>(i + Offset);
+  }
+};
+
+template <typename T, int RealOffset, int ImagOffset>
+struct complex_generator
+{
+  template <typename I>
+  __host__ __device__ constexpr cuda::std::complex<T> operator()(I i) const noexcept
+  {
+    return cuda::std::complex<T>(static_cast<T>(i + RealOffset), static_cast<T>(i + ImagOffset));
   }
 };
 
