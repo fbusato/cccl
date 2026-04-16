@@ -78,19 +78,19 @@ private:
   {};
   static constexpr __storage_tag_t __storage_tag{};
 
-  _CCCL_API constexpr basic_vec(_Storage __s, __storage_tag_t) noexcept
+  _CCCL_API constexpr basic_vec(const _Storage __s, __storage_tag_t) noexcept
       : __s_{__s}
   {}
 
   // Friend comparison operators (e.g. operator==) cannot access basic_mask's private constructor directly (friendship
   // is not transitive). This function is required to access the private constructor of basic_mask.
-  _CCCL_API static constexpr mask_type __make_mask(typename mask_type::_Storage __s) noexcept
+  _CCCL_API static constexpr mask_type __make_mask(const typename mask_type::_Storage __s) noexcept
   {
     return mask_type{__s, mask_type::__storage_tag};
   }
 
   // operator[] is const only. We need this function to set values
-  _CCCL_API constexpr void __set(__simd_size_type __i, value_type __v) noexcept
+  _CCCL_API constexpr void __set(const __simd_size_type __i, const value_type __v) noexcept
   {
     __s_.__set(__i, __v);
   }
@@ -206,7 +206,7 @@ public:
 
   // [simd.subscr], basic_vec subscript operators
 
-  [[nodiscard]] _CCCL_API constexpr value_type operator[](__simd_size_type __i) const
+  [[nodiscard]] _CCCL_API constexpr value_type operator[](const __simd_size_type __i) const
   {
     _CCCL_ASSERT(::cuda::in_range(__i, __simd_size_type{0}, __size), "Index is out of bounds");
     return __s_.__get(__i);
@@ -361,14 +361,16 @@ public:
 
   _CCCL_TEMPLATE(typename _Up = _Tp)
   _CCCL_REQUIRES(__has_shift_left_size<_Up>)
-  [[nodiscard]] _CCCL_API friend constexpr basic_vec operator<<(const basic_vec& __lhs, __simd_size_type __n) noexcept
+  [[nodiscard]] _CCCL_API friend constexpr basic_vec
+  operator<<(const basic_vec& __lhs, const __simd_size_type __n) noexcept
   {
     return __lhs << basic_vec{__n};
   }
 
   _CCCL_TEMPLATE(typename _Up = _Tp)
   _CCCL_REQUIRES(__has_shift_right_size<_Up>)
-  [[nodiscard]] _CCCL_API friend constexpr basic_vec operator>>(const basic_vec& __lhs, __simd_size_type __n) noexcept
+  [[nodiscard]] _CCCL_API friend constexpr basic_vec
+  operator>>(const basic_vec& __lhs, const __simd_size_type __n) noexcept
   {
     return __lhs >> basic_vec{__n};
   }
@@ -447,14 +449,14 @@ public:
 
   _CCCL_TEMPLATE(typename _Up = _Tp)
   _CCCL_REQUIRES(__has_shift_left_size<_Up>)
-  _CCCL_API friend constexpr basic_vec& operator<<=(basic_vec& __lhs, __simd_size_type __n) noexcept
+  _CCCL_API friend constexpr basic_vec& operator<<=(basic_vec& __lhs, const __simd_size_type __n) noexcept
   {
     return __lhs = __lhs << __n;
   }
 
   _CCCL_TEMPLATE(typename _Up = _Tp)
   _CCCL_REQUIRES(__has_shift_right_size<_Up>)
-  _CCCL_API friend constexpr basic_vec& operator>>=(basic_vec& __lhs, __simd_size_type __n) noexcept
+  _CCCL_API friend constexpr basic_vec& operator>>=(basic_vec& __lhs, const __simd_size_type __n) noexcept
   {
     return __lhs = __lhs >> __n;
   }

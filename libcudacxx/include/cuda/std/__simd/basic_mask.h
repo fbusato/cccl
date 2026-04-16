@@ -82,7 +82,7 @@ class basic_mask<_Bytes, _Abi, enable_if_t<__is_vectorizable_byte_size_v<_Bytes>
   {};
   static constexpr __storage_tag_t __storage_tag{};
 
-  _CCCL_API constexpr basic_mask(_Storage __v, __storage_tag_t) noexcept
+  _CCCL_API constexpr basic_mask(const _Storage __v, __storage_tag_t) noexcept
       : __s_{__v}
   {}
 
@@ -111,7 +111,7 @@ public:
 
   _CCCL_TEMPLATE(typename _Up)
   _CCCL_REQUIRES(same_as<_Up, value_type>)
-  _CCCL_API constexpr explicit basic_mask(_Up __v) noexcept
+  _CCCL_API constexpr explicit basic_mask(const _Up __v) noexcept
       : __s_{_Impl::__broadcast(__v)}
   {}
 
@@ -146,7 +146,7 @@ public:
 
   _CCCL_TEMPLATE(typename _Tp)
   _CCCL_REQUIRES(is_integral_v<_Tp> _CCCL_AND is_unsigned_v<_Tp> _CCCL_AND(!is_same_v<_Tp, value_type>))
-  _CCCL_API constexpr explicit basic_mask(_Tp __val) noexcept
+  _CCCL_API constexpr explicit basic_mask(const _Tp __val) noexcept
       : __s_{_Impl::__broadcast(false)}
   {
     constexpr auto __num_bits = __simd_size_type{__num_bits_v<_Tp>};
@@ -160,7 +160,7 @@ public:
 
   // [simd.mask.subscr], basic_mask subscript operators
 
-  [[nodiscard]] _CCCL_API constexpr value_type operator[](__simd_size_type __i) const
+  [[nodiscard]] _CCCL_API constexpr value_type operator[](const __simd_size_type __i) const
   {
     _CCCL_ASSERT(::cuda::in_range(__i, __simd_size_type{0}, __size), "Index is out of bounds");
     return static_cast<bool>(__s_.__get(__i));
