@@ -20,9 +20,16 @@
 // constexpr basic_vec(Range&&, flags<> = {});                                      // range
 // constexpr basic_vec(Range&&, const mask_type&, flags<> = {});                    // masked range
 
+#include <cuda/std/__simd_>
+#include <cuda/std/array>
+#include <cuda/std/cassert>
+#include <cuda/std/cstdint>
 #include <cuda/std/span>
+#include <cuda/std/type_traits>
+#include <cuda/std/utility>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // member types and size
@@ -436,11 +443,42 @@ __host__ __device__ constexpr void test_type()
   }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+// enable/disable boundary: basic_vec<T, fixed_size<N>> is enabled iff T is vectorizable and N in [1, 64]
+
+__host__ __device__ constexpr void test_enable_abi_boundary()
+{
+  using T = int;
+
+  // enabled at the range boundaries
+  static_assert(cuda::std::is_default_constructible_v<simd::basic_vec<T, simd::fixed_size<1>>>);
+  static_assert(cuda::std::is_default_constructible_v<simd::basic_vec<T, simd::fixed_size<64>>>);
+
+  // disabled outside the [1, 64] range
+  static_assert(!cuda::std::is_default_constructible_v<simd::basic_vec<T, simd::fixed_size<0>>>);
+  static_assert(!cuda::std::is_default_constructible_v<simd::basic_vec<T, simd::fixed_size<65>>>);
+  static_assert(!cuda::std::is_default_constructible_v<simd::basic_vec<T, simd::fixed_size<100>>>);
+  static_assert(!cuda::std::is_default_constructible_v<simd::basic_vec<T, simd::fixed_size<-1>>>);
+
+  // the disabled specialization has all special members deleted
+  using DisabledVec = simd::basic_vec<T, simd::fixed_size<65>>;
+  static_assert(!cuda::std::is_default_constructible_v<DisabledVec>);
+  static_assert(!cuda::std::is_copy_constructible_v<DisabledVec>);
+  static_assert(!cuda::std::is_copy_assignable_v<DisabledVec>);
+  static_assert(!cuda::std::is_destructible_v<DisabledVec>);
+
+  // the disabled specialization still exposes value_type / abi_type / mask_type
+  static_assert(cuda::std::is_same_v<DisabledVec::value_type, T>);
+  static_assert(cuda::std::is_same_v<DisabledVec::abi_type, simd::fixed_size<65>>);
+  static_assert(cuda::std::is_same_v<DisabledVec::mask_type, simd::basic_mask<sizeof(T), simd::fixed_size<65>>>);
+}
+
 DEFINE_BASIC_VEC_TEST()
 DEFINE_BASIC_VEC_TEST_RUNTIME()
 
 int main(int, char**)
 {
+  test_enable_abi_boundary();
   assert(test());
   static_assert(test());
   assert(test_runtime());

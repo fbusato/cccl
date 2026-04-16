@@ -23,7 +23,7 @@
 
 #include <cuda/__utility/in_range.h>
 #include <cuda/std/__cstddef/types.h>
-#include <cuda/std/__simd/declaration.h>
+#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__utility/integer_sequence.h>
 
@@ -37,35 +37,19 @@ struct __mask_storage<_Bytes, __fixed_size<_Np>>
 {
   static constexpr size_t __element_bytes = _Bytes;
 
-#if _CCCL_STD_VER >= 2020
-  bool __data[_Np];
-
-  _CCCL_API constexpr __mask_storage() noexcept
-  {
-    _CCCL_IF_CONSTEVAL
-    {
-      for (__simd_size_type __i = 0; __i < _Np; ++__i)
-      {
-        __data[__i] = false;
-      }
-    }
-  }
-
-  _CCCL_HIDE_FROM_ABI constexpr __mask_storage(const __mask_storage&)            = default;
-  _CCCL_HIDE_FROM_ABI constexpr __mask_storage& operator=(const __mask_storage&) = default;
-
-#else // ^^^ C++20 ^^^ / vvv C++17 vvv
-
   bool __data[_Np]{};
-#endif // _CCCL_STD_VER < 2020
 
-  [[nodiscard]] _CCCL_API constexpr bool __get(__simd_size_type __idx) const noexcept
+  _CCCL_HIDE_FROM_ABI constexpr __mask_storage() noexcept                                 = default;
+  _CCCL_HIDE_FROM_ABI constexpr __mask_storage(const __mask_storage&) noexcept            = default;
+  _CCCL_HIDE_FROM_ABI constexpr __mask_storage& operator=(const __mask_storage&) noexcept = default;
+
+  [[nodiscard]] _CCCL_API constexpr bool __get(const __simd_size_type __idx) const noexcept
   {
     _CCCL_ASSERT(::cuda::in_range(__idx, __simd_size_type{0}, _Np), "Index is out of bounds");
     return __data[__idx];
   }
 
-  _CCCL_API constexpr void __set(__simd_size_type __idx, bool __v) noexcept
+  _CCCL_API constexpr void __set(const __simd_size_type __idx, const bool __v) noexcept
   {
     _CCCL_ASSERT(::cuda::in_range(__idx, __simd_size_type{0}, _Np), "Index is out of bounds");
     __data[__idx] = __v;
@@ -78,7 +62,7 @@ struct __mask_operations<_Bytes, __fixed_size<_Np>>
 {
   using _MaskStorage = __mask_storage<_Bytes, __fixed_size<_Np>>;
 
-  [[nodiscard]] _CCCL_API static constexpr _MaskStorage __broadcast(bool __v) noexcept
+  [[nodiscard]] _CCCL_API static constexpr _MaskStorage __broadcast(const bool __v) noexcept
   {
     _MaskStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()

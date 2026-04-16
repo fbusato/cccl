@@ -17,7 +17,12 @@
 // constexpr basic_vec<integer-from<Bytes>, Abi> operator-() const noexcept;
 // constexpr basic_vec<integer-from<Bytes>, Abi> operator~() const noexcept;
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
+#include <cuda/std/type_traits>
+
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // operator!

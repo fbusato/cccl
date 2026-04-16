@@ -42,8 +42,8 @@ _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
 // [simd.expos], explicitly-convertible-to concept
 
-template <typename _To, typename _From>
-_CCCL_CONCEPT __explicitly_convertible_to = _CCCL_REQUIRES_EXPR((_To, _From))((static_cast<_To>(declval<_From>())));
+template <typename _From, typename _To>
+_CCCL_CONCEPT __explicitly_convertible_to = _CCCL_REQUIRES_EXPR((_From, _To))((static_cast<_To>(declval<_From>())));
 
 // [simd.expos], constexpr-wrapper-like concept
 
