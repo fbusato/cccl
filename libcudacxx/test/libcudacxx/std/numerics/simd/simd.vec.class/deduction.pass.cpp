@@ -8,24 +8,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-// (CTAD bug) Deduction guides fail with:
-//   * gcc: all nvcc+gcc configs (EDG frontend bug)
-//   * nvrtc (EDG frontend bug)
-//   * msvc: all nvcc+msvc configs (MSVC CTAD limitation)
-//   * nvcc+clang C++17 (EDG frontend bug)
-//
-// while they work with:
-//
-//   * nvcc+clang C++20: PASS
-//   * clang-cuda: PASS
-//   * nvc++: PASS
+// CTAD is unsupported on MSVC.
 
-// error: error: no instance of constructor "cuda::std::simd::basic_vec" matches the argument list
-
-// UNSUPPORTED: gcc
-// UNSUPPORTED: nvrtc
 // UNSUPPORTED: msvc
-// UNSUPPORTED: nvcc && clang && c++17
 
 // <cuda/std/__simd_>
 
