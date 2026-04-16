@@ -68,7 +68,7 @@ _CCCL_API constexpr void __check_load_preconditions(const _Up* __ptr, flags<_Fla
 {
   using __value_t = typename _Result::value_type;
   static_assert(same_as<remove_cvref_t<_Result>, _Result>, "V must not be a reference or cv-qualified type");
-  static_assert(__is_vectorizable_v<__value_t> && __is_abi_tag_v<typename _Result::abi_type>,
+  static_assert(__is_vectorizable_v<__value_t> && __is_enabled_abi_v<typename _Result::abi_type>,
                 "V must be an enabled specialization of basic_vec");
   static_assert(__is_vectorizable_v<_Up>, "range_value_t<R> must be a vectorizable type");
   static_assert(__explicitly_convertible_to<__value_t, _Up>,

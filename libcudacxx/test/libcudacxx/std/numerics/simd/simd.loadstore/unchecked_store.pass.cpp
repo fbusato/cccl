@@ -19,10 +19,14 @@
 // unchecked_store(const basic_vec&, I first, S last, flags<> = {});
 // unchecked_store(const basic_vec&, I first, S last, const mask_type&, flags<> = {});
 
-#include <cuda/std/__simd/load.h>
-#include <cuda/std/__simd/store.h>
+#include <cuda/std/__simd_>
+#include <cuda/std/array>
+#include <cuda/std/cassert>
+#include <cuda/std/cstdint>
+#include <cuda/std/type_traits>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 // unchecked_store: range
