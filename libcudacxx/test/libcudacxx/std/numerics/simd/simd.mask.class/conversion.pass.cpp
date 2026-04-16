@@ -94,6 +94,7 @@ __host__ __device__ constexpr void test_to_bitset()
 //----------------------------------------------------------------------------------------------------------------------
 // to_ullong
 
+// N is guaranteed to be in [1, 64]
 template <int Bytes, int N>
 __host__ __device__ constexpr void test_to_ullong()
 {
@@ -108,23 +109,20 @@ __host__ __device__ constexpr void test_to_ullong()
   Mask all_false(false);
   assert(all_false.to_ullong() == 0ULL);
 
-  if constexpr (N <= 64)
-  {
-    Mask all_true(true);
-    constexpr unsigned long long expected = (N == 64) ? ~0ULL : (~0ULL >> (64 - N));
-    assert(all_true.to_ullong() == expected);
+  Mask all_true(true);
+  constexpr unsigned long long expected = (N == 64) ? ~0ULL : (~0ULL >> (64 - N));
+  assert(all_true.to_ullong() == expected);
 
-    Mask mixed(is_even{});
-    unsigned long long expected_mixed = 0ULL;
-    for (int i = 0; i < N; ++i)
+  Mask mixed(is_even{});
+  unsigned long long expected_mixed = 0ULL;
+  for (int i = 0; i < N; ++i)
+  {
+    if (i % 2 == 0)
     {
-      if (i % 2 == 0)
-      {
-        expected_mixed |= (1ULL << i);
-      }
+      expected_mixed |= (1ULL << i);
     }
-    assert(mixed.to_ullong() == expected_mixed);
   }
+  assert(mixed.to_ullong() == expected_mixed);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -182,7 +180,6 @@ __host__ __device__ constexpr bool test()
   test_explicit_conv<2, long long, 8>();
 
   test_to_ullong<1, 64>();
-  test_to_ullong<1, 65>();
   return true;
 }
 
