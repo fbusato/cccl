@@ -43,7 +43,7 @@
 // all_of
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_all_of()
+TEST_FUNC constexpr void test_all_of()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
 
@@ -64,7 +64,7 @@ __host__ __device__ constexpr void test_all_of()
 // any_of
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_any_of()
+TEST_FUNC constexpr void test_any_of()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
 
@@ -85,7 +85,7 @@ __host__ __device__ constexpr void test_any_of()
 // none_of
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_none_of()
+TEST_FUNC constexpr void test_none_of()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
 
@@ -106,7 +106,7 @@ __host__ __device__ constexpr void test_none_of()
 // reduce_count
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_reduce_count()
+TEST_FUNC constexpr void test_reduce_count()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
 
@@ -127,7 +127,7 @@ __host__ __device__ constexpr void test_reduce_count()
 // reduce_min_index
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_reduce_min_index()
+TEST_FUNC constexpr void test_reduce_min_index()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   assert(simd::reduce_min_index(Mask(true)) == 0);
@@ -151,7 +151,7 @@ __host__ __device__ constexpr void test_reduce_min_index()
 // reduce_max_index
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_reduce_max_index()
+TEST_FUNC constexpr void test_reduce_max_index()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   assert(simd::reduce_max_index(Mask(true)) == N - 1);
@@ -176,7 +176,7 @@ __host__ __device__ constexpr void test_reduce_max_index()
 // all_of / any_of / none_of consistency
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_consistency()
+TEST_FUNC constexpr void test_consistency()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
 
@@ -198,7 +198,7 @@ __host__ __device__ constexpr void test_consistency()
 //----------------------------------------------------------------------------------------------------------------------
 // scalar bool overloads
 
-__host__ __device__ constexpr void test_scalar_bool()
+TEST_FUNC constexpr void test_scalar_bool()
 {
   static_assert(cuda::std::is_same_v<decltype(simd::all_of(true)), bool>);
   static_assert(cuda::std::is_same_v<decltype(simd::any_of(true)), bool>);
@@ -223,7 +223,7 @@ __host__ __device__ constexpr void test_scalar_bool()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_size()
+TEST_FUNC constexpr void test_size()
 {
   test_all_of<Bytes, N>();
   test_any_of<Bytes, N>();
@@ -235,14 +235,14 @@ __host__ __device__ constexpr void test_size()
 }
 
 template <int Bytes>
-__host__ __device__ constexpr void test_bytes()
+TEST_FUNC constexpr void test_bytes()
 {
   test_size<Bytes, 1>();
   test_size<Bytes, 4>();
   test_size<Bytes, 8>();
 }
 
-__host__ __device__ constexpr bool test()
+TEST_FUNC constexpr bool test()
 {
   test_bytes<1>();
   test_bytes<2>();
