@@ -12,9 +12,14 @@
 
 // [simd.ctor] complex constructor, [simd.complex.access] complex accessors: real(), imag()
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
 #include <cuda/std/complex>
+#include <cuda/std/type_traits>
+#include <cuda/std/utility>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 namespace simd = cuda::std::simd;
 

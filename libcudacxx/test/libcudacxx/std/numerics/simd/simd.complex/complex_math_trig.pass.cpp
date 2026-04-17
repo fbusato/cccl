@@ -13,9 +13,13 @@
 // [simd.complex.math] trigonometric and hyperbolic functions:
 // sin, asin, cos, acos, tan, atan, sinh, asinh, cosh, acosh, tanh, atanh
 
+#include <cuda/std/__simd_>
+#include <cuda/std/cassert>
 #include <cuda/std/complex>
+#include <cuda/std/type_traits>
 
 #include "../simd_test_utils.h"
+#include "test_macros.h"
 
 namespace simd = cuda::std::simd;
 

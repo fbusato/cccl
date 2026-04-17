@@ -53,8 +53,8 @@ inline constexpr bool __is_complex_vectorizable_v<::cuda::std::complex<_Tp>> = :
 // complex<T> where T is a vectorizable floating-point type.
 template <typename _Tp>
 inline constexpr bool __is_vectorizable_v =
-  (__is_extended_arithmetic_v<_Tp> || __is_complex_vectorizable_v<_Tp>) && !is_same_v<_Tp, bool> && !is_const_v<_Tp>
-  && !is_volatile_v<_Tp>;
+  (__is_extended_arithmetic_v<_Tp> || __is_complex_vectorizable_v<_Tp>)
+  && !is_same_v<_Tp, bool> && !is_const_v<_Tp> && !is_volatile_v<_Tp>;
 
 // [simd.expos], simd-complex-value-type
 template <typename _Tp>
