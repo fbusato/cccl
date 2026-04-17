@@ -68,7 +68,6 @@ TEST_FUNC void test_trig()
   static_assert(!noexcept(simd::asin(vec)));
   static_assert(!noexcept(simd::acos(vec)));
   static_assert(!noexcept(simd::atan(vec)));
-
   ComplexVec vec_sin  = simd::sin(vec);
   ComplexVec vec_cos  = simd::cos(vec);
   ComplexVec vec_tan  = simd::tan(vec);
@@ -123,7 +122,10 @@ TEST_FUNC void test_hyperbolic()
     is_about(vec_tanh[i], cuda::std::tanh(vec[i]));
     is_about(vec_asinh[i], cuda::std::asinh(vec[i]));
     is_about(vec_acosh[i], cuda::std::acosh(vec[i]));
+    // cicc seg faults on atanh with clang 14 and nvcc 12.0
+#if !_CCCL_COMPILER(CLANG, <=, 14) && !_CCCL_CUDA_COMPILER(NVCC, ==, 12, 0)
     is_about(vec_atanh[i], cuda::std::atanh(vec[i]));
+#endif
   }
 }
 
