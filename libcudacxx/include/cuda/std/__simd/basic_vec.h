@@ -234,7 +234,7 @@ public:
 
   // [simd.subscr], basic_vec subscript operators
 
-  [[nodiscard]] _CCCL_API constexpr value_type operator[](const __simd_size_type __i) const
+  [[nodiscard]] _CCCL_API constexpr value_type operator[](const __simd_size_type __i) const noexcept
   {
     _CCCL_ASSERT(::cuda::in_range(__i, __simd_size_type{0}, __size), "Index is out of bounds");
     return __s_.__get(__i);

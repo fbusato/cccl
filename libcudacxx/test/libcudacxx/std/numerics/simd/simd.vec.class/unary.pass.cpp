@@ -34,7 +34,7 @@ TEST_DIAG_SUPPRESS_MSVC(4146) // unary minus operator applied to unsigned type, 
 // operator++ (pre)
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_pre_increment()
+TEST_FUNC constexpr void test_pre_increment()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(T{5});
@@ -53,7 +53,7 @@ __host__ __device__ constexpr void test_pre_increment()
 // operator++ (post)
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_post_increment()
+TEST_FUNC constexpr void test_post_increment()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(T{5});
@@ -72,7 +72,7 @@ __host__ __device__ constexpr void test_post_increment()
 // operator-- (pre)
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_pre_decrement()
+TEST_FUNC constexpr void test_pre_decrement()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(T{5});
@@ -91,7 +91,7 @@ __host__ __device__ constexpr void test_pre_decrement()
 // operator-- (post)
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_post_decrement()
+TEST_FUNC constexpr void test_post_decrement()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(T{5});
@@ -110,7 +110,7 @@ __host__ __device__ constexpr void test_post_decrement()
 // operator!
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_logical_not()
+TEST_FUNC constexpr void test_logical_not()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -129,7 +129,7 @@ __host__ __device__ constexpr void test_logical_not()
 // operator~
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_bitwise_not()
+TEST_FUNC constexpr void test_bitwise_not()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(T{0});
@@ -147,7 +147,7 @@ __host__ __device__ constexpr void test_bitwise_not()
 // operator+
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unary_plus()
+TEST_FUNC constexpr void test_unary_plus()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(T{42});
@@ -165,7 +165,7 @@ __host__ __device__ constexpr void test_unary_plus()
 // operator-
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unary_minus()
+TEST_FUNC constexpr void test_unary_minus()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(T{3});
@@ -182,7 +182,7 @@ __host__ __device__ constexpr void test_unary_minus()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_pre_increment<T, N>();
   test_post_increment<T, N>();

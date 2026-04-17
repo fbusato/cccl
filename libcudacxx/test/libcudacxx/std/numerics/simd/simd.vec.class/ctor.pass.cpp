@@ -35,7 +35,7 @@
 // member types and size
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_member_types()
+TEST_FUNC constexpr void test_member_types()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
 
@@ -49,7 +49,7 @@ __host__ __device__ constexpr void test_member_types()
 // default construction: value-initialize all elements
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_default_ctor()
+TEST_FUNC constexpr void test_default_ctor()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec{};
@@ -63,7 +63,7 @@ __host__ __device__ constexpr void test_default_ctor()
 // copy construction and copy assignment
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_copy()
+TEST_FUNC constexpr void test_copy()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec original(T{42});
@@ -86,7 +86,7 @@ __host__ __device__ constexpr void test_copy()
 // broadcast constructor
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_broadcast()
+TEST_FUNC constexpr void test_broadcast()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   static_assert(noexcept(Vec(cuda::std::declval<T>()))); // declval<T>() is needed for __half and __nv_bfloat16
@@ -102,7 +102,7 @@ __host__ __device__ constexpr void test_broadcast()
 // generator constructor
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_generator()
+TEST_FUNC constexpr void test_generator()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
 
@@ -117,7 +117,7 @@ __host__ __device__ constexpr void test_generator()
 // converting constructor
 
 template <typename T, typename U, int N>
-__host__ __device__ constexpr void test_converting()
+TEST_FUNC constexpr void test_converting()
 {
   using Src = simd::basic_vec<U, simd::fixed_size<N>>;
   using Dst = simd::basic_vec<T, simd::fixed_size<N>>;
@@ -135,7 +135,7 @@ __host__ __device__ constexpr void test_converting()
 // range constructor
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_range()
+TEST_FUNC constexpr void test_range()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   auto arr  = make_iota_array<T, N>();
@@ -154,7 +154,7 @@ __host__ __device__ constexpr void test_range()
 // range constructor with fixed-extent span
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_range_span()
+TEST_FUNC constexpr void test_range_span()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   auto arr  = make_iota_array<T, N>();
@@ -170,7 +170,7 @@ __host__ __device__ constexpr void test_range_span()
 // range constructor with alignment flags
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_range_alignment_flags()
+TEST_FUNC constexpr void test_range_alignment_flags()
 {
   using Vec            = simd::basic_vec<T, simd::fixed_size<N>>;
   alignas(64) auto arr = make_iota_array<T, N>();
@@ -185,7 +185,7 @@ __host__ __device__ constexpr void test_range_alignment_flags()
 // masked range constructor
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_masked_range()
+TEST_FUNC constexpr void test_masked_range()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -215,7 +215,7 @@ __host__ __device__ constexpr void test_masked_range()
 // constructs a basic_vec<T> from an array<U> with simd::flag_convert, where U is wider than T (not value-preserving)
 
 template <typename T, typename U, int N>
-__host__ __device__ constexpr void test_range_convert_lossy()
+TEST_FUNC constexpr void test_range_convert_lossy()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   auto arr  = make_iota_array<U, N>();
@@ -231,7 +231,7 @@ __host__ __device__ constexpr void test_range_convert_lossy()
 // constructs a basic_vec<T> from an array<U> with simd::flag_convert, where U is wider than T (not value-preserving)
 
 template <typename T, typename U, int N>
-__host__ __device__ constexpr void test_masked_range_convert_lossy()
+TEST_FUNC constexpr void test_masked_range_convert_lossy()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -253,7 +253,7 @@ __host__ __device__ constexpr void test_masked_range_convert_lossy()
 // [simd.ctor] p4.3: implicit when From::value is representable by value_type
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_broadcast_constexpr_wrapper()
+TEST_FUNC constexpr void test_broadcast_constexpr_wrapper()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
 
@@ -302,7 +302,7 @@ __host__ __device__ constexpr void test_broadcast_constexpr_wrapper()
 // [simd.ctor] p4: implicit iff convertible_to and value-preserving
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_broadcast_explicit_implicit()
+TEST_FUNC constexpr void test_broadcast_explicit_implicit()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
 
@@ -336,7 +336,7 @@ __host__ __device__ constexpr void test_broadcast_explicit_implicit()
 // SFINAE constraints
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_sfinae()
+TEST_FUNC constexpr void test_sfinae()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
 
@@ -351,7 +351,7 @@ __host__ __device__ constexpr void test_sfinae()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_member_types<T, N>();
   test_default_ctor<T, N>();
@@ -389,7 +389,7 @@ __host__ __device__ constexpr void test_type()
 //----------------------------------------------------------------------------------------------------------------------
 // enable/disable boundary: basic_vec<T, fixed_size<N>> is enabled iff T is vectorizable and N in [1, 64]
 
-__host__ __device__ constexpr void test_enable_abi_boundary()
+TEST_FUNC constexpr void test_enable_abi_boundary()
 {
   using T = int;
 
