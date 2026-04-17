@@ -32,7 +32,7 @@
 // deduction from range
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_range_deduction()
+TEST_FUNC constexpr void test_range_deduction()
 {
   cuda::std::array<T, N> arr{};
   for (int i = 0; i < N; ++i)
@@ -52,7 +52,7 @@ __host__ __device__ constexpr void test_range_deduction()
 // deduction from fixed-extent span
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_span_deduction()
+TEST_FUNC constexpr void test_span_deduction()
 {
   cuda::std::array<T, N> arr{};
   for (int i = 0; i < N; ++i)
@@ -74,7 +74,7 @@ __host__ __device__ constexpr void test_span_deduction()
 // deduction from basic_mask
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_mask_deduction()
+TEST_FUNC constexpr void test_mask_deduction()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   Mask mask(true);
@@ -88,7 +88,7 @@ __host__ __device__ constexpr void test_mask_deduction()
 
 //----------------------------------------------------------------------------------------------------------------------
 
-__host__ __device__ constexpr bool test_deduction()
+TEST_FUNC constexpr bool test_deduction()
 {
   test_range_deduction<int, 1>();
   test_range_deduction<int, 4>();

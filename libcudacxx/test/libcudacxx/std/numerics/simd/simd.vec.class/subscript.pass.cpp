@@ -25,13 +25,13 @@
 // subscript read-back
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(T{7});
 
   static_assert(cuda::std::is_same_v<decltype(vec[0]), typename Vec::value_type>);
-  static_assert(!noexcept(vec[0]));
+  static_assert(noexcept(vec[0]));
   static_assert(is_const_member_function_v<decltype(&Vec::operator[])>);
   unused(vec);
 
