@@ -42,7 +42,7 @@ class __simd_iterator
   _Vp* __data_               = nullptr;
   __simd_size_type __offset_ = 0;
 
-  _CCCL_API constexpr __simd_iterator(_Vp& __d, __simd_size_type __off) noexcept
+  _CCCL_API constexpr __simd_iterator(_Vp& __d, const __simd_size_type __off) noexcept
       : __data_{::cuda::std::addressof(__d)}
       , __offset_{__off}
   {}
@@ -72,60 +72,64 @@ public:
   // _Vp = T:        const T != T
   _CCCL_TEMPLATE(typename _Up = remove_const_t<_Vp>)
   _CCCL_REQUIRES(is_same_v<const _Up, _Vp>)
-  _CCCL_API constexpr __simd_iterator(const __simd_iterator<_Up>& __i)
+  _CCCL_API constexpr __simd_iterator(const __simd_iterator<_Up>& __i) noexcept
       : __data_{__i.__data_}
       , __offset_{__i.__offset_}
   {}
 
-  [[nodiscard]] _CCCL_API constexpr value_type operator*() const
+  // the C++ specification does not require a noexcept for most operators, but the iterator only operates on pointer and
+  // integer type
+
+  [[nodiscard]] _CCCL_API constexpr value_type operator*() const noexcept
   {
     return (*__data_)[__offset_];
   }
 
-  _CCCL_API constexpr __simd_iterator& operator++()
+  _CCCL_API constexpr __simd_iterator& operator++() noexcept
   {
     return *this += 1;
   }
 
-  _CCCL_API constexpr __simd_iterator operator++(int)
+  _CCCL_API constexpr __simd_iterator operator++(int) noexcept
   {
     __simd_iterator __tmp = *this;
     *this += 1;
     return __tmp;
   }
 
-  _CCCL_API constexpr __simd_iterator& operator--()
+  _CCCL_API constexpr __simd_iterator& operator--() noexcept
   {
     return *this -= 1;
   }
 
-  _CCCL_API constexpr __simd_iterator operator--(int)
+  _CCCL_API constexpr __simd_iterator operator--(int) noexcept
   {
     __simd_iterator __tmp = *this;
     *this -= 1;
     return __tmp;
   }
 
-  _CCCL_API constexpr __simd_iterator& operator+=(const difference_type __n)
+  _CCCL_API constexpr __simd_iterator& operator+=(const difference_type __n) noexcept
   {
     __offset_ += __n;
     return *this;
   }
 
-  _CCCL_API constexpr __simd_iterator& operator-=(const difference_type __n)
+  _CCCL_API constexpr __simd_iterator& operator-=(const difference_type __n) noexcept
   {
     __offset_ -= __n;
     return *this;
   }
 
-  [[nodiscard]] _CCCL_API constexpr value_type operator[](const difference_type __n) const
+  [[nodiscard]] _CCCL_API constexpr value_type operator[](const difference_type __n) const noexcept
   {
     return (*__data_)[__offset_ + __n];
   }
 
   // [simd.iterator] comparisons
 
-  [[nodiscard]] _CCCL_API friend constexpr bool operator==(const __simd_iterator& __a, const __simd_iterator& __b)
+  [[nodiscard]] _CCCL_API friend constexpr bool
+  operator==(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
   {
     return __a.__data_ == __b.__data_ && __a.__offset_ == __b.__offset_;
   }
@@ -136,7 +140,8 @@ public:
   }
 
 #if _CCCL_STD_VER <= 2017
-  [[nodiscard]] _CCCL_API friend constexpr bool operator!=(const __simd_iterator& __a, const __simd_iterator& __b)
+  [[nodiscard]]
+  _CCCL_API friend constexpr bool operator!=(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
   {
     return !(__a == __b);
   }
@@ -161,27 +166,32 @@ public:
 #endif // _CCCL_STD_VER <= 2017
 
 #if _LIBCUDACXX_HAS_SPACESHIP_OPERATOR()
-  [[nodiscard]] _CCCL_API friend constexpr auto operator<=>(const __simd_iterator __a, const __simd_iterator __b)
+  [[nodiscard]]
+  _CCCL_API friend constexpr auto operator<=>(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     return __a.__offset_ <=> __b.__offset_;
   }
 #else // ^^^ _LIBCUDACXX_HAS_SPACESHIP_OPERATOR() ^^^ / vvv !_LIBCUDACXX_HAS_SPACESHIP_OPERATOR() vvv
-  [[nodiscard]] _CCCL_API friend constexpr bool operator<(const __simd_iterator& __a, const __simd_iterator& __b)
+  [[nodiscard]]
+  _CCCL_API friend constexpr bool operator<(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
   {
     return __a.__offset_ < __b.__offset_;
   }
 
-  [[nodiscard]] _CCCL_API friend constexpr bool operator>(const __simd_iterator& __a, const __simd_iterator& __b)
+  [[nodiscard]] _CCCL_API friend constexpr bool
+  operator>(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
   {
     return __b < __a;
   }
 
-  [[nodiscard]] _CCCL_API friend constexpr bool operator<=(const __simd_iterator& __a, const __simd_iterator& __b)
+  [[nodiscard]] _CCCL_API friend constexpr bool
+  operator<=(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
   {
     return !(__b < __a);
   }
 
-  [[nodiscard]] _CCCL_API friend constexpr bool operator>=(const __simd_iterator& __a, const __simd_iterator& __b)
+  [[nodiscard]] _CCCL_API friend constexpr bool
+  operator>=(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
   {
     return !(__a < __b);
   }
@@ -189,23 +199,26 @@ public:
 
   // [simd.iterator] arithmetic
 
-  [[nodiscard]] _CCCL_API friend constexpr __simd_iterator operator+(__simd_iterator __i, const difference_type __n)
+  [[nodiscard]] _CCCL_API friend constexpr __simd_iterator
+  operator+(__simd_iterator __i, const difference_type __n) noexcept
   {
     return __i += __n;
   }
 
-  [[nodiscard]] _CCCL_API friend constexpr __simd_iterator operator+(const difference_type __n, __simd_iterator __i)
+  [[nodiscard]] _CCCL_API friend constexpr __simd_iterator
+  operator+(const difference_type __n, __simd_iterator __i) noexcept
   {
     return __i += __n;
   }
 
-  [[nodiscard]] _CCCL_API friend constexpr __simd_iterator operator-(__simd_iterator __i, const difference_type __n)
+  [[nodiscard]] _CCCL_API friend constexpr __simd_iterator
+  operator-(__simd_iterator __i, const difference_type __n) noexcept
   {
     return __i -= __n;
   }
 
   [[nodiscard]] _CCCL_API friend constexpr difference_type
-  operator-(const __simd_iterator __a, const __simd_iterator __b)
+  operator-(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     return __a.__offset_ - __b.__offset_;
   }
