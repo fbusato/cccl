@@ -26,7 +26,7 @@
 // dereference and subscript
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_dereference()
+TEST_FUNC constexpr void test_dereference()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec   = make_iota_vec<T, N>();
@@ -50,7 +50,7 @@ __host__ __device__ constexpr void test_dereference()
 // increment and decrement
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_increment_decrement()
+TEST_FUNC constexpr void test_increment_decrement()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec   = make_iota_vec<T, N>();
@@ -95,7 +95,7 @@ __host__ __device__ constexpr void test_increment_decrement()
 // compound assignment
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_compound_assignment()
+TEST_FUNC constexpr void test_compound_assignment()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec   = make_iota_vec<T, N>();
@@ -114,7 +114,7 @@ __host__ __device__ constexpr void test_compound_assignment()
 // arithmetic
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_arithmetic()
+TEST_FUNC constexpr void test_arithmetic()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec   = make_iota_vec<T, N>();
@@ -143,7 +143,7 @@ __host__ __device__ constexpr void test_arithmetic()
 // comparisons
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_comparisons()
+TEST_FUNC constexpr void test_comparisons()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec   = make_iota_vec<T, N>();
@@ -176,7 +176,7 @@ __host__ __device__ constexpr void test_comparisons()
 // sentinel comparisons and noexcept
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_sentinel()
+TEST_FUNC constexpr void test_sentinel()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec{};
@@ -197,7 +197,7 @@ __host__ __device__ constexpr void test_sentinel()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_dereference<T, N>();
   test_increment_decrement<T, N>();

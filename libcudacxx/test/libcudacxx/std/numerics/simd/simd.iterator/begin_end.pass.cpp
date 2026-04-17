@@ -31,7 +31,7 @@
 // type aliases and begin/end on basic_vec
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_vec_types()
+TEST_FUNC constexpr void test_vec_types()
 {
   using Vec       = simd::basic_vec<T, simd::fixed_size<N>>;
   using Iter      = typename Vec::iterator;
@@ -65,7 +65,7 @@ __host__ __device__ constexpr void test_vec_types()
 // type aliases and begin/end on basic_mask
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_mask_types()
+TEST_FUNC constexpr void test_mask_types()
 {
   using Vec       = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask      = typename Vec::mask_type;
@@ -100,7 +100,7 @@ __host__ __device__ constexpr void test_mask_types()
 // const iterator conversion
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_const_conversion()
+TEST_FUNC constexpr void test_const_conversion()
 {
   using Vec       = simd::basic_vec<T, simd::fixed_size<N>>;
   using ConstIter = typename Vec::const_iterator;
@@ -122,7 +122,7 @@ __host__ __device__ constexpr void test_const_conversion()
 // basic_vec iteration
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_vec_iteration()
+TEST_FUNC constexpr void test_vec_iteration()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec   = make_iota_vec<T, N>();
@@ -140,7 +140,7 @@ __host__ __device__ constexpr void test_vec_iteration()
 // basic_mask begin/end and iteration
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_mask_iteration()
+TEST_FUNC constexpr void test_mask_iteration()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -165,7 +165,7 @@ __host__ __device__ constexpr void test_mask_iteration()
 // range-based for loop
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_range_based_for()
+TEST_FUNC constexpr void test_range_based_for()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -192,7 +192,7 @@ __host__ __device__ constexpr void test_range_based_for()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_vec_types<T, N>();
   test_mask_types<T, N>();
