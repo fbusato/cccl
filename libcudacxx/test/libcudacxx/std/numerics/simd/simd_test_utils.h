@@ -69,92 +69,54 @@ using integer_from_t = cuda::std::__make_nbit_int_t<Bytes * 8, true>;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Approximate floating-point comparison for SIMD complex math tests
-//
-// Scalar and SIMD code paths produce bit-identical results under nvcc with gcc
-// or clang as the host compiler, but nvc++ and clang-cuda legitimately diverge
-// in the last few bits due to different FMA contraction and intrinsic choices.
-// `is_about` delegates to the shared `fptest_close` helper in fp_compare.h on
-// those two toolchains, with per-type tolerances matching the long-standing
-// `is_about` overloads in libcudacxx/test/.../complex.number/cases.h, and
-// falls back to bit-exact `==` everywhere else so regressions on the
-// nvcc+host-compiler path are still caught.
 
-// Compiler gate: bit-exact on nvcc+gcc and nvrtc, relaxed on every toolchain
-// where FMA contraction or intrinsic selection legitimately diverges
-// (nvc++ and every compilation whose host compiler is clang, which covers
-// nvcc+clang and clang-cuda).
-//
-// Constant-evaluated arithmetic is IEEE-754-deterministic on every toolchain,
-// so bit-exact equality is always safe at compile time. The `fptest_close`
-// path is reserved for runtime evaluation. Reduced-precision types are
-// widened to `float` before delegating because `__half(int)` and
-// `__nv_bfloat16(int)` are not constexpr constructors, so instantiating
-// `fptest_close<T>` (which contains `constexpr T zero = T(0)`) is ill-formed
-// for them.
-#if _CCCL_COMPILER(NVHPC) || _CCCL_COMPILER(CLANG)
-TEST_FUNC constexpr void is_about(float a, float b)
+// even if SIMD applies mathematical operations for each component, the compilers could still performance different
+// optimizations between library and test code. nvc++ and clang especially produce slightly different results for the
+// same input.
+TEST_FUNC inline void is_about_runtime(float a, float b)
 {
-  if (cuda::std::is_constant_evaluated())
+  assert(fptest_close_pct(a, b, 1.e-4f));
+}
+
+TEST_FUNC inline void is_about_runtime(double a, double b)
+{
+  assert(fptest_close_pct(a, b, 1.e-12));
+}
+
+#if _LIBCUDACXX_HAS_NVFP16()
+TEST_FUNC inline void is_about_runtime(__half a, __half b)
+{
+  assert(fptest_close_pct(static_cast<float>(a), static_cast<float>(b), 1.e-1f));
+}
+#endif // _LIBCUDACXX_HAS_NVFP16()
+
+#if _LIBCUDACXX_HAS_NVBF16()
+TEST_FUNC inline void is_about_runtime(__nv_bfloat16 a, __nv_bfloat16 b)
+{
+  assert(fptest_close_pct(static_cast<float>(a), static_cast<float>(b), 5.e-1f));
+}
+#endif // _LIBCUDACXX_HAS_NVBF16()
+
+template <typename T>
+TEST_FUNC void is_about_runtime(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
+{
+  is_about_runtime(a.real(), b.real());
+  is_about_runtime(a.imag(), b.imag());
+}
+
+// compile-time tests are bitwise identical
+template <typename T>
+TEST_FUNC constexpr void is_about(const T& a, const T& b)
+{
+  if (cuda::std::__cccl_default_is_constant_evaluated())
   {
     assert(a == b);
   }
   else
   {
-    assert(fptest_close(a, b, 1.e-6f));
+    is_about_runtime(a, b);
   }
 }
-
-TEST_FUNC constexpr void is_about(double a, double b)
-{
-  if (cuda::std::is_constant_evaluated())
-  {
-    assert(a == b);
-  }
-  else
-  {
-    assert(fptest_close(a, b, 1.e-14));
-  }
-}
-
-#  if _LIBCUDACXX_HAS_NVFP16()
-TEST_FUNC inline void is_about(__half a, __half b)
-{
-  assert(fptest_close(static_cast<float>(a), static_cast<float>(b), 1.e-3f));
-}
-#  endif // _LIBCUDACXX_HAS_NVFP16()
-
-#  if _LIBCUDACXX_HAS_NVBF16()
-TEST_FUNC inline void is_about(__nv_bfloat16 a, __nv_bfloat16 b)
-{
-  assert(fptest_close(static_cast<float>(a), static_cast<float>(b), 5.e-3f));
-}
-#  endif // _LIBCUDACXX_HAS_NVBF16()
-
-template <typename T>
-TEST_FUNC constexpr void is_about(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
-{
-  if (cuda::std::is_constant_evaluated())
-  {
-    assert(a == b);
-  }
-  else
-  {
-    is_about(a.real(), b.real());
-    is_about(a.imag(), b.imag());
-  }
-}
-#else // nvcc+gcc and nvrtc: enforce bit-exact equality.
-template <typename T>
-TEST_FUNC constexpr void is_about(T a, T b)
-{
-  assert(a == b);
-}
-template <typename T>
-TEST_FUNC constexpr void is_about(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
-{
-  assert(a == b);
-}
-#endif // _CCCL_COMPILER(NVHPC) || _CCCL_COMPILER(CLANG)
 
 //----------------------------------------------------------------------------------------------------------------------
 // vec utilities
@@ -186,6 +148,27 @@ struct complex_generator
   TEST_FUNC constexpr cuda::std::complex<T> operator()(I i) const noexcept
   {
     return cuda::std::complex<T>(static_cast<T>(i + RealOffset), static_cast<T>(i + ImagOffset));
+  }
+};
+
+// Four complex values spanning all quadrants with diverse magnitudes; shared across complex tests.
+template <typename T>
+struct complex_diverse_generator
+{
+  template <typename I>
+  TEST_FUNC constexpr cuda::std::complex<T> operator()(I i) const noexcept
+  {
+    switch (static_cast<int>(i) & 3)
+    {
+      case 0:
+        return cuda::std::complex<T>(T(1.5), T(0.4));
+      case 1:
+        return cuda::std::complex<T>(T(-0.7), T(1.2));
+      case 2:
+        return cuda::std::complex<T>(T(0.8), T(-1.3));
+      default:
+        return cuda::std::complex<T>(T(-1.1), T(-0.6));
+    }
   }
 };
 

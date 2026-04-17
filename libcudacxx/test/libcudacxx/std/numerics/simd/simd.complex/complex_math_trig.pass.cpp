@@ -23,28 +23,6 @@
 
 namespace simd = cuda::std::simd;
 
-// Meaningful inputs for trigonometric/hyperbolic tests: four complex values spanning all quadrants with mixed
-// magnitudes
-template <typename T>
-struct trig_input_generator
-{
-  template <typename I>
-  TEST_FUNC constexpr cuda::std::complex<T> operator()(I i) const noexcept
-  {
-    switch (static_cast<int>(i) & 3)
-    {
-      case 0:
-        return cuda::std::complex<T>(T(0.5), T(0.3));
-      case 1:
-        return cuda::std::complex<T>(T(-0.7), T(0.6));
-      case 2:
-        return cuda::std::complex<T>(T(1.1), T(-0.9));
-      default:
-        return cuda::std::complex<T>(T(-0.3), T(-0.5));
-    }
-  }
-};
-
 //----------------------------------------------------------------------------------------------------------------------
 // sin, cos, tan, asin, acos, atan
 
@@ -54,7 +32,7 @@ TEST_FUNC void test_trig()
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  ComplexVec vec(trig_input_generator<T>{});
+  ComplexVec vec(complex_diverse_generator<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::sin(vec)), ComplexVec>);
   static_assert(cuda::std::is_same_v<decltype(simd::cos(vec)), ComplexVec>);
@@ -94,7 +72,7 @@ TEST_FUNC void test_hyperbolic()
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  ComplexVec vec(trig_input_generator<T>{});
+  ComplexVec vec(complex_diverse_generator<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::sinh(vec)), ComplexVec>);
   static_assert(cuda::std::is_same_v<decltype(simd::cosh(vec)), ComplexVec>);

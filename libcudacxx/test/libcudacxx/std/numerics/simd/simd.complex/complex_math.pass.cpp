@@ -24,26 +24,6 @@
 namespace simd = cuda::std::simd;
 
 // Meaningful inputs for complex math tests: four complex values spanning all quadrants with mixed magnitudes
-template <typename T>
-struct complex_diverse_generator
-{
-  template <typename I>
-  TEST_FUNC constexpr cuda::std::complex<T> operator()(I i) const noexcept
-  {
-    switch (static_cast<int>(i) & 3)
-    {
-      case 0:
-        return cuda::std::complex<T>(T(1.5), T(0.4));
-      case 1:
-        return cuda::std::complex<T>(T(-0.7), T(1.2));
-      case 2:
-        return cuda::std::complex<T>(T(0.8), T(-1.3));
-      default:
-        return cuda::std::complex<T>(T(-1.1), T(-0.6));
-    }
-  }
-};
-
 // Diverse angles (in radians) covering positive/negative values and different quadrants
 template <typename T>
 struct polar_theta_generator
