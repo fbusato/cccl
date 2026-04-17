@@ -32,7 +32,7 @@
 // deduction from range
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_range_deduction()
+TEST_FUNC constexpr void test_range_deduction()
 {
   auto arr = make_iota_array<T, N>(0);
   simd::basic_vec vec(arr);
@@ -45,7 +45,7 @@ __host__ __device__ constexpr void test_range_deduction()
 // deduction from fixed-extent span
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_span_deduction()
+TEST_FUNC constexpr void test_span_deduction()
 {
   auto arr = make_iota_array<T, N>(0);
 
@@ -60,7 +60,7 @@ __host__ __device__ constexpr void test_span_deduction()
 // deduction from basic_mask
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_mask_deduction()
+TEST_FUNC constexpr void test_mask_deduction()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   Mask mask(true);
@@ -74,7 +74,7 @@ __host__ __device__ constexpr void test_mask_deduction()
 
 //----------------------------------------------------------------------------------------------------------------------
 
-__host__ __device__ constexpr bool test_deduction()
+TEST_FUNC constexpr bool test_deduction()
 {
   test_range_deduction<int, 1>();
   test_range_deduction<int, 4>();

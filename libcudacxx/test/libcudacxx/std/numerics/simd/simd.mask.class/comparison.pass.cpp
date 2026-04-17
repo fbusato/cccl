@@ -30,7 +30,7 @@
 // identical masks
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_all_patterns()
+TEST_FUNC constexpr void test_all_patterns()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   Mask all_true(true);
@@ -138,13 +138,13 @@ __host__ __device__ constexpr void test_all_patterns()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <int Bytes>
-__host__ __device__ constexpr void test_bytes()
+TEST_FUNC constexpr void test_bytes()
 {
   test_all_patterns<Bytes, 1>();
   test_all_patterns<Bytes, 4>();
 }
 
-__host__ __device__ constexpr bool test()
+TEST_FUNC constexpr bool test()
 {
   test_bytes<1>();
   test_bytes<2>();

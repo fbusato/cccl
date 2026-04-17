@@ -24,7 +24,7 @@ namespace simd = cuda::std::simd;
 // rebind with basic_vec
 
 template <typename NewT, typename OldT, int N>
-__host__ __device__ void test_rebind_vec()
+TEST_FUNC void test_rebind_vec()
 {
   using OldVec = simd::basic_vec<OldT, simd::fixed_size<N>>;
   using Result = simd::rebind_t<NewT, OldVec>;
@@ -33,7 +33,7 @@ __host__ __device__ void test_rebind_vec()
 }
 
 template <typename NewT, typename OldT>
-__host__ __device__ void test_rebind_vec_sizes()
+TEST_FUNC void test_rebind_vec_sizes()
 {
   test_rebind_vec<NewT, OldT, 1>();
   test_rebind_vec<NewT, OldT, 2>();
@@ -45,7 +45,7 @@ __host__ __device__ void test_rebind_vec_sizes()
 // rebind with basic_mask
 
 template <typename NewT, typename OldT, int N>
-__host__ __device__ void test_rebind_mask()
+TEST_FUNC void test_rebind_mask()
 {
   using OldMask = simd::basic_mask<sizeof(OldT), simd::fixed_size<N>>;
   using Result  = simd::rebind_t<NewT, OldMask>;
@@ -54,7 +54,7 @@ __host__ __device__ void test_rebind_mask()
 }
 
 template <typename NewT, typename OldT>
-__host__ __device__ void test_rebind_mask_sizes()
+TEST_FUNC void test_rebind_mask_sizes()
 {
   test_rebind_mask<NewT, OldT, 1>();
   test_rebind_mask<NewT, OldT, 2>();
@@ -66,12 +66,12 @@ __host__ __device__ void test_rebind_mask_sizes()
 // rebind_t matches rebind::type
 
 template <typename NewT, typename V>
-__host__ __device__ void test_rebind_t_alias()
+TEST_FUNC void test_rebind_t_alias()
 {
   static_assert(cuda::std::is_same_v<simd::rebind_t<NewT, V>, typename simd::rebind<NewT, V>::type>);
 }
 
-__host__ __device__ void test()
+TEST_FUNC void test()
 {
   // rebind basic_vec
   test_rebind_vec_sizes<int, int>();

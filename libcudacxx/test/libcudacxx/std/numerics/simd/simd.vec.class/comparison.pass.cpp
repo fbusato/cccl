@@ -27,7 +27,7 @@
 #include "test_macros.h"
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;

@@ -24,7 +24,7 @@ namespace simd = cuda::std::simd;
 // resize with basic_vec
 
 template <typename T, int OldN, int NewN>
-__host__ __device__ void test_resize_vec()
+TEST_FUNC void test_resize_vec()
 {
   using OldVec   = simd::basic_vec<T, simd::fixed_size<OldN>>;
   using Result   = simd::resize_t<NewN, OldVec>;
@@ -35,7 +35,7 @@ __host__ __device__ void test_resize_vec()
 }
 
 template <typename T>
-__host__ __device__ void test_resize_vec_all()
+TEST_FUNC void test_resize_vec_all()
 {
   test_resize_vec<T, 4, 4>();
   test_resize_vec<T, 4, 2>();
@@ -46,7 +46,7 @@ __host__ __device__ void test_resize_vec_all()
 // resize with basic_mask
 
 template <typename T, int OldN, int NewN>
-__host__ __device__ void test_resize_mask()
+TEST_FUNC void test_resize_mask()
 {
   using OldMask  = simd::basic_mask<sizeof(T), simd::fixed_size<OldN>>;
   using Result   = simd::resize_t<NewN, OldMask>;
@@ -56,7 +56,7 @@ __host__ __device__ void test_resize_mask()
 }
 
 template <typename T>
-__host__ __device__ void test_resize_mask_all()
+TEST_FUNC void test_resize_mask_all()
 {
   test_resize_mask<T, 4, 4>();
   test_resize_mask<T, 4, 2>();
@@ -67,12 +67,12 @@ __host__ __device__ void test_resize_mask_all()
 // resize_t matches resize::type
 
 template <int N, typename V>
-__host__ __device__ void test_resize_t_alias()
+TEST_FUNC void test_resize_t_alias()
 {
   static_assert(cuda::std::is_same_v<simd::resize_t<N, V>, typename simd::resize<N, V>::type>);
 }
 
-__host__ __device__ void test()
+TEST_FUNC void test()
 {
   // resize basic_vec
   test_resize_vec_all<char>();

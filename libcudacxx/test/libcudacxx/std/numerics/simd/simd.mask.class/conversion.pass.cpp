@@ -29,7 +29,7 @@
 // implicit conversion to basic_vec (sizeof(U) == Bytes)
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_implicit_conv()
+TEST_FUNC constexpr void test_implicit_conv()
 {
   using Mask = simd::basic_mask<sizeof(T), simd::fixed_size<N>>;
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
@@ -49,7 +49,7 @@ __host__ __device__ constexpr void test_implicit_conv()
 // explicit conversion to basic_vec (sizeof(U) != Bytes)
 
 template <int Bytes, typename U, int N>
-__host__ __device__ constexpr void test_explicit_conv()
+TEST_FUNC constexpr void test_explicit_conv()
 {
   static_assert(sizeof(U) != Bytes);
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
@@ -71,7 +71,7 @@ __host__ __device__ constexpr void test_explicit_conv()
 // to_bitset
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_to_bitset()
+TEST_FUNC constexpr void test_to_bitset()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   Mask mask(true);
@@ -102,7 +102,7 @@ __host__ __device__ constexpr void test_to_bitset()
 
 // N is guaranteed to be in [1, 64]
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_to_ullong()
+TEST_FUNC constexpr void test_to_ullong()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   Mask mask(true);
@@ -135,7 +135,7 @@ __host__ __device__ constexpr void test_to_ullong()
 // SFINAE constraints
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_sfinae_negative()
+TEST_FUNC constexpr void test_sfinae_negative()
 {
   using Mask    = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   using Integer = integer_from_t<Bytes>;
@@ -149,7 +149,7 @@ __host__ __device__ constexpr void test_sfinae_negative()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_size()
+TEST_FUNC constexpr void test_size()
 {
   test_to_bitset<Bytes, N>();
   test_to_ullong<Bytes, N>();
@@ -157,13 +157,13 @@ __host__ __device__ constexpr void test_size()
 }
 
 template <int Bytes>
-__host__ __device__ constexpr void test_bytes()
+TEST_FUNC constexpr void test_bytes()
 {
   test_size<Bytes, 1>();
   test_size<Bytes, 4>();
 }
 
-__host__ __device__ constexpr bool test()
+TEST_FUNC constexpr bool test()
 {
   test_bytes<1>();
   test_bytes<2>();

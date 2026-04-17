@@ -28,7 +28,7 @@
 // operator!
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_logical_not()
+TEST_FUNC constexpr void test_logical_not()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   Mask mask(true);
@@ -52,7 +52,7 @@ __host__ __device__ constexpr void test_logical_not()
 // operator+
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_unary_plus()
+TEST_FUNC constexpr void test_unary_plus()
 {
   using Mask    = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   using Integer = integer_from_t<Bytes>;
@@ -79,7 +79,7 @@ __host__ __device__ constexpr void test_unary_plus()
 // operator-
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_unary_minus()
+TEST_FUNC constexpr void test_unary_minus()
 {
   using Mask    = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   using Integer = integer_from_t<Bytes>;
@@ -106,7 +106,7 @@ __host__ __device__ constexpr void test_unary_minus()
 // operator~
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_bitwise_not()
+TEST_FUNC constexpr void test_bitwise_not()
 {
   using Mask    = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   using Integer = integer_from_t<Bytes>;
@@ -132,7 +132,7 @@ __host__ __device__ constexpr void test_bitwise_not()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_size()
+TEST_FUNC constexpr void test_size()
 {
   test_logical_not<Bytes, N>();
   test_unary_plus<Bytes, N>();
@@ -141,13 +141,13 @@ __host__ __device__ constexpr void test_size()
 }
 
 template <int Bytes>
-__host__ __device__ constexpr void test_bytes()
+TEST_FUNC constexpr void test_bytes()
 {
   test_size<Bytes, 1>();
   test_size<Bytes, 4>();
 }
 
-__host__ __device__ constexpr bool test()
+TEST_FUNC constexpr bool test()
 {
   test_bytes<1>();
   test_bytes<2>();

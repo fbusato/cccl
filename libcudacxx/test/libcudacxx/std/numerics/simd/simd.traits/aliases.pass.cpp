@@ -24,7 +24,7 @@
 // vec<T, N> resolves to basic_vec<T, deduce-abi-t<T, N>>
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_vec_alias()
+TEST_FUNC constexpr void test_vec_alias()
 {
   using Alias  = simd::vec<T, N>;
   using Direct = simd::basic_vec<T, simd::fixed_size<N>>;
@@ -35,7 +35,7 @@ __host__ __device__ constexpr void test_vec_alias()
 // mask<T, N> resolves to basic_mask<sizeof(T), deduce-abi-t<T, N>>
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_mask_alias()
+TEST_FUNC constexpr void test_mask_alias()
 {
   using Alias  = simd::mask<T, N>;
   using Direct = simd::basic_mask<sizeof(T), simd::fixed_size<N>>;
@@ -46,7 +46,7 @@ __host__ __device__ constexpr void test_mask_alias()
 // default N for vec and mask uses native ABI size
 
 template <typename T>
-__host__ __device__ constexpr void test_default_size()
+TEST_FUNC constexpr void test_default_size()
 {
   using DefaultVec = simd::vec<T>;
   using NativeVec  = simd::basic_vec<T, simd::native<T>>;
@@ -60,7 +60,7 @@ __host__ __device__ constexpr void test_default_size()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_vec_alias<T, N>();
   test_mask_alias<T, N>();
