@@ -265,7 +265,7 @@ _CCCL_DIAG_PUSH
 _CCCL_DIAG_SUPPRESS_MSVC(4702) // unreachable code
 
 template <size_t _Bytes, typename _Abi>
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const basic_mask<_Bytes, _Abi>& __k)
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
   _CCCL_ASSERT(::cuda::std::simd::any_of(__k), "No bits are set");
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -277,10 +277,11 @@ template <size_t _Bytes, typename _Abi>
     }
   }
   _CCCL_UNREACHABLE();
+  return 0;
 }
 
 template <size_t _Bytes, typename _Abi>
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const basic_mask<_Bytes, _Abi>& __k)
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
   _CCCL_ASSERT(::cuda::std::simd::any_of(__k), "No bits are set");
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -292,6 +293,7 @@ template <size_t _Bytes, typename _Abi>
     }
   }
   _CCCL_UNREACHABLE();
+  return 0;
 }
 
 _CCCL_DIAG_POP
@@ -328,7 +330,7 @@ _CCCL_REQUIRES(same_as<_Tp, bool>)
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const _Tp __x)
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const _Tp __x) noexcept
 {
   _CCCL_ASSERT(__x, "No bits are set");
   return 0;
@@ -336,7 +338,7 @@ _CCCL_REQUIRES(same_as<_Tp, bool>)
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(same_as<_Tp, bool>)
-[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const _Tp __x)
+[[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const _Tp __x) noexcept
 {
   _CCCL_ASSERT(__x, "No bits are set");
   return 0;
