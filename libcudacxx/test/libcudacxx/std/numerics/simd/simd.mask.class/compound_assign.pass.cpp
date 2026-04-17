@@ -24,7 +24,7 @@
 #include "test_macros.h"
 
 template <int Bytes>
-__host__ __device__ constexpr void test_and()
+TEST_FUNC constexpr void test_and()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<4>>;
   Mask a(is_even{});
@@ -41,7 +41,7 @@ __host__ __device__ constexpr void test_and()
 }
 
 template <int Bytes>
-__host__ __device__ constexpr void test_or()
+TEST_FUNC constexpr void test_or()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<4>>;
   Mask a(is_even{});
@@ -58,7 +58,7 @@ __host__ __device__ constexpr void test_or()
 }
 
 template <int Bytes>
-__host__ __device__ constexpr void test_xor()
+TEST_FUNC constexpr void test_xor()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<4>>;
   Mask a(is_even{});
@@ -76,7 +76,7 @@ __host__ __device__ constexpr void test_xor()
 
 //----------------------------------------------------------------------------------------------------------------------
 
-__host__ __device__ constexpr bool test()
+TEST_FUNC constexpr bool test()
 {
   test_and<1>();
   test_and<2>();
