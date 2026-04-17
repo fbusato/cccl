@@ -47,7 +47,7 @@ constexpr bool is_const_member_function_v = is_const_member_function<T>::value;
 struct is_even
 {
   template <typename I>
-  __host__ __device__ constexpr bool operator()(I i) const noexcept
+  TEST_FUNC constexpr bool operator()(I i) const noexcept
   {
     return i % 2 == 0;
   }
@@ -56,7 +56,7 @@ struct is_even
 struct is_first_half
 {
   template <typename I>
-  __host__ __device__ constexpr bool operator()(I i) const noexcept
+  TEST_FUNC constexpr bool operator()(I i) const noexcept
   {
     return i < 2;
   }
@@ -72,14 +72,14 @@ template <typename T>
 struct iota_generator
 {
   template <typename I>
-  __host__ __device__ constexpr T operator()(I i) const noexcept
+  TEST_FUNC constexpr T operator()(I i) const noexcept
   {
     return static_cast<T>(i + 1);
   }
 };
 
 template <typename T, int N>
-__host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
+TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
 {
   cuda::std::array<T, N> arr{};
   for (int i = 0; i < N; ++i)
@@ -126,7 +126,7 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
 // __half and __nv_bfloat16 constructors are not constexpr (CUDA toolkit limitation),
 // so they are tested only at runtime via test_runtime().
 #define DEFINE_BASIC_VEC_TEST_RUNTIME()                           \
-  __host__ __device__ bool test_runtime()                         \
+  TEST_FUNC bool test_runtime()                         \
   {                                                               \
     _SIMD_TEST_FP16()                                             \
     _SIMD_TEST_BF16()                                             \
@@ -134,7 +134,7 @@ __host__ __device__ constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_
   }
 
 #define DEFINE_BASIC_VEC_TEST()                                   \
-  __host__ __device__ constexpr bool test()                       \
+  TEST_FUNC constexpr bool test()                       \
   {                                                               \
     test_type<int8_t, 1>();                                       \
     test_type<int8_t, 4>();                                       \

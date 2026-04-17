@@ -25,13 +25,13 @@
 // subscript read-back
 
 template <int Bytes, int N>
-__host__ __device__ constexpr void test_subscript()
+TEST_FUNC constexpr void test_subscript()
 {
   using Mask = simd::basic_mask<Bytes, simd::fixed_size<N>>;
   Mask mask(true);
 
   static_assert(cuda::std::is_same_v<decltype(mask[0]), typename Mask::value_type>);
-  static_assert(!noexcept(mask[0]));
+  static_assert(noexcept(mask[0]));
   static_assert(is_const_member_function_v<decltype(&Mask::operator[])>);
   unused(mask);
 
@@ -49,13 +49,13 @@ __host__ __device__ constexpr void test_subscript()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <int Bytes>
-__host__ __device__ constexpr void test_bytes()
+TEST_FUNC constexpr void test_bytes()
 {
   test_subscript<Bytes, 1>();
   test_subscript<Bytes, 4>();
 }
 
-__host__ __device__ constexpr bool test()
+TEST_FUNC constexpr bool test()
 {
   test_bytes<1>();
   test_bytes<2>();

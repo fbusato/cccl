@@ -24,7 +24,7 @@
 namespace simd = cuda::std::simd;
 
 template <typename T, int N, size_t ExpectedAlign = alignof(T) * N>
-__host__ __device__ void test_default_u()
+TEST_FUNC void test_default_u()
 {
   using V = simd::basic_vec<T, simd::fixed_size<N>>;
   static_assert(simd::alignment<V>::value == ExpectedAlign);
@@ -32,7 +32,7 @@ __host__ __device__ void test_default_u()
 }
 
 template <typename T, int N, typename U, size_t ExpectedAlign = alignof(U) * N>
-__host__ __device__ void test_explicit_u()
+TEST_FUNC void test_explicit_u()
 {
   using V = simd::basic_vec<T, simd::fixed_size<N>>;
   static_assert(simd::alignment<V, U>::value == ExpectedAlign);
@@ -40,7 +40,7 @@ __host__ __device__ void test_explicit_u()
 }
 
 template <typename T>
-__host__ __device__ void test_type()
+TEST_FUNC void test_type()
 {
   test_default_u<T, 1>();
   test_default_u<T, 3, alignof(T)>();
@@ -49,7 +49,7 @@ __host__ __device__ void test_type()
   test_default_u<T, 8>();
 }
 
-__host__ __device__ void test()
+TEST_FUNC void test()
 {
   // default U = value_type
   test_type<char>();

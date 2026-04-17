@@ -33,7 +33,7 @@
 #include "test_macros.h"
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_arithmetic()
+TEST_FUNC constexpr void test_arithmetic()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec a(T{6});
@@ -62,7 +62,7 @@ __host__ __device__ constexpr void test_arithmetic()
 }
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_integral_ops()
+TEST_FUNC constexpr void test_integral_ops()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec a(T{7});
@@ -91,7 +91,7 @@ __host__ __device__ constexpr void test_integral_ops()
 }
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_shifts()
+TEST_FUNC constexpr void test_shifts()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec a(T{4});
@@ -127,7 +127,7 @@ __host__ __device__ constexpr void test_shifts()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_arithmetic<T, N>();
   if constexpr (cuda::std::is_integral_v<T>)
