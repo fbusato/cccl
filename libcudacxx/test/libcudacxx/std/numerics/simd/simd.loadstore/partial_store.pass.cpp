@@ -32,7 +32,7 @@
 // partial_store: range
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_partial_store_range()
+TEST_FUNC constexpr void test_partial_store_range()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(iota_generator<T>{});
@@ -56,7 +56,7 @@ __host__ __device__ constexpr void test_partial_store_range()
 // partial_store: range, masked — verify unmasked lanes are preserved
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_partial_store_range_masked()
+TEST_FUNC constexpr void test_partial_store_range_masked()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -81,7 +81,7 @@ __host__ __device__ constexpr void test_partial_store_range_masked()
 // partial_store: smaller range (count < Vec.size)
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_partial_store_smaller_range()
+TEST_FUNC constexpr void test_partial_store_smaller_range()
 {
   if constexpr (N > 1)
   {
@@ -102,7 +102,7 @@ __host__ __device__ constexpr void test_partial_store_smaller_range()
 // partial_store: iterator + count
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_partial_store_iter_count()
+TEST_FUNC constexpr void test_partial_store_iter_count()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(iota_generator<T>{});
@@ -133,7 +133,7 @@ __host__ __device__ constexpr void test_partial_store_iter_count()
 // partial_store: iterator + sentinel
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_partial_store_iter_sentinel()
+TEST_FUNC constexpr void test_partial_store_iter_sentinel()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(iota_generator<T>{});
@@ -164,7 +164,7 @@ __host__ __device__ constexpr void test_partial_store_iter_sentinel()
 // flag_convert: lossy store to narrower type
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_partial_store_convert()
+TEST_FUNC constexpr void test_partial_store_convert()
 {
   if constexpr (sizeof(T) < 8 && cuda::std::is_integral_v<T>)
   {
@@ -197,7 +197,7 @@ __host__ __device__ constexpr void test_partial_store_convert()
 // noexcept: public functions must NOT be noexcept
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_partial_store_not_noexcept()
+TEST_FUNC constexpr void test_partial_store_not_noexcept()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -220,7 +220,7 @@ __host__ __device__ constexpr void test_partial_store_not_noexcept()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_partial_store_range<T, N>();
   test_partial_store_range_masked<T, N>();

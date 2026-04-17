@@ -32,7 +32,7 @@
 // unchecked_load: range
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unchecked_load_range()
+TEST_FUNC constexpr void test_unchecked_load_range()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   auto arr  = make_iota_array<T, N>();
@@ -48,7 +48,7 @@ __host__ __device__ constexpr void test_unchecked_load_range()
 // unchecked_load: range, masked
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unchecked_load_range_masked()
+TEST_FUNC constexpr void test_unchecked_load_range_masked()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -67,7 +67,7 @@ __host__ __device__ constexpr void test_unchecked_load_range_masked()
 // unchecked_load: iterator + count
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unchecked_load_iter_count()
+TEST_FUNC constexpr void test_unchecked_load_iter_count()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   auto arr  = make_iota_array<T, N>();
@@ -89,7 +89,7 @@ __host__ __device__ constexpr void test_unchecked_load_iter_count()
 // unchecked_load: iterator + sentinel
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unchecked_load_iter_sentinel()
+TEST_FUNC constexpr void test_unchecked_load_iter_sentinel()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   auto arr  = make_iota_array<T, N>();
@@ -111,7 +111,7 @@ __host__ __device__ constexpr void test_unchecked_load_iter_sentinel()
 // alignment flags
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unchecked_load_aligned()
+TEST_FUNC constexpr void test_unchecked_load_aligned()
 {
   using Vec            = simd::basic_vec<T, simd::fixed_size<N>>;
   alignas(64) auto arr = make_iota_array<T, N>();
@@ -126,7 +126,7 @@ __host__ __device__ constexpr void test_unchecked_load_aligned()
 // flag_convert: lossy load from wider type
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unchecked_load_convert()
+TEST_FUNC constexpr void test_unchecked_load_convert()
 {
   if constexpr (sizeof(T) <= sizeof(int) && cuda::std::is_integral_v<T>)
   {
@@ -151,7 +151,7 @@ __host__ __device__ constexpr void test_unchecked_load_convert()
 // noexcept: public functions must NOT be noexcept
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_unchecked_load_not_noexcept()
+TEST_FUNC constexpr void test_unchecked_load_not_noexcept()
 {
   using Vec  = simd::basic_vec<T, simd::fixed_size<N>>;
   using Mask = typename Vec::mask_type;
@@ -173,7 +173,7 @@ __host__ __device__ constexpr void test_unchecked_load_not_noexcept()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_unchecked_load_range<T, N>();
   test_unchecked_load_range_masked<T, N>();
