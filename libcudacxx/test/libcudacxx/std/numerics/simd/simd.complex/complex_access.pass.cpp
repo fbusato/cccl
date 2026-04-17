@@ -27,7 +27,7 @@ namespace simd = cuda::std::simd;
 // complex constructor
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_complex_ctor()
+TEST_FUNC constexpr void test_complex_ctor()
 {
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
@@ -58,7 +58,7 @@ __host__ __device__ constexpr void test_complex_ctor()
 // real() / imag() getters
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_getters()
+TEST_FUNC constexpr void test_getters()
 {
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
@@ -84,7 +84,7 @@ __host__ __device__ constexpr void test_getters()
 // real(vec) / imag(vec) setters
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_setters()
+TEST_FUNC constexpr void test_setters()
 {
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
@@ -117,7 +117,7 @@ __host__ __device__ constexpr void test_setters()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_type()
+TEST_FUNC constexpr void test_type()
 {
   test_complex_ctor<T, N>();
   test_getters<T, N>();

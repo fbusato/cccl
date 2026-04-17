@@ -29,7 +29,7 @@ template <typename T>
 struct trig_input_generator
 {
   template <typename I>
-  __host__ __device__ constexpr cuda::std::complex<T> operator()(I i) const noexcept
+  TEST_FUNC constexpr cuda::std::complex<T> operator()(I i) const noexcept
   {
     switch (static_cast<int>(i) & 3)
     {
@@ -49,7 +49,7 @@ struct trig_input_generator
 // sin, cos, tan, asin, acos, atan
 
 template <typename T, int N>
-__host__ __device__ void test_trig()
+TEST_FUNC void test_trig()
 {
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
@@ -90,7 +90,7 @@ __host__ __device__ void test_trig()
 // sinh, cosh, tanh, asinh, acosh, atanh
 
 template <typename T, int N>
-__host__ __device__ void test_hyperbolic()
+TEST_FUNC void test_hyperbolic()
 {
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
@@ -130,7 +130,7 @@ __host__ __device__ void test_hyperbolic()
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
-__host__ __device__ void test_type()
+TEST_FUNC void test_type()
 {
   test_trig<T, N>();
   test_hyperbolic<T, N>();
