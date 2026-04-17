@@ -23,27 +23,27 @@
 
 namespace simd = cuda::std::simd;
 
+// Meaningful inputs for trigonometric/hyperbolic tests: four complex values spanning all quadrants with mixed
+// magnitudes
 template <typename T>
-__host__ __device__ T trig_tol()
+struct trig_input_generator
 {
-  return T(1e-5);
-}
-
-#if _LIBCUDACXX_HAS_NVFP16()
-template <>
-__host__ __device__ __half trig_tol<__half>()
-{
-  return __half(1e-2);
-}
-#endif // _LIBCUDACXX_HAS_NVFP16()
-
-#if _LIBCUDACXX_HAS_NVBF16()
-template <>
-__host__ __device__ __nv_bfloat16 trig_tol<__nv_bfloat16>()
-{
-  return __nv_bfloat16(1e-1);
-}
-#endif // _LIBCUDACXX_HAS_NVBF16()
+  template <typename I>
+  __host__ __device__ constexpr cuda::std::complex<T> operator()(I i) const noexcept
+  {
+    switch (static_cast<int>(i) & 3)
+    {
+      case 0:
+        return cuda::std::complex<T>(T(0.5), T(0.3));
+      case 1:
+        return cuda::std::complex<T>(T(-0.7), T(0.6));
+      case 2:
+        return cuda::std::complex<T>(T(1.1), T(-0.9));
+      default:
+        return cuda::std::complex<T>(T(-0.3), T(-0.5));
+    }
+  }
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 // sin, cos, tan, asin, acos, atan
@@ -54,7 +54,7 @@ __host__ __device__ void test_trig()
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  ComplexVec vec(Complex(T(0.5), T(0)));
+  ComplexVec vec(trig_input_generator<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::sin(vec)), ComplexVec>);
   static_assert(cuda::std::is_same_v<decltype(simd::cos(vec)), ComplexVec>);
@@ -69,36 +69,20 @@ __host__ __device__ void test_trig()
   static_assert(!noexcept(simd::acos(vec)));
   static_assert(!noexcept(simd::atan(vec)));
 
-  ComplexVec vec_sin = simd::sin(vec);
-  ComplexVec vec_cos = simd::cos(vec);
-  ComplexVec vec_tan = simd::tan(vec);
-
+  ComplexVec vec_sin  = simd::sin(vec);
+  ComplexVec vec_cos  = simd::cos(vec);
+  ComplexVec vec_tan  = simd::tan(vec);
+  ComplexVec vec_asin = simd::asin(vec);
+  ComplexVec vec_acos = simd::acos(vec);
+  ComplexVec vec_atan = simd::atan(vec);
   for (int i = 0; i < N; ++i)
   {
-    Complex sum = vec_sin[i] * vec_sin[i] + vec_cos[i] * vec_cos[i];
-    T diff_re   = sum.real() - T(1);
-    T diff_im   = sum.imag();
-    assert(diff_re * diff_re < trig_tol<T>());
-    assert(diff_im * diff_im < trig_tol<T>());
-
-    Complex ratio = vec_sin[i] / vec_cos[i];
-    T tan_diff_re = ratio.real() - vec_tan[i].real();
-    T tan_diff_im = ratio.imag() - vec_tan[i].imag();
-    assert(tan_diff_re * tan_diff_re < trig_tol<T>());
-    assert(tan_diff_im * tan_diff_im < trig_tol<T>());
-  }
-
-  ComplexVec vec_asin = simd::asin(vec_sin);
-  ComplexVec vec_acos = simd::acos(vec_cos);
-  ComplexVec vec_atan = simd::atan(vec_tan);
-  for (int i = 0; i < N; ++i)
-  {
-    T asin_diff = vec_asin[i].real() - T(0.5);
-    T acos_diff = vec_acos[i].real() - T(0.5);
-    T atan_diff = vec_atan[i].real() - T(0.5);
-    assert(asin_diff * asin_diff < trig_tol<T>());
-    assert(acos_diff * acos_diff < trig_tol<T>());
-    assert(atan_diff * atan_diff < trig_tol<T>());
+    is_about(vec_sin[i], cuda::std::sin(vec[i]));
+    is_about(vec_cos[i], cuda::std::cos(vec[i]));
+    is_about(vec_tan[i], cuda::std::tan(vec[i]));
+    is_about(vec_asin[i], cuda::std::asin(vec[i]));
+    is_about(vec_acos[i], cuda::std::acos(vec[i]));
+    is_about(vec_atan[i], cuda::std::atan(vec[i]));
   }
 }
 
@@ -111,7 +95,7 @@ __host__ __device__ void test_hyperbolic()
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  ComplexVec vec(Complex(T(0.5), T(0)));
+  ComplexVec vec(trig_input_generator<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::sinh(vec)), ComplexVec>);
   static_assert(cuda::std::is_same_v<decltype(simd::cosh(vec)), ComplexVec>);
@@ -126,44 +110,20 @@ __host__ __device__ void test_hyperbolic()
   static_assert(!noexcept(simd::acosh(vec)));
   static_assert(!noexcept(simd::atanh(vec)));
 
-  ComplexVec vec_sinh = simd::sinh(vec);
-  ComplexVec vec_cosh = simd::cosh(vec);
-  ComplexVec vec_tanh = simd::tanh(vec);
-
+  ComplexVec vec_sinh  = simd::sinh(vec);
+  ComplexVec vec_cosh  = simd::cosh(vec);
+  ComplexVec vec_tanh  = simd::tanh(vec);
+  ComplexVec vec_asinh = simd::asinh(vec);
+  ComplexVec vec_acosh = simd::acosh(vec);
+  ComplexVec vec_atanh = simd::atanh(vec);
   for (int i = 0; i < N; ++i)
   {
-    Complex diff = vec_cosh[i] * vec_cosh[i] - vec_sinh[i] * vec_sinh[i];
-    T diff_re    = diff.real() - T(1);
-    T diff_im    = diff.imag();
-    assert(diff_re * diff_re < trig_tol<T>());
-    assert(diff_im * diff_im < trig_tol<T>());
-
-    Complex ratio  = vec_sinh[i] / vec_cosh[i];
-    T tanh_diff_re = ratio.real() - vec_tanh[i].real();
-    T tanh_diff_im = ratio.imag() - vec_tanh[i].imag();
-    assert(tanh_diff_re * tanh_diff_re < trig_tol<T>());
-    assert(tanh_diff_im * tanh_diff_im < trig_tol<T>());
-  }
-
-  ComplexVec vec_asinh = simd::asinh(vec_sinh);
-  ComplexVec vec_atanh = simd::atanh(vec_tanh);
-  for (int i = 0; i < N; ++i)
-  {
-    T asinh_diff = vec_asinh[i].real() - T(0.5);
-    T atanh_diff = vec_atanh[i].real() - T(0.5);
-    assert(asinh_diff * asinh_diff < trig_tol<T>());
-    assert(atanh_diff * atanh_diff < trig_tol<T>());
-  }
-
-  ComplexVec vec2(Complex(T(2), T(0)));
-  ComplexVec vec_acosh = simd::acosh(vec2);
-  ComplexVec vec_cosh2 = simd::cosh(vec_acosh);
-  for (int i = 0; i < N; ++i)
-  {
-    T diff_re = vec_cosh2[i].real() - T(2);
-    T diff_im = vec_cosh2[i].imag();
-    assert(diff_re * diff_re < trig_tol<T>());
-    assert(diff_im * diff_im < trig_tol<T>());
+    is_about(vec_sinh[i], cuda::std::sinh(vec[i]));
+    is_about(vec_cosh[i], cuda::std::cosh(vec[i]));
+    is_about(vec_tanh[i], cuda::std::tanh(vec[i]));
+    is_about(vec_asinh[i], cuda::std::asinh(vec[i]));
+    is_about(vec_acosh[i], cuda::std::acosh(vec[i]));
+    is_about(vec_atanh[i], cuda::std::atanh(vec[i]));
   }
 }
 

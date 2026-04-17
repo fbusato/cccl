@@ -15,7 +15,6 @@
 
 #include <cuda/std/__simd_>
 #include <cuda/std/cassert>
-#include <cuda/std/cmath>
 #include <cuda/std/complex>
 #include <cuda/std/type_traits>
 
@@ -23,6 +22,69 @@
 #include "test_macros.h"
 
 namespace simd = cuda::std::simd;
+
+// Meaningful inputs for complex math tests: four complex values spanning all quadrants with mixed magnitudes
+template <typename T>
+struct complex_diverse_generator
+{
+  template <typename I>
+  __host__ __device__ constexpr cuda::std::complex<T> operator()(I i) const noexcept
+  {
+    switch (static_cast<int>(i) & 3)
+    {
+      case 0:
+        return cuda::std::complex<T>(T(1.5), T(0.4));
+      case 1:
+        return cuda::std::complex<T>(T(-0.7), T(1.2));
+      case 2:
+        return cuda::std::complex<T>(T(0.8), T(-1.3));
+      default:
+        return cuda::std::complex<T>(T(-1.1), T(-0.6));
+    }
+  }
+};
+
+// Diverse angles (in radians) covering positive/negative values and different quadrants
+template <typename T>
+struct polar_theta_generator
+{
+  template <typename I>
+  __host__ __device__ constexpr T operator()(I i) const noexcept
+  {
+    switch (static_cast<int>(i) & 3)
+    {
+      case 0:
+        return T(0.3);
+      case 1:
+        return T(-1.4);
+      case 2:
+        return T(1.1);
+      default:
+        return T(-0.7);
+    }
+  }
+};
+
+// Meaningful exponents for pow(base, expo)
+template <typename T>
+struct pow_exponent_generator
+{
+  template <typename I>
+  __host__ __device__ constexpr cuda::std::complex<T> operator()(I i) const noexcept
+  {
+    switch (static_cast<int>(i) & 3)
+    {
+      case 0:
+        return cuda::std::complex<T>(T(0.5), T(0.3));
+      case 1:
+        return cuda::std::complex<T>(T(1.0), T(-0.5));
+      case 2:
+        return cuda::std::complex<T>(T(-0.7), T(0.8));
+      default:
+        return cuda::std::complex<T>(T(-1.2), T(-0.4));
+    }
+  }
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 // real() / imag() free functions
@@ -34,7 +96,7 @@ __host__ __device__ constexpr void test_real_imag_free()
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
   using RealVec    = simd::basic_vec<T, simd::fixed_size<N>>;
 
-  ComplexVec vec(complex_generator<T, 1, 10>{});
+  ComplexVec vec(complex_diverse_generator<T>{});
 
   RealVec reals = simd::real(vec);
   RealVec imags = simd::imag(vec);
@@ -46,8 +108,8 @@ __host__ __device__ constexpr void test_real_imag_free()
 
   for (int i = 0; i < N; ++i)
   {
-    assert(reals[i] == static_cast<T>(i + 1));
-    assert(imags[i] == static_cast<T>(i + 10));
+    assert(reals[i] == cuda::std::real(vec[i]));
+    assert(imags[i] == cuda::std::imag(vec[i]));
   }
 
   // member .real() / .imag() getters must agree with free functions
@@ -63,16 +125,14 @@ __host__ __device__ constexpr void test_real_imag_free()
   ComplexVec vec2(reals, imags);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec2[i].real() == static_cast<T>(i + 1));
-    assert(vec2[i].imag() == static_cast<T>(i + 10));
+    assert(vec2[i] == vec[i]);
   }
 
   // complex constructor with real-only (imag defaults to zero)
   ComplexVec vec3(reals);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec3[i].real() == static_cast<T>(i + 1));
-    assert(vec3[i].imag() == T(0));
+    assert(vec3[i] == Complex(cuda::std::real(vec[i]), T(0)));
   }
 
   // member .real(v) / .imag(v) setters
@@ -81,8 +141,7 @@ __host__ __device__ constexpr void test_real_imag_free()
   vec4.imag(imags);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec4[i].real() == static_cast<T>(i + 1));
-    assert(vec4[i].imag() == static_cast<T>(i + 10));
+    assert(vec4[i] == vec[i]);
   }
 }
 
@@ -96,29 +155,24 @@ __host__ __device__ constexpr void test_conj_norm()
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
   using RealVec    = simd::basic_vec<T, simd::fixed_size<N>>;
 
-  ComplexVec vec(Complex(T(3), T(4)));
+  ComplexVec vec(complex_generator<T, 3, 4>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::conj(vec)), ComplexVec>);
   static_assert(cuda::std::is_same_v<decltype(simd::norm(vec)), RealVec>);
   static_assert(!noexcept(simd::conj(vec)));
   static_assert(!noexcept(simd::norm(vec)));
 
-  ComplexVec vec_cos = simd::conj(vec);
+  ComplexVec vec_conj = simd::conj(vec);
+  RealVec vec_norm    = simd::norm(vec);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec_cos[i].real() == T(3));
-    assert(vec_cos[i].imag() == T(-4));
-  }
-
-  RealVec vec_norm = simd::norm(vec);
-  for (int i = 0; i < N; ++i)
-  {
-    assert(vec_norm[i] == T(25));
+    assert(vec_conj[i] == cuda::std::conj(vec[i]));
+    is_about(vec_norm[i], cuda::std::norm(vec[i]));
   }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// arg(): std::atan2(std::imag(z), std::real(z))
+// arg()
 
 template <typename T, int N>
 __host__ __device__ void test_arg()
@@ -135,9 +189,7 @@ __host__ __device__ void test_arg()
   RealVec vec_arg = simd::arg(vec);
   for (int i = 0; i < N; ++i)
   {
-    T expected = cuda::std::atan2(static_cast<T>(i + 2), static_cast<T>(i + 1));
-    T diff     = vec_arg[i] - expected;
-    assert(diff * diff < T(1e-6));
+    is_about(vec_arg[i], cuda::std::arg(vec[i]));
   }
 }
 
@@ -151,7 +203,7 @@ __host__ __device__ void test_abs()
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
   using RealVec    = simd::basic_vec<T, simd::fixed_size<N>>;
 
-  ComplexVec vec(Complex(T(3), T(4)));
+  ComplexVec vec(complex_generator<T, 3, 4>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::abs(vec)), RealVec>);
   static_assert(!noexcept(simd::abs(vec)));
@@ -159,7 +211,7 @@ __host__ __device__ void test_abs()
   RealVec vec_abs = simd::abs(vec);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec_abs[i] == T(5));
+    is_about(vec_abs[i], cuda::std::abs(vec[i]));
   }
 }
 
@@ -172,7 +224,7 @@ __host__ __device__ void test_proj()
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  ComplexVec vec(Complex(T(3), T(4)));
+  ComplexVec vec(complex_generator<T, 3, 4>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::proj(vec)), ComplexVec>);
   static_assert(!noexcept(simd::proj(vec)));
@@ -180,8 +232,7 @@ __host__ __device__ void test_proj()
   ComplexVec vec_proj = simd::proj(vec);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec_proj[i].real() == T(3));
-    assert(vec_proj[i].imag() == T(4));
+    assert(vec_proj[i] == cuda::std::proj(vec[i]));
   }
 }
 
@@ -203,34 +254,14 @@ __host__ __device__ void test_exp_log()
   static_assert(!noexcept(simd::log(vec)));
   static_assert(!noexcept(simd::log10(vec)));
 
-  ComplexVec vec_exp = simd::exp(vec);
-  for (int i = 0; i < N; ++i)
-  {
-    Complex expected = cuda::std::exp(vec[i]);
-    T re_diff        = vec_exp[i].real() - expected.real();
-    T im_diff        = vec_exp[i].imag() - expected.imag();
-    assert(re_diff * re_diff < T(1e-4));
-    assert(im_diff * im_diff < T(1e-4));
-  }
-
-  ComplexVec vec_log = simd::log(vec);
-  for (int i = 0; i < N; ++i)
-  {
-    Complex expected = cuda::std::log(vec[i]);
-    T re_diff        = vec_log[i].real() - expected.real();
-    T im_diff        = vec_log[i].imag() - expected.imag();
-    assert(re_diff * re_diff < T(1e-4));
-    assert(im_diff * im_diff < T(1e-4));
-  }
-
+  ComplexVec vec_exp   = simd::exp(vec);
+  ComplexVec vec_log   = simd::log(vec);
   ComplexVec vec_log10 = simd::log10(vec);
   for (int i = 0; i < N; ++i)
   {
-    Complex expected = cuda::std::log10(vec[i]);
-    T diff_re        = vec_log10[i].real() - expected.real();
-    T diff_im        = vec_log10[i].imag() - expected.imag();
-    assert(diff_re * diff_re < T(1e-4));
-    assert(diff_im * diff_im < T(1e-4));
+    is_about(vec_exp[i], cuda::std::exp(vec[i]));
+    is_about(vec_log[i], cuda::std::log(vec[i]));
+    is_about(vec_log10[i], cuda::std::log10(vec[i]));
   }
 }
 
@@ -243,7 +274,7 @@ __host__ __device__ void test_sqrt()
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  ComplexVec vec(Complex(T(4), T(0)));
+  ComplexVec vec(complex_generator<T, 4, 1>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::sqrt(vec)), ComplexVec>);
   static_assert(!noexcept(simd::sqrt(vec)));
@@ -251,10 +282,7 @@ __host__ __device__ void test_sqrt()
   ComplexVec vec_sqrt = simd::sqrt(vec);
   for (int i = 0; i < N; ++i)
   {
-    T diff_re = vec_sqrt[i].real() - T(2);
-    T diff_im = vec_sqrt[i].imag();
-    assert(diff_re * diff_re < T(1e-6));
-    assert(diff_im * diff_im < T(1e-6));
+    is_about(vec_sqrt[i], cuda::std::sqrt(vec[i]));
   }
 }
 
@@ -268,20 +296,16 @@ __host__ __device__ void test_polar()
   using RealVec    = simd::basic_vec<T, simd::fixed_size<N>>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  RealVec rho(T(5));
-  RealVec theta(T(0));
+  RealVec rho(offset_generator<T, 5>{});
+  RealVec theta(polar_theta_generator<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::polar(rho, theta)), ComplexVec>);
   static_assert(!noexcept(simd::polar(rho, theta)));
 
   ComplexVec result = simd::polar(rho, theta);
-
   for (int i = 0; i < N; ++i)
   {
-    T diff_re = result[i].real() - T(5);
-    T diff_im = result[i].imag();
-    assert(diff_re * diff_re < T(1e-6));
-    assert(diff_im * diff_im < T(1e-6));
+    is_about(result[i], cuda::std::polar(rho[i], theta[i]));
   }
 }
 
@@ -289,25 +313,22 @@ __host__ __device__ void test_polar()
 // pow
 
 template <typename T, int N>
-__host__ __device__ constexpr void test_pow()
+__host__ __device__ void test_pow()
 {
   using Complex    = cuda::std::complex<T>;
   using ComplexVec = simd::basic_vec<Complex, simd::fixed_size<N>>;
 
-  ComplexVec base(Complex(T(2), T(0)));
-  ComplexVec expo(Complex(T(3), T(0)));
+  ComplexVec base(complex_diverse_generator<T>{});
+  ComplexVec expo(pow_exponent_generator<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(simd::pow(base, expo)), ComplexVec>);
   static_assert(!noexcept(simd::pow(base, expo)));
 
   ComplexVec result = simd::pow(base, expo);
-
   for (int i = 0; i < N; ++i)
   {
-    T diff_re = result[i].real() - T(8);
-    T diff_im = result[i].imag();
-    assert(diff_re * diff_re < T(1e-4));
-    assert(diff_im * diff_im < T(1e-4));
+    // pow composes log + mul + exp; use the larger "composed" ULP budget.
+    is_about(result[i], cuda::std::pow(base[i], expo[i]));
   }
 }
 
