@@ -87,10 +87,10 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   {
 #if _CCCL_STD_VER >= 2020
     _SimdStorage __result;
-    ((__result.__data[_Is] = __g(integral_constant<__simd_size_type, _Is>())), ...);
+    ((__result.__data[_Is] = __g(__simd_size_constant<_Is>())), ...);
     return __result;
 #else // ^^^ C++20 ^^^ / vvv C++17 vvv
-    return _SimdStorage{{ __g(integral_constant<__simd_size_type, _Is>())... }};
+    return _SimdStorage{{ __g(__simd_size_constant<_Is>())... }};
 #endif // _CCCL_STD_VER < 2020
   }
 

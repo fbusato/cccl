@@ -108,7 +108,7 @@ public:
   // constexpr default_sentinel_t end() const noexcept { return {}; }
   // constexpr default_sentinel_t cend() const noexcept { return {}; }
 
-  static constexpr integral_constant<__simd_size_type, __simd_size_v<value_type, abi_type>> size{};
+  static constexpr __simd_size_constant<__simd_size_v<value_type, abi_type>> size{};
 
   static constexpr auto __usize = size_t{size};
   static constexpr auto __size  = __simd_size_type{size};
