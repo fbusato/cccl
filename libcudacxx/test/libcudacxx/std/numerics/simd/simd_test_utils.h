@@ -92,7 +92,7 @@ using integer_from_t = cuda::std::__make_nbit_int_t<Bytes * 8, true>;
 // `fptest_close<T>` (which contains `constexpr T zero = T(0)`) is ill-formed
 // for them.
 #if _CCCL_COMPILER(NVHPC) || _CCCL_COMPILER(CLANG)
-__host__ __device__ constexpr void is_about(float a, float b)
+TEST_FUNC constexpr void is_about(float a, float b)
 {
   if (cuda::std::is_constant_evaluated())
   {
@@ -104,7 +104,7 @@ __host__ __device__ constexpr void is_about(float a, float b)
   }
 }
 
-__host__ __device__ constexpr void is_about(double a, double b)
+TEST_FUNC constexpr void is_about(double a, double b)
 {
   if (cuda::std::is_constant_evaluated())
   {
@@ -117,21 +117,21 @@ __host__ __device__ constexpr void is_about(double a, double b)
 }
 
 #  if _LIBCUDACXX_HAS_NVFP16()
-__host__ __device__ inline void is_about(__half a, __half b)
+TEST_FUNC inline void is_about(__half a, __half b)
 {
   assert(fptest_close(static_cast<float>(a), static_cast<float>(b), 1.e-3f));
 }
 #  endif // _LIBCUDACXX_HAS_NVFP16()
 
 #  if _LIBCUDACXX_HAS_NVBF16()
-__host__ __device__ inline void is_about(__nv_bfloat16 a, __nv_bfloat16 b)
+TEST_FUNC inline void is_about(__nv_bfloat16 a, __nv_bfloat16 b)
 {
   assert(fptest_close(static_cast<float>(a), static_cast<float>(b), 5.e-3f));
 }
 #  endif // _LIBCUDACXX_HAS_NVBF16()
 
 template <typename T>
-__host__ __device__ constexpr void is_about(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
+TEST_FUNC constexpr void is_about(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
 {
   if (cuda::std::is_constant_evaluated())
   {
@@ -145,12 +145,12 @@ __host__ __device__ constexpr void is_about(const cuda::std::complex<T>& a, cons
 }
 #else // nvcc+gcc and nvrtc: enforce bit-exact equality.
 template <typename T>
-__host__ __device__ constexpr void is_about(T a, T b)
+TEST_FUNC constexpr void is_about(T a, T b)
 {
   assert(a == b);
 }
 template <typename T>
-__host__ __device__ constexpr void is_about(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
+TEST_FUNC constexpr void is_about(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
 {
   assert(a == b);
 }
@@ -173,7 +173,7 @@ template <typename T, int Offset>
 struct offset_generator
 {
   template <typename I>
-  __host__ __device__ constexpr T operator()(I i) const noexcept
+  TEST_FUNC constexpr T operator()(I i) const noexcept
   {
     return static_cast<T>(i + Offset);
   }
@@ -183,11 +183,36 @@ template <typename T, int RealOffset, int ImagOffset>
 struct complex_generator
 {
   template <typename I>
-  __host__ __device__ constexpr cuda::std::complex<T> operator()(I i) const noexcept
+  TEST_FUNC constexpr cuda::std::complex<T> operator()(I i) const noexcept
   {
     return cuda::std::complex<T>(static_cast<T>(i + RealOffset), static_cast<T>(i + ImagOffset));
   }
 };
+
+template <typename T, int N>
+TEST_FUNC constexpr cuda::std::array<T, N> make_iota_array(int __offset = 1)
+{
+  cuda::std::array<T, N> arr{};
+  for (int i = 0; i < N; ++i)
+  {
+    arr[i] = static_cast<T>(i + __offset);
+  }
+  return arr;
+}
+
+template <typename T, typename Abi, typename U, size_t N>
+TEST_FUNC constexpr bool operator==(const simd::basic_vec<T, Abi>& vec, const cuda::std::array<U, N>& arr)
+{
+  static_assert(simd::basic_vec<T, Abi>::size() == static_cast<int>(N));
+  for (int i = 0; i < static_cast<int>(N); ++i)
+  {
+    if (vec[i] != arr[i])
+    {
+      return false;
+    }
+  }
+  return true;
+}
 
 template <typename T, int N>
 TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
@@ -282,7 +307,7 @@ TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
 // __half and __nv_bfloat16 are tested via DEFINE_BASIC_VEC_TEST_RUNTIME().
 
 #define DEFINE_COMPLEX_TEST()                                     \
-  __host__ __device__ constexpr bool test()                       \
+  TEST_FUNC constexpr bool test()                       \
   {                                                               \
     test_type<float, 1>();                                        \
     test_type<float, 4>();                                        \
@@ -292,7 +317,7 @@ TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
   }
 
 #define DEFINE_COMPLEX_TEST_NONCONSTEXPR()                        \
-  __host__ __device__ bool test()                                 \
+  TEST_FUNC bool test()                                 \
   {                                                               \
     test_type<float, 1>();                                        \
     test_type<float, 4>();                                        \

@@ -166,7 +166,7 @@ TEST_FUNC constexpr void test_conj_norm()
   RealVec vec_norm    = simd::norm(vec);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec_conj[i] == cuda::std::conj(vec[i]));
+    is_about(vec_conj[i], cuda::std::conj(vec[i]));
     is_about(vec_norm[i], cuda::std::norm(vec[i]));
   }
 }
@@ -232,7 +232,7 @@ TEST_FUNC void test_proj()
   ComplexVec vec_proj = simd::proj(vec);
   for (int i = 0; i < N; ++i)
   {
-    assert(vec_proj[i] == cuda::std::proj(vec[i]));
+    is_about(vec_proj[i], cuda::std::proj(vec[i]));
   }
 }
 
