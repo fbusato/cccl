@@ -31,6 +31,7 @@
 #include <cuda/std/__simd/type_traits.h>
 #include <cuda/std/__type_traits/is_integral.h>
 #include <cuda/std/__type_traits/remove_cvref.h>
+#include <cuda/std/__type_traits/type_identity.h>
 #include <cuda/std/__type_traits/void_t.h>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -205,6 +206,162 @@ permute(const basic_mask<_Bytes, _Abi>& __v, const basic_vec<_Up, _UAbi>& __indi
 {
   using __result_t = resize_t<__simd_size_v<_Up, _UAbi>, basic_mask<_Bytes, _Abi>>;
   return __result_t{::cuda::std::simd::__make_permute_dynamic_generator(__v, __indices)};
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// [simd.permute.mask]
+
+// A data-parallel object where the i-th element is initialized to the result of select-value(i) for all i in the range
+// [0, V​::​size()).
+
+template <typename _Vp, typename _Mp>
+struct __compress_generator
+{
+  using __value_type = typename _Vp::value_type;
+
+  const _Vp& __v_;
+  const _Mp& __sel_;
+  const __value_type __fill_;
+
+  template <__simd_size_type _Idx>
+  [[nodiscard]] _CCCL_API constexpr __value_type operator()(__simd_size_constant<_Idx>) const noexcept
+  {
+    __simd_size_type __count = 0;
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (__simd_size_type __j = 0; __j < _Vp::__size; ++__j)
+    {
+      if (__sel_[__j])
+      {
+        if (__count == _Idx)
+        {
+          return __v_[__j];
+        }
+        ++__count;
+      }
+    }
+    return __fill_;
+  }
+};
+
+template <typename _Vp, typename _Mp>
+[[nodiscard]] _CCCL_API constexpr __compress_generator<_Vp, _Mp>
+__make_compress_generator(const _Vp& __v, const _Mp& __sel, typename _Vp::value_type __fill) noexcept
+{
+  return __compress_generator<_Vp, _Mp>{__v, __sel, __fill};
+}
+
+// A data-parallel object where the i-th element is initialized to the result of select-value(i) for all i in the range
+// [0, V​::​size())
+
+template <typename _Vp, typename _Mp>
+struct __expand_generator
+{
+  using __value_type = typename _Vp::value_type;
+
+  const _Vp& __v_;
+  const _Mp& __sel_;
+  const _Vp& __orig_;
+
+  // example:
+  // v           = [10, 20, 30, 40, 50]
+  // selector    = [T, F, T, F, T]
+  // original    = [1, 2, 3, 4, 5]
+  //
+  // set-indices = [0, 2, 4] (where selector is true)
+  // bit-lookup  = [0, X, 1, X, 2] returns the index where b appears in set-indices
+  //
+  // i = 0 --> v[bit-lookup(0)] = v[0] = 10
+  // i = 1 --> original[1] = 2
+  // i = 2 --> v[bit-lookup(2)] = v[1] = 20
+  // i = 3 --> original[3] = 4
+  // i = 4 --> v[bit-lookup(4)] = v[2] = 30
+  //
+  // result = [10, 2, 20, 4, 30]
+  template <__simd_size_type _Idx>
+  [[nodiscard]] _CCCL_API constexpr __value_type operator()(__simd_size_constant<_Idx>) const noexcept
+  {
+    if (!__sel_[_Idx])
+    {
+      return __orig_[_Idx]; // otherwise returns original[i]
+    }
+    __simd_size_type __count = 0;
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (__simd_size_type __j = 0; __j < _Idx; ++__j)
+    {
+      if (__sel_[__j]) // set-indices be a list of the index positions of true elements in selector
+      {
+        ++__count;
+      }
+    }
+    return __v_[__count]; // returns v[bit-lookup(i)]
+  }
+};
+
+template <typename _Vp, typename _Mp>
+[[nodiscard]] _CCCL_API constexpr __expand_generator<_Vp, _Mp>
+__make_expand_generator(const _Vp& __v, const _Mp& __sel, const _Vp& __orig) noexcept
+{
+  return __expand_generator<_Vp, _Mp>{__v, __sel, __orig};
+}
+
+// compress: basic_vec
+
+template <typename _Tp, typename _Abi>
+[[nodiscard]] _CCCL_API constexpr basic_vec<_Tp, _Abi>
+compress(const basic_vec<_Tp, _Abi>& __v, const typename basic_vec<_Tp, _Abi>::mask_type& __selector)
+{
+  return basic_vec<_Tp, _Abi>{::cuda::std::simd::__make_compress_generator(__v, __selector, _Tp{})};
+}
+
+// compress: basic_vec with fill_value
+
+template <typename _Tp, typename _Abi>
+[[nodiscard]] _CCCL_API constexpr basic_vec<_Tp, _Abi> compress(
+  const basic_vec<_Tp, _Abi>& __v, const typename basic_vec<_Tp, _Abi>::mask_type& __selector, const _Tp& __fill_value)
+{
+  return basic_vec<_Tp, _Abi>{::cuda::std::simd::__make_compress_generator(__v, __selector, __fill_value)};
+}
+
+// compress: basic_mask
+
+template <size_t _Bytes, typename _Abi>
+[[nodiscard]] _CCCL_API constexpr basic_mask<_Bytes, _Abi>
+compress(const basic_mask<_Bytes, _Abi>& __v, const type_identity_t<basic_mask<_Bytes, _Abi>>& __selector)
+{
+  return basic_mask<_Bytes, _Abi>{::cuda::std::simd::__make_compress_generator(__v, __selector, false)};
+}
+
+// compress: basic_mask with fill_value
+
+template <size_t _Bytes, typename _Abi>
+[[nodiscard]] _CCCL_API constexpr basic_mask<_Bytes, _Abi>
+compress(const basic_mask<_Bytes, _Abi>& __v,
+         const type_identity_t<basic_mask<_Bytes, _Abi>>& __selector,
+         const bool& __fill_value)
+{
+  return basic_mask<_Bytes, _Abi>{::cuda::std::simd::__make_compress_generator(__v, __selector, __fill_value)};
+}
+
+// expand: basic_vec
+
+template <typename _Tp, typename _Abi>
+[[nodiscard]] _CCCL_API constexpr basic_vec<_Tp, _Abi>
+expand(const basic_vec<_Tp, _Abi>& __v,
+       const typename basic_vec<_Tp, _Abi>::mask_type& __selector,
+       const basic_vec<_Tp, _Abi>& __original = {})
+{
+  return basic_vec<_Tp, _Abi>{::cuda::std::simd::__make_expand_generator(__v, __selector, __original)};
+}
+
+// expand: basic_mask
+
+template <size_t _Bytes, typename _Abi>
+[[nodiscard]] _CCCL_API constexpr basic_mask<_Bytes, _Abi>
+expand(const basic_mask<_Bytes, _Abi>& __v,
+       const type_identity_t<basic_mask<_Bytes, _Abi>>& __selector,
+       const basic_mask<_Bytes, _Abi>& __original = {})
+{
+  return basic_mask<_Bytes, _Abi>{::cuda::std::simd::__make_expand_generator(__v, __selector, __original)};
 }
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
