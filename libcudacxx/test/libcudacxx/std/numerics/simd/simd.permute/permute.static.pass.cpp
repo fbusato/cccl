@@ -119,10 +119,10 @@ TEST_FUNC constexpr void test_vec_default_n()
   }
 
   // broadcast lane 0 (1-arg form)
-  Vec bcast = simd::permute(src, broadcast_lane0_gen{});
+  Vec broadcast = simd::permute(src, broadcast_lane0_gen{});
   for (int i = 0; i < N; ++i)
   {
-    assert(bcast[i] == src[0]);
+    assert(broadcast[i] == src[0]);
   }
 }
 
@@ -135,25 +135,25 @@ TEST_FUNC constexpr void test_vec_size_change()
   using Src = simd::basic_vec<T, simd::fixed_size<4>>;
   Src src(iota_generator<T>{});
 
-  // expand: 4 -> 8 via cyclic tiling
+  // larger: 4 -> 8 via cyclic tiling
   using LargeVec       = simd::resize_t<8, Src>;
-  LargeVec expand      = simd::permute<8>(src, repeat_modulo_gen{});
+  LargeVec larger      = simd::permute<8>(src, repeat_modulo_gen{});
   using LargerExpected = simd::basic_vec<T, simd::fixed_size<8>>;
   static_assert(cuda::std::is_same_v<LargeVec, LargerExpected>);
-  static_assert(cuda::std::is_same_v<decltype(expand), LargeVec>);
+  static_assert(cuda::std::is_same_v<decltype(larger), LargeVec>);
   for (int i = 0; i < 8; ++i)
   {
-    assert(expand[i] == src[i % 4]);
+    assert(larger[i] == src[i % 4]);
   }
 
-  // reduce: 4 -> 2 via identity (takes the first two source lanes)
-  using SmallerVec        = simd::resize_t<2, Src>;
-  const SmallerVec reduce = simd::permute<2>(src, identity_gen{});
-  using SmallerExpected   = simd::basic_vec<T, simd::fixed_size<2>>;
+  // smaller: 4 -> 2 via identity (takes the first two source lanes)
+  using SmallerVec         = simd::resize_t<2, Src>;
+  const SmallerVec smaller = simd::permute<2>(src, identity_gen{});
+  using SmallerExpected    = simd::basic_vec<T, simd::fixed_size<2>>;
   static_assert(cuda::std::is_same_v<SmallerVec, SmallerExpected>);
   for (int i = 0; i < 2; ++i)
   {
-    assert(reduce[i] == src[i]);
+    assert(smaller[i] == src[i]);
   }
 }
 
@@ -214,16 +214,16 @@ TEST_FUNC constexpr void test_mask()
     assert(zeroed[i] == expected);
   }
 
-  // size change: expand 4 -> 8
+  // size change: larger 4 -> 8
   if constexpr (N == 4)
   {
     using LargerMask     = simd::resize_t<8, Mask>;
-    LargerMask expand    = simd::permute<8>(src, repeat_modulo_gen{});
+    LargerMask larger    = simd::permute<8>(src, repeat_modulo_gen{});
     using LargerExpected = simd::basic_mask<Bytes, simd::fixed_size<8>>;
     static_assert(cuda::std::is_same_v<LargerMask, LargerExpected>);
     for (int i = 0; i < 8; ++i)
     {
-      assert(expand[i] == src[i % 4]);
+      assert(larger[i] == src[i % 4]);
     }
   }
 }
@@ -265,7 +265,6 @@ TEST_FUNC constexpr bool test_fixed_type()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// Test drivers
 
 template <typename T, int N>
 TEST_FUNC constexpr void test_type()

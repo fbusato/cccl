@@ -21,6 +21,7 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/__utility/in_range.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__functional/invoke.h>
@@ -158,6 +159,52 @@ permute(const basic_mask<_Bytes, _Abi>& __v, _IdxMap&&)
   static_assert(_Np == __permute_default_n || _Np >= 0, "cuda::std::simd::permute: N must be non-negative");
   using __result_t = __permute_result_mask_t<_Bytes, _Abi, _Np>;
   return __result_t{::cuda::std::simd::__make_permute_generator<_IdxMap>(__v)};
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// [simd.permute.dynamic]
+
+template <typename _Vp, typename _Ip>
+struct __permute_dynamic_generator
+{
+  using __value_type = typename _Vp::value_type;
+
+  const _Vp& __v_;
+  const _Ip& __indices_;
+
+  template <__simd_size_type _Idx>
+  [[nodiscard]] _CCCL_API constexpr __value_type operator()(__simd_size_constant<_Idx>) const noexcept
+  {
+    const auto __src = static_cast<__simd_size_type>(__indices_[_Idx]);
+    _CCCL_ASSERT(::cuda::in_range(__src, __simd_size_type{0}, _Vp::size()),
+                 "cuda::std::simd::permute: indices[i] must be in [0, V::size())");
+    return __v_[__src];
+  }
+};
+
+template <typename _Vp, typename _Ip>
+[[nodiscard]] _CCCL_API constexpr __permute_dynamic_generator<_Vp, _Ip>
+__make_permute_dynamic_generator(const _Vp& __v, const _Ip& __indices) noexcept
+{
+  return __permute_dynamic_generator<_Vp, _Ip>{__v, __indices};
+}
+
+_CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _Up, typename _UAbi)
+_CCCL_REQUIRES(is_integral_v<_Up>)
+[[nodiscard]] _CCCL_API constexpr resize_t<__simd_size_v<_Up, _UAbi>, basic_vec<_Tp, _Abi>>
+permute(const basic_vec<_Tp, _Abi>& __v, const basic_vec<_Up, _UAbi>& __indices)
+{
+  using __result_t = resize_t<__simd_size_v<_Up, _UAbi>, basic_vec<_Tp, _Abi>>;
+  return __result_t{::cuda::std::simd::__make_permute_dynamic_generator(__v, __indices)};
+}
+
+_CCCL_TEMPLATE(size_t _Bytes, typename _Abi, typename _Up, typename _UAbi)
+_CCCL_REQUIRES(is_integral_v<_Up>)
+[[nodiscard]] _CCCL_API constexpr resize_t<__simd_size_v<_Up, _UAbi>, basic_mask<_Bytes, _Abi>>
+permute(const basic_mask<_Bytes, _Abi>& __v, const basic_vec<_Up, _UAbi>& __indices)
+{
+  using __result_t = resize_t<__simd_size_v<_Up, _UAbi>, basic_mask<_Bytes, _Abi>>;
+  return __result_t{::cuda::std::simd::__make_permute_dynamic_generator(__v, __indices)};
 }
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
