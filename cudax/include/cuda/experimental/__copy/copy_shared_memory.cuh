@@ -68,23 +68,23 @@ namespace cuda::experimental
 //! then store from shared memory to destination using destination-natural ordering. Partial (boundary) tiles copy
 //! elements directly without shared memory.
 //!
-//! @param[in]  __config                Kernel launch configuration
-//! @param[in]  __src_ptr               Pointer to source data
-//! @param[in]  __src_accessor          Accessor for reading source elements
-//! @param[out] __dst_ptr               Pointer to destination data
-//! @param[in]  __dst_accessor          Accessor for writing destination elements
-//! @param[in]  __grid_iter             Coordinate iterator for grid tile decomposition
-//! @param[in]  __grid_tile_src_strides Per-dimension source strides scaled by tile sizes
-//! @param[in]  __grid_tile_dst_strides Per-dimension destination strides scaled by tile sizes
-//! @param[in]  __tile_perm_iter        Coordinate iterator for src-permuted tile decomposition
-//! @param[in]  __src_perm_src_strides  Src-permuted source strides for loading
+//! @param[in]  __config                 Kernel launch configuration
+//! @param[in]  __src_ptr                Pointer to source data
+//! @param[in]  __src_accessor           Accessor for reading source elements
+//! @param[out] __dst_ptr                Pointer to destination data
+//! @param[in]  __dst_accessor           Accessor for writing destination elements
+//! @param[in]  __grid_iter              Coordinate iterator for grid tile decomposition
+//! @param[in]  __grid_tile_src_strides  Per-dimension source strides scaled by tile sizes
+//! @param[in]  __grid_tile_dst_strides  Per-dimension destination strides scaled by tile sizes
+//! @param[in]  __tile_perm_iter         Coordinate iterator for src-permuted tile decomposition
+//! @param[in]  __src_perm_src_strides   Src-permuted source strides for loading
 //! @param[in]  __tile_perm_smem_strides Src-permuted shared memory strides for loading
-//! @param[in]  __tile_natural_iter     Coordinate iterator for dst-natural tile decomposition
-//! @param[in]  __dst_strides           Per-dimension destination strides for storing
-//! @param[in]  __tile_total_size       Total number of elements in one tile
-//! @param[in]  __tile_sizes            Per-dimension tile extents
-//! @param[in]  __extents               Per-dimension tensor extents (for partial-tile bounds)
-//! @param[in]  __src_strides           Per-dimension source strides (for partial-tile access)
+//! @param[in]  __tile_natural_iter      Coordinate iterator for dst-natural tile decomposition
+//! @param[in]  __dst_strides            Per-dimension destination strides for storing
+//! @param[in]  __tile_total_size        Total number of elements in one tile
+//! @param[in]  __tile_sizes             Per-dimension tile extents
+//! @param[in]  __extents                Per-dimension tensor extents (for partial-tile bounds)
+//! @param[in]  __src_strides            Per-dimension source strides (for partial-tile access)
 template <typename _Config,
           ::cuda::std::size_t _MaxRankUZ,
           typename _TpSrc,
@@ -251,7 +251,7 @@ _CCCL_HOST_API void __launch_copy_shared_mem_kernel(
   _CCCL_ASSERT(__dst.__strides[0] == 1, "Destination must have stride-1 in mode 0");
 
   size_t __tile_total_size = 0;
-  const auto __tile_sizes  = cudax::__find_shared_mem_tiling(__dst, __tile_total_size);
+  const auto __tile_sizes  = cudax::__find_shared_mem_tiling<_TpIn>(__dst, __tile_total_size);
   const auto __rank        = __src.__rank;
 
   //--------------------------------------------------------------------------------------------------------------------

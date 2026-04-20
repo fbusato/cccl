@@ -24,6 +24,7 @@
 #if !_CCCL_COMPILER(NVRTC)
 
 #  include <cuda/__cmath/ceil_div.h>
+#  include <cuda/__cmath/round_up.h>
 #  include <cuda/__device/all_devices.h>
 #  include <cuda/__device/attributes.h>
 #  include <cuda/__device/device_ref.h>
@@ -129,7 +130,7 @@ __use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank
   for (size_t __r = 0; __r < __num_contiguous_dst; ++__r, ++__tile_rank)
   {
     const auto __tile_size_r = ::cuda::std::min(static_cast<size_t>(__dst.__extents[__r]), __max_tile_size);
-    if (__size_product * __tile_size_r * sizeof(_TpOut) > __max_shared_mem_bytes)
+    if (__size_product * __tile_size_r * sizeof(_TpIn) > __max_shared_mem_bytes)
     {
       break;
     }
@@ -144,10 +145,10 @@ __use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank
 
   // * there are enough tiles to keep the GPU busy (at least one full wave across all SMs)
   size_t __num_tiles = 1; // __num_tiles == number of blocks
-  for (__rank_t __r = 0; __r < __tile_rank; ++__r)
+  for (__rank_t __r = 0; __r < __dst.__rank; ++__r)
   {
     const auto __extent    = static_cast<size_t>(__dst.__extents[__r]);
-    const auto __tile_size = ::cuda::std::min(__extent, __max_tile_size);
+    const auto __tile_size = (__r < __tile_rank) ? ::cuda::std::min(__extent, __max_tile_size) : size_t{1};
     __num_tiles *= ::cuda::ceil_div(__extent, __tile_size);
   }
   const size_t __num_sms = __current_dev.attribute<::cudaDevAttrMultiProcessorCount>();
@@ -162,9 +163,9 @@ __use_shared_mem_kernel(const __raw_tensor<_ExtentT, _StrideTIn, _TpIn, _MaxRank
 //! @param[in]  __tensor          Destination raw tensor descriptor
 //! @param[out] __tile_total_size Total number of elements in one tile (output)
 //! @return Per-dimension tile sizes (unused dimensions are 1)
-template <typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_t _MaxRank>
+template <typename _TpIn, typename _ExtentT, typename _StrideT, typename _TpOut, ::cuda::std::size_t _MaxRank>
 [[nodiscard]] _CCCL_HOST_API ::cuda::std::array<__tile_extent_t, _MaxRank> __find_shared_mem_tiling(
-  const __raw_tensor<_ExtentT, _StrideT, _Tp, _MaxRank>& __tensor, ::cuda::std::size_t& __tile_total_size) noexcept
+  const __raw_tensor<_ExtentT, _StrideT, _TpOut, _MaxRank>& __tensor, ::cuda::std::size_t& __tile_total_size) noexcept
 {
   using ::cuda::std::size_t;
   const auto __current_dev            = ::cuda::experimental::__current_device();
@@ -177,7 +178,7 @@ template <typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_
   for (size_t __r = 0; __r < __num_contiguous_dst; ++__r, ++__tile_rank)
   {
     const auto __tile_size_r = ::cuda::std::min(static_cast<size_t>(__tensor.__extents[__r]), __max_tile_size);
-    if (__tile_total_size * __tile_size_r * sizeof(_Tp) > __max_shared_mem_bytes)
+    if (__tile_total_size * __tile_size_r * sizeof(_TpIn) > __max_shared_mem_bytes)
     {
       break;
     }
@@ -204,10 +205,10 @@ template <typename _ExtentT, typename _StrideT, typename _Tp, ::cuda::std::size_
   const auto __dev                      = ::cuda::experimental::__current_device();
   const size_t __total_sm_threads       = __dev.attribute<::cudaDevAttrMaxThreadsPerMultiProcessor>();
   const size_t __max_thread_block_size  = __dev.attribute<::cudaDevAttrMaxThreadsPerBlock>();
-  const size_t __total_shared_mem_bytes = __dev.attribute<::cudaDevAttrMaxSharedMemoryPerBlock>();
-  const auto __num_blocks               = ::cuda::ceil_div(__total_shared_mem_bytes, __tile_total_bytes);
-  const auto __thread_block_size =
-    ::cuda::std::min(::cuda::ceil_div(__total_sm_threads, __num_blocks), __max_thread_block_size);
+  const size_t __total_shared_mem_bytes = __dev.attribute<::cudaDevAttrMaxSharedMemoryPerMultiprocessor>();
+  const auto __num_blocks_per_sm        = ::cuda::ceil_div(__total_shared_mem_bytes, __tile_total_bytes);
+  const auto __thread_block_size = ::cuda::std::min(__total_sm_threads / __num_blocks_per_sm, __max_thread_block_size);
+  const auto __thread_block_size32 = ::cuda::round_up(__thread_block_size, /*warp size=*/size_t{32});
   return static_cast<int>(__thread_block_size);
 }
 } // namespace cuda::experimental
