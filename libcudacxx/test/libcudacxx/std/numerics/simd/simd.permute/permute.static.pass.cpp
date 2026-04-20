@@ -26,7 +26,6 @@
 #include <cuda/std/cstddef>
 #include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
-#include <cuda/std/utility>
 
 #include "../simd_test_utils.h"
 #include "test_macros.h"
@@ -247,8 +246,12 @@ TEST_FUNC constexpr void test_noexcept()
   using Vec  = simd::basic_vec<int, simd::fixed_size<4>>;
   using Mask = simd::basic_mask<4, simd::fixed_size<4>>;
 
-  static_assert(!noexcept(simd::permute(cuda::std::declval<const Vec&>(), identity_gen{})));
-  static_assert(!noexcept(simd::permute(cuda::std::declval<const Mask&>(), identity_gen{})));
+  Vec v{};
+  Mask m{};
+  unused(v, m);
+
+  static_assert(!noexcept(simd::permute(v, identity_gen{})));
+  static_assert(!noexcept(simd::permute(m, identity_gen{})));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

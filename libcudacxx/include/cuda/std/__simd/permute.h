@@ -25,8 +25,9 @@
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__functional/invoke.h>
-#include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__simd/abi.h>
+#include <cuda/std/__simd/basic_mask.h>
+#include <cuda/std/__simd/basic_vec.h>
 #include <cuda/std/__simd/exposition.h>
 #include <cuda/std/__simd/type_traits.h>
 #include <cuda/std/__type_traits/is_integral.h>
@@ -101,7 +102,7 @@ struct __permute_generator
   [[nodiscard]] _CCCL_API constexpr __value_type operator()(__simd_size_constant<_Idx>) const noexcept
   {
     using __map_t                     = remove_cvref_t<_IdxMap>;
-    constexpr __simd_size_type __size = _Vp::size();
+    constexpr __simd_size_type __size = _Vp::__size;
     constexpr __simd_size_type __src  = ::cuda::std::simd::__permute_gen_fn<__map_t, _Idx, __size>();
     static_assert(__src == zero_element || __src == uninit_element || (__src >= 0 && __src < __size),
                   "cuda::std::simd::permute: idxmap(i) must return zero_element, uninit_element, or a value in [0, "

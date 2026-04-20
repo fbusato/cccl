@@ -24,7 +24,6 @@
 #include <cuda/std/cstddef>
 #include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
-#include <cuda/std/utility>
 
 #include "../simd_test_utils.h"
 #include "test_macros.h"
@@ -197,8 +196,13 @@ TEST_FUNC constexpr void test_noexcept()
   using Mask    = simd::basic_mask<4, simd::fixed_size<4>>;
   using Indices = simd::basic_vec<int, simd::fixed_size<4>>;
 
-  static_assert(!noexcept(simd::permute(cuda::std::declval<const Vec&>(), cuda::std::declval<const Indices&>())));
-  static_assert(!noexcept(simd::permute(cuda::std::declval<const Mask&>(), cuda::std::declval<const Indices&>())));
+  Vec v{};
+  Mask m{};
+  Indices idx{};
+  unused(v, m, idx);
+
+  static_assert(!noexcept(simd::permute(v, idx)));
+  static_assert(!noexcept(simd::permute(m, idx)));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -212,18 +216,17 @@ TEST_FUNC constexpr void test_return_type()
   using Ind4  = simd::basic_vec<int, simd::fixed_size<4>>;
   using Ind8  = simd::basic_vec<int, simd::fixed_size<8>>;
 
-  static_assert(
-    cuda::std::is_same_v<decltype(simd::permute(cuda::std::declval<const Vec4&>(), cuda::std::declval<const Ind4&>())),
-                         Vec4>);
-  static_assert(
-    cuda::std::is_same_v<decltype(simd::permute(cuda::std::declval<const Vec4&>(), cuda::std::declval<const Ind2&>())),
-                         simd::resize_t<2, Vec4>>);
-  static_assert(
-    cuda::std::is_same_v<decltype(simd::permute(cuda::std::declval<const Vec4&>(), cuda::std::declval<const Ind8&>())),
-                         simd::resize_t<8, Vec4>>);
-  static_assert(
-    cuda::std::is_same_v<decltype(simd::permute(cuda::std::declval<const Mask4&>(), cuda::std::declval<const Ind8&>())),
-                         simd::resize_t<8, Mask4>>);
+  Vec4 v{};
+  Mask4 m{};
+  Ind2 i2{};
+  Ind4 i4{};
+  Ind8 i8{};
+  unused(v, m, i2, i4, i8);
+
+  static_assert(cuda::std::is_same_v<decltype(simd::permute(v, i4)), Vec4>);
+  static_assert(cuda::std::is_same_v<decltype(simd::permute(v, i2)), simd::resize_t<2, Vec4>>);
+  static_assert(cuda::std::is_same_v<decltype(simd::permute(v, i8)), simd::resize_t<8, Vec4>>);
+  static_assert(cuda::std::is_same_v<decltype(simd::permute(m, i8)), simd::resize_t<8, Mask4>>);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
