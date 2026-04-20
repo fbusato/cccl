@@ -29,6 +29,7 @@
 #include <cuda/std/__iterator/concepts.h>
 #include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/is_convertible.h>
+#include <cuda/std/__type_traits/is_integral.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/cstdint>
 
@@ -260,7 +261,11 @@ public:
   //!   @rst
   //!   **[optional]** CUDA stream to launch kernels within. Default is stream\ :sub:`0`.
   //!   @endrst
-  template <typename InputIteratorT, typename FlagIterator, typename OutputIteratorT, typename NumSelectedIteratorT>
+  template <typename InputIteratorT,
+            typename FlagIterator,
+            typename OutputIteratorT,
+            typename NumSelectedIteratorT,
+            ::cuda::std::enable_if_t<!::cuda::std::is_integral_v<NumSelectedIteratorT>, int> = 0>
   CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE static cudaError_t Flagged(
     void* d_temp_storage,
     size_t& temp_storage_bytes,
@@ -269,7 +274,7 @@ public:
     OutputIteratorT d_out,
     NumSelectedIteratorT d_num_selected_out,
     ::cuda::std::int64_t num_items,
-    cudaStream_t stream = 0)
+    cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::Flagged");
 
@@ -772,7 +777,7 @@ public:
     FlagIterator d_flags,
     NumSelectedIteratorT d_num_selected_out,
     ::cuda::std::int64_t num_items,
-    cudaStream_t stream = 0)
+    cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::Flagged");
 
@@ -906,7 +911,7 @@ public:
      NumSelectedIteratorT d_num_selected_out,
      ::cuda::std::int64_t num_items,
      SelectOp select_op,
-     cudaStream_t stream = 0)
+     cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::If");
 
@@ -1028,7 +1033,7 @@ public:
      NumSelectedIteratorT d_num_selected_out,
      ::cuda::std::int64_t num_items,
      SelectOp select_op,
-     cudaStream_t stream = 0)
+     cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::If");
 
@@ -1142,7 +1147,7 @@ public:
     NumSelectedIteratorT d_num_selected_out,
     ::cuda::std::int64_t num_items,
     SelectOp select_op,
-    cudaStream_t stream = 0)
+    cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::FlaggedIf");
 
@@ -1243,7 +1248,7 @@ public:
     NumSelectedIteratorT d_num_selected_out,
     ::cuda::std::int64_t num_items,
     SelectOp select_op,
-    cudaStream_t stream = 0)
+    cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::FlaggedIf");
 
@@ -1919,7 +1924,7 @@ public:
     NumSelectedIteratorT d_num_selected_out,
     ::cuda::std::int64_t num_items,
     EqualityOpT equality_op,
-    cudaStream_t stream = 0)
+    cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::Unique");
 
@@ -2031,7 +2036,7 @@ public:
     OutputIteratorT d_out,
     NumSelectedIteratorT d_num_selected_out,
     ::cuda::std::int64_t num_items,
-    cudaStream_t stream = 0)
+    cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::Unique");
 
@@ -2191,7 +2196,7 @@ public:
       NumSelectedIteratorT d_num_selected_out,
       NumItemsT num_items,
       EqualityOpT equality_op,
-      cudaStream_t stream = 0)
+      cudaStream_t stream = nullptr)
   {
     _CCCL_NVTX_RANGE_SCOPE_IF(d_temp_storage, "cub::DeviceSelect::UniqueByKey");
 
@@ -2343,7 +2348,7 @@ public:
     ValueOutputIteratorT d_values_out,
     NumSelectedIteratorT d_num_selected_out,
     NumItemsT num_items,
-    cudaStream_t stream = 0)
+    cudaStream_t stream = nullptr)
   {
     return UniqueByKey(
       d_temp_storage,
