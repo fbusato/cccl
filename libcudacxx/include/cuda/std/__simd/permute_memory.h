@@ -93,9 +93,10 @@ struct __gather_generator
     {
       return __value_type{};
     }
-    const auto __idx = static_cast<__simd_size_type>(__indices_[_Idx]);
-    if (::cuda::std::cmp_less(__idx, __size_))
+    const auto __raw_idx = __indices_[_Idx];
+    if (::cuda::std::cmp_greater_equal(__raw_idx, 0) && ::cuda::std::cmp_less(__raw_idx, __size_))
     {
+      const auto __idx = static_cast<__simd_size_type>(__raw_idx);
       return static_cast<__value_type>(__data_[__idx]);
     }
     return __value_type{};
@@ -264,11 +265,11 @@ _CCCL_API constexpr void partial_scatter_to(
     {
       continue;
     }
-    const auto __idx = __indices[__i];
-    if (::cuda::std::cmp_greater(__idx, 0) && ::cuda::std::cmp_less(__idx, __out_size))
+    const auto __raw_idx = __indices[__i];
+    if (::cuda::std::cmp_greater_equal(__raw_idx, 0) && ::cuda::std::cmp_less(__raw_idx, __out_size))
     {
-      const auto __idx1 = static_cast<__simd_size_type>(__idx);
-      __data[__idx1]    = static_cast<ranges::range_value_t<_Range>>(__v[__i]);
+      const auto __idx = static_cast<__simd_size_type>(__raw_idx);
+      __data[__idx]    = static_cast<ranges::range_value_t<_Range>>(__v[__i]);
     }
   }
 }
