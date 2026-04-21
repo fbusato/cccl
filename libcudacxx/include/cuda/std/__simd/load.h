@@ -39,6 +39,7 @@
 #include <cuda/std/__simd/concepts.h>
 #include <cuda/std/__simd/flag.h>
 #include <cuda/std/__simd/utility.h>
+#include <cuda/std/__type_traits/remove_cvref.h>
 #include <cuda/std/__utility/cmp.h>
 #include <cuda/std/__utility/forward.h>
 
@@ -68,13 +69,19 @@ _CCCL_API constexpr void __check_load_preconditions(const _Up* __ptr, flags<_Fla
 {
   using __value_t = typename _Result::value_type;
   static_assert(same_as<remove_cvref_t<_Result>, _Result>, "V must not be a reference or cv-qualified type");
+
   static_assert(__is_vectorizable_v<__value_t> && __is_enabled_abi_v<typename _Result::abi_type>,
-                "V must be an enabled specialization of basic_vec");
+                "cuda::std::simd::load: V must be an enabled specialization of basic_vec");
   static_assert(__is_vectorizable_v<_Up>, "range_value_t<R> must be a vectorizable type");
+
   static_assert(__explicitly_convertible_to<__value_t, _Up>,
-                "range_value_t<R> must satisfy explicitly-convertible-to<value_type>");
+                "cuda::std::simd::load: range_value_t<R> must satisfy explicitly-convertible-to<value_type>");
+
   static_assert(__has_convert_flag_v<_Flags...> || __is_value_preserving_v<_Up, __value_t>,
-                "Conversion from range_value_t<R> to value_type is not value-preserving; use flag_convert");
+                "cuda::std::simd::load: Conversion from range_value_t<R> to value_type is not value-preserving; use "
+                "flag_convert");
+
+  _CCCL_ASSERT(__ptr != nullptr, "cuda::std::simd::load: range data is nullptr");
   ::cuda::std::simd::__assert_load_store_alignment<_Result, _Up, _Flags...>(__ptr);
 }
 
@@ -86,7 +93,7 @@ template <typename _Result, typename _Up, typename... _Flags>
   const typename _Result::mask_type& __mask,
   flags<_Flags...> __flags = {}) noexcept
 {
-  using _Tp = typename _Result::value_type;
+  using __value_t = typename _Result::value_type;
   ::cuda::std::simd::__check_load_preconditions<_Result>(__ptr, __flags);
   constexpr auto __simd_size = _Result::__size;
 
@@ -94,7 +101,7 @@ template <typename _Result, typename _Up, typename... _Flags>
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
   {
-    const auto __value = (__mask[__i] && __i < __count) ? static_cast<_Tp>(__ptr[__i]) : _Tp{};
+    const auto __value = (__mask[__i] && __i < __count) ? static_cast<__value_t>(__ptr[__i]) : __value_t{};
     __result.__set(__i, __value);
   }
   return __result;
@@ -104,7 +111,6 @@ template <typename _Result, typename _Up, typename... _Flags>
 [[nodiscard]] _CCCL_API constexpr _Result
 __full_load_from_ptr(const _Up* __ptr, const typename _Result::mask_type& __mask, flags<_Flags...> __flags) noexcept
 {
-  using _Tp = typename _Result::value_type;
   ::cuda::std::simd::__check_load_preconditions<_Result>(__ptr, __flags);
 
   if constexpr (__has_aligned_flag_v<_Flags...> || __has_overaligned_flag_v<_Flags...>)
@@ -145,11 +151,12 @@ __full_load_from_ptr(const _Up* __ptr, const typename _Result::mask_type& __mask
           __tmp[__i] = __aligned_ptr[__i];
         }
       }
+      using __value_t = typename _Result::value_type;
       _Result __result;
       _CCCL_PRAGMA_UNROLL_FULL()
       for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
       {
-        const auto __value = (!__mask[__i]) ? _Tp{} : static_cast<_Tp>(__tmp[__i]);
+        const auto __value = (!__mask[__i]) ? __value_t{} : static_cast<__value_t>(__tmp[__i]);
         __result.__set(__i, __value);
       }
       return __result;
@@ -169,8 +176,11 @@ _CCCL_REQUIRES(ranges::contiguous_range<_Range> _CCCL_AND ranges::sized_range<_R
   const typename __load_vec_t<_Vp, ranges::range_value_t<_Range>>::mask_type& __mask,
   flags<_Flags...> __f = {})
 {
-  using __result_t  = __load_vec_t<_Vp, ranges::range_value_t<_Range>>;
-  const auto __size = static_cast<__simd_size_type>(::cuda::std::ranges::size(__r));
+  using __result_t        = __load_vec_t<_Vp, ranges::range_value_t<_Range>>;
+  const auto __range_size = ::cuda::std::ranges::size(__r);
+  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__range_size),
+               "cuda::std::simd::partial_load: range size out of range");
+  const auto __size = static_cast<__simd_size_type>(__range_size);
 
   return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(::cuda::std::ranges::data(__r), __size, __mask, __f);
 }
@@ -197,9 +207,11 @@ _CCCL_REQUIRES(contiguous_iterator<_Ip>)
   flags<_Flags...> __f = {})
 {
   using __result_t = __load_vec_t<_Vp, iter_value_t<_Ip>>;
+  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__n), "cuda::std::simd::partial_load: n out of range");
+  const auto __ptr  = ::cuda::std::to_address(__first);
+  const auto __size = static_cast<__simd_size_type>(__n);
 
-  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(
-    ::cuda::std::to_address(__first), static_cast<__simd_size_type>(__n), __mask, __f);
+  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(__ptr, __size, __mask, __f);
 }
 
 // partial_load: iterator + count, no mask
@@ -223,10 +235,14 @@ _CCCL_REQUIRES(contiguous_iterator<_Ip> _CCCL_AND sized_sentinel_for<_Sp, _Ip>)
   const typename __load_vec_t<_Vp, iter_value_t<_Ip>>::mask_type& __mask,
   flags<_Flags...> __f = {})
 {
-  using __result_t  = __load_vec_t<_Vp, iter_value_t<_Ip>>;
-  const auto __size = static_cast<__simd_size_type>(::cuda::std::distance(__first, __last));
+  using __result_t      = __load_vec_t<_Vp, iter_value_t<_Ip>>;
+  const auto __ptr      = ::cuda::std::to_address(__first);
+  const auto __distance = ::cuda::std::distance(__first, __last);
+  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__distance),
+               "cuda::std::simd::partial_load: distance(first, last) out of range");
+  const auto __size = static_cast<__simd_size_type>(__distance);
 
-  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(::cuda::std::to_address(__first), __size, __mask, __f);
+  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(__ptr, __size, __mask, __f);
 }
 
 // partial_load: iterator + sentinel, no mask
@@ -256,10 +272,10 @@ _CCCL_REQUIRES(ranges::contiguous_range<_Range> _CCCL_AND ranges::sized_range<_R
   if constexpr (__has_static_size<_Range>)
   {
     static_assert(__static_range_size_v<_Range> >= __result_t::__size,
-                  "unchecked_load requires ranges::size(r) >= V::size()");
+                  "cuda::std::simd::unchecked_load: requires ranges::size(r) >= V::size()");
   }
   _CCCL_ASSERT(::cuda::std::cmp_greater_equal(::cuda::std::ranges::size(__r), __result_t::__size),
-               "unchecked_load requires ranges::size(r) >= V::size()");
+               "cuda::std::simd::unchecked_load: requires ranges::size(r) >= V::size()");
 
   return ::cuda::std::simd::__full_load_from_ptr<__result_t>(::cuda::std::ranges::data(__r), __mask, __f);
 }
@@ -286,9 +302,11 @@ _CCCL_REQUIRES(contiguous_iterator<_Ip>)
   flags<_Flags...> __f = {})
 {
   using __result_t = __load_vec_t<_Vp, iter_value_t<_Ip>>;
-  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(__n, __result_t::__size), "unchecked_load requires n >= V::size()");
+  _CCCL_ASSERT(::cuda::std::cmp_greater_equal(__n, __result_t::__size),
+               "cuda::std::simd::unchecked_load: requires n >= V::size()");
+  const auto __ptr = ::cuda::std::to_address(__first);
 
-  return ::cuda::std::simd::__full_load_from_ptr<__result_t>(::cuda::std::to_address(__first), __mask, __f);
+  return ::cuda::std::simd::__full_load_from_ptr<__result_t>(__ptr, __mask, __f);
 }
 
 // unchecked_load: iterator + count, no mask
