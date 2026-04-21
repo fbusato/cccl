@@ -35,6 +35,7 @@
 #include <cuda/std/__simd/utility.h>
 #include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/integral_constant.h>
+#include <cuda/std/__type_traits/operations.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
