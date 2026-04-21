@@ -209,7 +209,7 @@ template <typename _TpIn, typename _ExtentT, typename _StrideT, typename _TpOut,
   const auto __num_blocks_per_sm        = ::cuda::ceil_div(__total_shared_mem_bytes, __tile_total_bytes);
   const auto __thread_block_size = ::cuda::std::min(__total_sm_threads / __num_blocks_per_sm, __max_thread_block_size);
   const auto __thread_block_size32 = ::cuda::round_up(__thread_block_size, /*warp size=*/size_t{32});
-  return static_cast<int>(__thread_block_size);
+  return static_cast<int>(__thread_block_size32);
 }
 } // namespace cuda::experimental
 
