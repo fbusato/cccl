@@ -25,15 +25,11 @@
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__concepts/convertible_to.h>
 #include <cuda/std/__concepts/equality_comparable.h>
-#include <cuda/std/__concepts/same_as.h>
-#include <cuda/std/__fwd/simd.h>
+#include <cuda/std/__floating_point/conversion_rank_order.h>
 #include <cuda/std/__limits/numeric_limits.h>
-#include <cuda/std/__simd/abi.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
-#include <cuda/std/__type_traits/is_default_constructible.h>
 #include <cuda/std/__type_traits/is_integral.h>
-#include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/is_signed.h>
 #include <cuda/std/__type_traits/remove_cvref.h>
 #include <cuda/std/__type_traits/void_t.h>
@@ -105,46 +101,14 @@ template <>
 inline constexpr int __integer_conversion_rank<__uint128_t> = 6;
 #endif // _CCCL_HAS_INT128()
 
-// [conv.rank], floating-point conversion rank for [simd.ctor] p7
-
-template <typename _Tp>
-inline constexpr int __fp_conversion_rank = 0;
-
-#if _CCCL_HAS_NVFP16()
-template <>
-inline constexpr int __fp_conversion_rank<__half> = 1;
-#endif // _CCCL_HAS_NVFP16()
-#if _CCCL_HAS_NVBF16()
-template <>
-inline constexpr int __fp_conversion_rank<__nv_bfloat16> = 1;
-#endif // _CCCL_HAS_NVBF16()
-template <>
-inline constexpr int __fp_conversion_rank<float> = 2;
-template <>
-inline constexpr int __fp_conversion_rank<double> = 3;
-#if _CCCL_HAS_LONG_DOUBLE()
-template <>
-inline constexpr int __fp_conversion_rank<long double> = 4;
-#endif // _CCCL_HAS_LONG_DOUBLE()
-#if _CCCL_HAS_FLOAT128()
-template <>
-inline constexpr int __fp_conversion_rank<__float128> = 5;
-#endif // _CCCL_HAS_FLOAT128()
-
-// Floating-point implicit conversion: source rank is strictly less (e.g. __half -> float),
-// or both types are identical (same rank, same type).
-// This correctly rejects __half <-> __nv_bfloat16 (same rank, different format).
-template <typename _From, typename _To>
-inline constexpr bool __is_fp_implicit_conversion_v =
-  (__fp_conversion_rank<_From> < __fp_conversion_rank<_To>) || is_same_v<_From, _To>;
-
 // The conversion from an arithmetic type U to a vectorizable type T is value-preserving if all possible
-// values of U can be represented with type T.
+// values of U can be represented with type T. For floating-point pairs we defer to
+// __fp_is_implicit_conversion_v, which correctly handles unordered pairs such as __half / __nv_bfloat16.
 template <typename _From, typename _To>
 inline constexpr bool __is_value_preserving_v =
   __is_integral__value_preserving_v<_From, _To>
   || (::cuda::is_floating_point_v<_From> && ::cuda::is_floating_point_v<_To>
-      && __is_fp_implicit_conversion_v<_From, _To>)
+      && __fp_is_implicit_conversion_v<_From, _To>)
   || (is_integral_v<_From> && ::cuda::is_floating_point_v<_To>
       && numeric_limits<_From>::digits <= numeric_limits<_To>::digits);
 
@@ -181,91 +145,7 @@ inline constexpr bool __is_vec_ctor_explicit =
   || (is_integral_v<_Up> && is_integral_v<_ValueType>
       && __integer_conversion_rank<_Up> > __integer_conversion_rank<_ValueType>)
   || (::cuda::is_floating_point_v<_Up> && ::cuda::is_floating_point_v<_ValueType>
-      && __fp_conversion_rank<_Up> > __fp_conversion_rank<_ValueType>);
-
-// [simd.unary], operator constraints
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_pre_increment = _CCCL_REQUIRES_EXPR((_Tp), _Tp& __t)((++__t));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_post_increment = _CCCL_REQUIRES_EXPR((_Tp), _Tp __t)((__t++));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_pre_decrement = _CCCL_REQUIRES_EXPR((_Tp), _Tp& __t)((--__t));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_post_decrement = _CCCL_REQUIRES_EXPR((_Tp), _Tp __t)((__t--));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_negate = _CCCL_REQUIRES_EXPR((_Tp), const _Tp __t)((!__t));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_bitwise_not = _CCCL_REQUIRES_EXPR((_Tp), const _Tp __t)((~__t));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_unary_plus = _CCCL_REQUIRES_EXPR((_Tp), const _Tp __t)((+__t));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_unary_minus = _CCCL_REQUIRES_EXPR((_Tp), const _Tp __t)((-__t));
-
-// [simd.binary], binary operator constraints
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_binary_plus = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a + __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_binary_minus = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a - __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_multiplies = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a * __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_divides = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a / __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_modulo = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a % __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_bitwise_and = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a & __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_bitwise_or = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a | __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_bitwise_xor = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a ^ __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_shift_left = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a << __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_shift_right = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a >> __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_shift_left_size = _CCCL_REQUIRES_EXPR((_Tp), _Tp __t)((__t << __simd_size_type{}));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_shift_right_size = _CCCL_REQUIRES_EXPR((_Tp), _Tp __t)((__t >> __simd_size_type{}));
-
-// [simd.comparison], comparison operator constraints
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_equal_to = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a == __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_not_equal_to = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a != __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_greater_equal = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a >= __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_less_equal = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a <= __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_greater = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a > __b));
-
-template <typename _Tp>
-_CCCL_CONCEPT __has_less = _CCCL_REQUIRES_EXPR((_Tp), _Tp __a, _Tp __b)((__a < __b));
+      && __fp_conv_rank_order_v<_Up, _ValueType> == __fp_conv_rank_order::__greater);
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 

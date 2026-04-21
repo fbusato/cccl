@@ -68,44 +68,18 @@ using integer_from_t = cuda::std::__make_nbit_int_t<Bytes * 8, true>;
 //----------------------------------------------------------------------------------------------------------------------
 // vec utilities
 
-template <typename T, int _Offset = 1>
+template <typename T>
 struct iota_generator
 {
   template <typename I>
   TEST_FUNC constexpr T operator()(I i) const noexcept
   {
-    return static_cast<T>(i + _Offset);
+    return static_cast<T>(i + 1);
   }
 };
 
-// Elementwise comparison of a basic_vec against a cuda::std::array
-template <typename T, typename Abi, typename U, cuda::std::size_t N>
-TEST_FUNC constexpr bool operator==(const simd::basic_vec<T, Abi>& __v, const cuda::std::array<U, N>& __a)
-{
-  static_assert(simd::basic_vec<T, Abi>::size() == N, "basic_vec and array sizes must match");
-  for (cuda::std::size_t __i = 0; __i < N; ++__i)
-  {
-    if (!(__v[__i] == __a[__i]))
-    {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <typename T, int N, int _Offset = 0>
-TEST_FUNC constexpr cuda::std::array<T, N> make_iota_array()
-{
-  cuda::std::array<T, N> arr{};
-  for (int i = 0; i < N; ++i)
-  {
-    arr[i] = static_cast<T>(i + _Offset);
-  }
-  return arr;
-}
-
-template <typename T, int N, int _Offset = 0>
-TEST_FUNC constexpr cuda::std::array<T, N> make_reverse_iota_array()
+template <typename T, int N>
+TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
 {
   cuda::std::array<T, N> arr{};
   for (int i = 0; i < N; ++i)
