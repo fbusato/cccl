@@ -54,12 +54,12 @@ TEST_FUNC void test_trig()
   ComplexVec vec_atan = simd::atan(vec);
   for (int i = 0; i < N; ++i)
   {
-    is_about(vec_sin[i], cuda::std::sin(vec[i]));
-    is_about(vec_cos[i], cuda::std::cos(vec[i]));
-    is_about(vec_tan[i], cuda::std::tan(vec[i]));
-    is_about(vec_asin[i], cuda::std::asin(vec[i]));
-    is_about(vec_acos[i], cuda::std::acos(vec[i]));
-    is_about(vec_atan[i], cuda::std::atan(vec[i]));
+    is_fp_close(vec_sin[i], cuda::std::sin(vec[i]));
+    is_fp_close(vec_cos[i], cuda::std::cos(vec[i]));
+    is_fp_close(vec_tan[i], cuda::std::tan(vec[i]));
+    is_fp_close(vec_asin[i], cuda::std::asin(vec[i]));
+    is_fp_close(vec_acos[i], cuda::std::acos(vec[i]));
+    is_fp_close(vec_atan[i], cuda::std::atan(vec[i]));
   }
 }
 
@@ -95,14 +95,14 @@ TEST_FUNC void test_hyperbolic()
   ComplexVec vec_atanh = simd::atanh(vec);
   for (int i = 0; i < N; ++i)
   {
-    is_about(vec_sinh[i], cuda::std::sinh(vec[i]));
-    is_about(vec_cosh[i], cuda::std::cosh(vec[i]));
-    is_about(vec_tanh[i], cuda::std::tanh(vec[i]));
-    is_about(vec_asinh[i], cuda::std::asinh(vec[i]));
-    is_about(vec_acosh[i], cuda::std::acosh(vec[i]));
+    is_fp_close(vec_sinh[i], cuda::std::sinh(vec[i]));
+    is_fp_close(vec_cosh[i], cuda::std::cosh(vec[i]));
+    is_fp_close(vec_tanh[i], cuda::std::tanh(vec[i]));
+    is_fp_close(vec_asinh[i], cuda::std::asinh(vec[i]));
+    is_fp_close(vec_acosh[i], cuda::std::acosh(vec[i]));
     // cicc seg faults on atanh with clang 14 and nvcc 12.0
 #if !_CCCL_COMPILER(CLANG, <=, 14) && !_CCCL_CUDA_COMPILER(NVCC, ==, 12, 0)
-    is_about(vec_atanh[i], cuda::std::atanh(vec[i]));
+    is_fp_close(vec_atanh[i], cuda::std::atanh(vec[i]));
 #endif
   }
 }

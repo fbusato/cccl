@@ -73,40 +73,40 @@ using integer_from_t = cuda::std::__make_nbit_int_t<Bytes * 8, true>;
 // even if SIMD applies mathematical operations for each component, the compilers could still performance different
 // optimizations between library and test code. nvc++ and clang especially produce slightly different results for the
 // same input.
-TEST_FUNC inline void is_about_runtime(float a, float b)
+TEST_FUNC inline void is_fp_close_runtime(float a, float b)
 {
   assert(fptest_close_pct(a, b, 1.e-4f));
 }
 
-TEST_FUNC inline void is_about_runtime(double a, double b)
+TEST_FUNC inline void is_fp_close_runtime(double a, double b)
 {
   assert(fptest_close_pct(a, b, 1.e-12));
 }
 
 #if _LIBCUDACXX_HAS_NVFP16()
-TEST_FUNC inline void is_about_runtime(__half a, __half b)
+TEST_FUNC inline void is_fp_close_runtime(__half a, __half b)
 {
   assert(fptest_close_pct(static_cast<float>(a), static_cast<float>(b), 1.e-1f));
 }
 #endif // _LIBCUDACXX_HAS_NVFP16()
 
 #if _LIBCUDACXX_HAS_NVBF16()
-TEST_FUNC inline void is_about_runtime(__nv_bfloat16 a, __nv_bfloat16 b)
+TEST_FUNC inline void is_fp_close_runtime(__nv_bfloat16 a, __nv_bfloat16 b)
 {
   assert(fptest_close_pct(static_cast<float>(a), static_cast<float>(b), 5.e-1f));
 }
 #endif // _LIBCUDACXX_HAS_NVBF16()
 
 template <typename T>
-TEST_FUNC void is_about_runtime(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
+TEST_FUNC void is_fp_close_runtime(const cuda::std::complex<T>& a, const cuda::std::complex<T>& b)
 {
-  is_about_runtime(a.real(), b.real());
-  is_about_runtime(a.imag(), b.imag());
+  is_fp_close_runtime(a.real(), b.real());
+  is_fp_close_runtime(a.imag(), b.imag());
 }
 
 // compile-time tests are bitwise identical
 template <typename T>
-TEST_FUNC constexpr void is_about(const T& a, const T& b)
+TEST_FUNC constexpr void is_fp_close(const T& a, const T& b)
 {
   if (cuda::std::__cccl_default_is_constant_evaluated())
   {
@@ -114,7 +114,7 @@ TEST_FUNC constexpr void is_about(const T& a, const T& b)
   }
   else
   {
-    is_about_runtime(a, b);
+    is_fp_close_runtime(a, b);
   }
 }
 
@@ -245,7 +245,7 @@ TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
 // __half and __nv_bfloat16 constructors are not constexpr (CUDA toolkit limitation),
 // so they are tested only at runtime via test_runtime().
 #define DEFINE_BASIC_VEC_TEST_RUNTIME()                           \
-  TEST_FUNC bool test_runtime()                         \
+  TEST_FUNC bool test_runtime()                                   \
   {                                                               \
     _SIMD_TEST_FP16()                                             \
     _SIMD_TEST_BF16()                                             \
@@ -253,7 +253,7 @@ TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
   }
 
 #define DEFINE_BASIC_VEC_TEST()                                   \
-  TEST_FUNC constexpr bool test()                       \
+  TEST_FUNC constexpr bool test()                                 \
   {                                                               \
     test_type<int8_t, 1>();                                       \
     test_type<int8_t, 4>();                                       \
@@ -290,7 +290,7 @@ TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
 // __half and __nv_bfloat16 are tested via DEFINE_BASIC_VEC_TEST_RUNTIME().
 
 #define DEFINE_COMPLEX_TEST()                                     \
-  TEST_FUNC constexpr bool test()                       \
+  TEST_FUNC constexpr bool test()                                 \
   {                                                               \
     test_type<float, 1>();                                        \
     test_type<float, 4>();                                        \
@@ -300,7 +300,7 @@ TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
   }
 
 #define DEFINE_COMPLEX_TEST_NONCONSTEXPR()                        \
-  TEST_FUNC bool test()                                 \
+  TEST_FUNC bool test()                                           \
   {                                                               \
     test_type<float, 1>();                                        \
     test_type<float, 4>();                                        \

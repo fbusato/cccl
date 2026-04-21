@@ -146,8 +146,8 @@ TEST_FUNC constexpr void test_conj_norm()
   RealVec vec_norm    = simd::norm(vec);
   for (int i = 0; i < N; ++i)
   {
-    is_about(vec_conj[i], cuda::std::conj(vec[i]));
-    is_about(vec_norm[i], cuda::std::norm(vec[i]));
+    is_fp_close(vec_conj[i], cuda::std::conj(vec[i]));
+    is_fp_close(vec_norm[i], cuda::std::norm(vec[i]));
   }
 }
 
@@ -169,7 +169,7 @@ TEST_FUNC void test_arg()
   RealVec vec_arg = simd::arg(vec);
   for (int i = 0; i < N; ++i)
   {
-    is_about(vec_arg[i], cuda::std::arg(vec[i]));
+    is_fp_close(vec_arg[i], cuda::std::arg(vec[i]));
   }
 }
 
@@ -191,7 +191,7 @@ TEST_FUNC void test_abs()
   RealVec vec_abs = simd::abs(vec);
   for (int i = 0; i < N; ++i)
   {
-    is_about(vec_abs[i], cuda::std::abs(vec[i]));
+    is_fp_close(vec_abs[i], cuda::std::abs(vec[i]));
   }
 }
 
@@ -212,7 +212,7 @@ TEST_FUNC void test_proj()
   ComplexVec vec_proj = simd::proj(vec);
   for (int i = 0; i < N; ++i)
   {
-    is_about(vec_proj[i], cuda::std::proj(vec[i]));
+    is_fp_close(vec_proj[i], cuda::std::proj(vec[i]));
   }
 }
 
@@ -239,9 +239,9 @@ TEST_FUNC void test_exp_log()
   ComplexVec vec_log10 = simd::log10(vec);
   for (int i = 0; i < N; ++i)
   {
-    is_about(vec_exp[i], cuda::std::exp(vec[i]));
-    is_about(vec_log[i], cuda::std::log(vec[i]));
-    is_about(vec_log10[i], cuda::std::log10(vec[i]));
+    is_fp_close(vec_exp[i], cuda::std::exp(vec[i]));
+    is_fp_close(vec_log[i], cuda::std::log(vec[i]));
+    is_fp_close(vec_log10[i], cuda::std::log10(vec[i]));
   }
 }
 
@@ -262,7 +262,7 @@ TEST_FUNC void test_sqrt()
   ComplexVec vec_sqrt = simd::sqrt(vec);
   for (int i = 0; i < N; ++i)
   {
-    is_about(vec_sqrt[i], cuda::std::sqrt(vec[i]));
+    is_fp_close(vec_sqrt[i], cuda::std::sqrt(vec[i]));
   }
 }
 
@@ -285,7 +285,7 @@ TEST_FUNC void test_polar()
   ComplexVec result = simd::polar(rho, theta);
   for (int i = 0; i < N; ++i)
   {
-    is_about(result[i], cuda::std::polar(rho[i], theta[i]));
+    is_fp_close(result[i], cuda::std::polar(rho[i], theta[i]));
   }
 }
 
@@ -308,7 +308,7 @@ TEST_FUNC void test_pow()
   for (int i = 0; i < N; ++i)
   {
     // pow composes log + mul + exp; use the larger "composed" ULP budget.
-    is_about(result[i], cuda::std::pow(base[i], expo[i]));
+    is_fp_close(result[i], cuda::std::pow(base[i], expo[i]));
   }
 }
 
