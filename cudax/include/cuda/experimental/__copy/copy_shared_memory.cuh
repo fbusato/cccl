@@ -118,16 +118,19 @@ __global__ void __copy_shared_mem_kernel(
   // __grid_coords: linear tile index -> multi-dimensional coordinates (array)
   const auto __grid_index  = ::cuda::block.index_as<_ExtentT>(::cuda::grid).x;
   const auto __grid_coords = __grid_iter(__grid_index);
-  _StrideTIn __src_base    = 0;
-  _StrideTOut __dst_base   = 0;
-  _CCCL_PRAGMA_UNROLL_FULL()
-  for (int __k = 0; __k < __max_rank; ++__k)
+
   {
-    __src_base += static_cast<_StrideTIn>(__grid_coords[__k]) * __grid_tile_src_strides[__k];
-    __dst_base += static_cast<_StrideTOut>(__grid_coords[__k]) * __grid_tile_dst_strides[__k];
+    _StrideTIn __src_base  = 0;
+    _StrideTOut __dst_base = 0;
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (int __k = 0; __k < __max_rank; ++__k)
+    {
+      __src_base += static_cast<_StrideTIn>(__grid_coords[__k]) * __grid_tile_src_strides[__k];
+      __dst_base += static_cast<_StrideTOut>(__grid_coords[__k]) * __grid_tile_dst_strides[__k];
+    }
+    __src_ptr += __src_base;
+    __dst_ptr += __dst_base;
   }
-  __src_ptr += __src_base;
-  __dst_ptr += __dst_base;
 
   // Partial tile detection: is the current tile full or partial?
   bool __is_full_tile = true;
@@ -138,6 +141,7 @@ __global__ void __copy_shared_mem_kernel(
     if (__block_start + __tile_sizes[__k] > __extents[__k])
     {
       __is_full_tile = false;
+      break;
     }
   }
 
@@ -146,6 +150,7 @@ __global__ void __copy_shared_mem_kernel(
   const auto __block_stride  = ::cuda::gpu_thread.count_as<int>(::cuda::block, __config);
   using __partial_tensor_src = __partial_tensor<const _TpSrc, _StrideTIn, _MaxRankUZ, _SrcAccessor>;
   using __partial_tensor_dst = __partial_tensor<_TpDst, _StrideTOut, _MaxRankUZ, _DstAccessor>;
+
   //--------------------------------------------------------------------------------------------------------------------
   // Full-tile shared-memory transpose
   if (__is_full_tile)
