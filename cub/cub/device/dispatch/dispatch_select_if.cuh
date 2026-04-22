@@ -34,16 +34,13 @@
 
 #include <cuda/__cmath/ceil_div.h>
 #include <cuda/std/__algorithm/max.h>
+#include <cuda/std/__host_stdlib/sstream>
 #include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__utility/swap.h>
 #include <cuda/std/cstdint>
 #include <cuda/std/limits>
 
 #include <nv/target>
-
-#if !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
-#  include <sstream>
-#endif // !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
 
 _CCCL_DIAG_PUSH
 _CCCL_DIAG_SUPPRESS_GCC("-Wattributes") // __visibility__ attribute ignored
@@ -774,7 +771,7 @@ struct DispatchSelectIf
         // Prepare streaming context for next partition (swap double buffers, advance number of processed items, etc.)
         streaming_context.advance(current_num_items, (partition_idx + OffsetT{2} == num_partitions));
       }
-    } while (0);
+    } while (false);
 
     return error;
   }
@@ -1111,9 +1108,11 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t dispatch(
 
 #if !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
   NV_IF_TARGET(
-    NV_IS_HOST,
-    (std::stringstream ss; ss << PolicySelector{}(arch_id);
-     _CubLog("Dispatching DeviceSelectIf to arch %d with tuning: %s\n", static_cast<int>(arch_id), ss.str().c_str());))
+    NV_IS_HOST, ({
+      ::std::stringstream ss;
+      ss << PolicySelector{}(arch_id);
+      _CubLog("Dispatching DeviceSelectIf to arch %d with tuning: %s\n", static_cast<int>(arch_id), ss.str().c_str());
+    }))
 #endif // !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
 
   return dispatch_arch(policy_selector, arch_id, [&](auto policy_getter) {
