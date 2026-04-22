@@ -28,11 +28,8 @@
 #include <cuda/__cmath/ceil_div.h>
 #include <cuda/__device/arch_id.h>
 #include <cuda/std/__functional/invoke.h>
+#include <cuda/std/__host_stdlib/sstream>
 #include <cuda/std/__type_traits/is_empty.h>
-
-#if !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
-#  include <sstream>
-#endif
 
 CUB_NAMESPACE_BEGIN
 
@@ -273,7 +270,7 @@ struct DispatchAdjacentDifference
         break;
       }
 
-    } while (0);
+    } while (false);
 
     return error;
   }
@@ -308,7 +305,7 @@ struct DispatchAdjacentDifference
       {
         break;
       }
-    } while (0);
+    } while (false);
 
     return error;
   }
@@ -349,9 +346,11 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE auto dispatch(
   const adjacent_difference_policy active_policy = policy_selector(arch_id);
 #if !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
   NV_IF_TARGET(
-    NV_IS_HOST,
-    (::std::stringstream ss; ss << active_policy;
-     _CubLog("Dispatching DeviceAdjacentDifference to arch %d with tuning: %s\n", (int) arch_id, ss.str().c_str());))
+    NV_IS_HOST, ({
+      ::std::stringstream ss;
+      ss << active_policy;
+      _CubLog("Dispatching DeviceAdjacentDifference to arch %d with tuning: %s\n", (int) arch_id, ss.str().c_str());
+    }))
 #endif // !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
 
   const int tile_size = active_policy.block_threads * active_policy.items_per_thread;
