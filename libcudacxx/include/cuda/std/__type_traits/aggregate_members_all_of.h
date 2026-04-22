@@ -21,11 +21,13 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_aggregate.h>
 #include <cuda/std/__type_traits/is_empty.h>
 #include <cuda/std/__type_traits/remove_cvref.h>
+#include <cuda/std/__utility/integer_sequence.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -35,12 +37,6 @@ _CCCL_DIAG_SUPPRESS_CLANG("-Wmissing-braces")
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD
 
-// NOTE: __builtin_structured_binding_size cannot be used here. It returns the structural member count (e.g., 1 for a
-// struct with an int[4] member), while the SFINAE-based arity detection below counts the brace-elided elements (4 in
-// that case). Since __aggregate_all_of also relies on brace-elided aggregate initialization to apply the predicate, the
-// arity must match the brace-elided count. Using the builtin's structural count would cause __aggregate_all_of to
-// silently skip unchecked members in aggregates with arrays or nested aggregate members.
-
 // provide a generic way to initialize an aggregate member
 struct __any_aggregate_member
 {
@@ -48,27 +44,27 @@ struct __any_aggregate_member
   _CCCL_API constexpr operator _Tp&&() const;
 };
 
-template <typename _Tp, bool = is_aggregate_v<_Tp>>
+// Computes the number of aggregate members
+template <typename _Tp>
 struct __aggregate_arity_impl
 {
-  template <typename... _Args,
+  // N == 0: skip _Up{} to avoid inconsistencies across compilers (deleted default constructor)
+  template <typename _Self = __aggregate_arity_impl>
+  _CCCL_API auto operator()() -> decltype(_Self{}(__any_aggregate_member{}));
+
+  // N >= 1: SFINAE on _Up{_A0{}, _Args{}...}
+  template <typename _A0,
+            typename... _Args,
             typename _Up   = _Tp,
-            typename       = decltype(_Up{(_Args{})...}), // SFINAE on args number
+            typename       = decltype(_Up{_A0{}, (_Args{})...}),
             typename _Self = __aggregate_arity_impl>
-  _CCCL_API auto operator()(_Args... __args) -> decltype(_Self{}(__args..., __any_aggregate_member{}));
+  _CCCL_API auto operator()(_A0, _Args... __args) -> decltype(_Self{}(_A0{}, __args..., __any_aggregate_member{}));
 
   template <typename... _Args>
   _CCCL_API auto operator()(_Args...) const -> char (*)[sizeof...(_Args) + 1]; // return the number of members + 1
 };
 
-// T is not an aggregate, return 1
-template <typename _Tp>
-struct __aggregate_arity_impl<_Tp, false>
-{
-  _CCCL_API auto operator()() const -> char*;
-};
-
-// Returns the number of aggregate members, or `-1` if the type is not an aggregate.
+// Returns the number of aggregate members. Only meaningful when is_aggregate_v<_Tp> is true.
 template <typename _Tp>
 inline constexpr int __aggregate_arity_v = int{sizeof(*__aggregate_arity_impl<_Tp>{}())} - 2;
 
@@ -82,73 +78,56 @@ struct __aggregate_member_if
   _CCCL_API constexpr operator _Tp&&() const;
 };
 
-template <int _Arity>
-struct __aggregate_all_of_fn;
+inline constexpr int __aggregate_max_arity = 8;
 
-// T has 0 members, return true
-template <>
-struct __aggregate_all_of_fn<0>
+// Apply the Predicate to every member
+template <int _Arity>
+struct __aggregate_all_of_fn
 {
+  template <template <typename> class _Predicate, typename _Tp, size_t... _Is>
+  _CCCL_API static auto __test(index_sequence<_Is...>, int)
+    -> decltype(_Tp{((void) _Is, __aggregate_member_if<_Predicate>{})...}, true_type{});
+
+  template <template <typename> class, typename>
+  _CCCL_API static auto __test(...) -> false_type;
+
   template <template <typename> class _Predicate, typename _Tp>
-  _CCCL_API static auto __call(int) -> true_type;
+  _CCCL_API static auto __call(int) -> decltype(__test<_Predicate, _Tp>(make_index_sequence<_Arity>{}, 0));
 };
 
-#define _CCCL_AGGR_PROBE(_POS) \
-  , __aggregate_member_if<_Predicate> {}
-
-// T has N members, return true if the Predicate is true for all members (recursively)
-#define _CCCL_AGGREGATE_ALL_OF_CASE(_NP)                                                                               \
-  template <>                                                                                                          \
-  struct __aggregate_all_of_fn<1 + _NP>                                                                                \
-  {                                                                                                                    \
-    template <template <typename> class _Predicate,                                                                    \
-              typename _Tp,                                                                                            \
-              typename _Up = _Tp,                                                                                      \
-              typename = decltype(_Up{__aggregate_member_if<_Predicate>{} _CCCL_PP_REPEAT(_NP, _CCCL_AGGR_PROBE, 0)})> \
-    _CCCL_API static auto __call(int) -> true_type;                                                                    \
-                                                                                                                       \
-    template <template <typename> class _Predicate, typename _Tp>                                                      \
-    _CCCL_API static auto __call(...) -> false_type;                                                                   \
-  }
-
-inline constexpr int __aggregate_max_arity = 16;
-
-_CCCL_AGGREGATE_ALL_OF_CASE(0);
-_CCCL_AGGREGATE_ALL_OF_CASE(1);
-_CCCL_AGGREGATE_ALL_OF_CASE(2);
-_CCCL_AGGREGATE_ALL_OF_CASE(3);
-_CCCL_AGGREGATE_ALL_OF_CASE(4);
-_CCCL_AGGREGATE_ALL_OF_CASE(5);
-_CCCL_AGGREGATE_ALL_OF_CASE(6);
-_CCCL_AGGREGATE_ALL_OF_CASE(7);
-_CCCL_AGGREGATE_ALL_OF_CASE(8);
-_CCCL_AGGREGATE_ALL_OF_CASE(9);
-_CCCL_AGGREGATE_ALL_OF_CASE(10);
-_CCCL_AGGREGATE_ALL_OF_CASE(11);
-_CCCL_AGGREGATE_ALL_OF_CASE(12);
-_CCCL_AGGREGATE_ALL_OF_CASE(13);
-_CCCL_AGGREGATE_ALL_OF_CASE(14);
-_CCCL_AGGREGATE_ALL_OF_CASE(15);
-
-#undef _CCCL_AGGREGATE_ALL_OF_CASE
-#undef _CCCL_AGGR_PROBE
-
-// return true if
-// - T is an aggregate
-// - T has a number of members between 0 and __aggregate_max_arity
-// - T is not empty
+// (aggregate-only trait) Dispatch based on the aggregate arity for non-empty aggregates. Returns:
+// - false: _Arity out of [1, __aggregate_max_arity]
+// - true:  if the unary predicate is true for all members
 template <template <typename> class _Predicate,
           typename _Tp,
-          bool = is_aggregate_v<_Tp> && (__aggregate_arity_v<_Tp> >= 0)
-              && (__aggregate_arity_v<_Tp> <= __aggregate_max_arity)
-              && ((__aggregate_arity_v<_Tp> != 0) || is_empty_v<_Tp>)>
+          int _Arity = __aggregate_arity_v<_Tp>,
+          bool       = (_Arity > 0) && (_Arity <= __aggregate_max_arity)>
+struct __aggregate_all_of_dispatch : false_type
+{};
+
+template <template <typename> class _Predicate, typename _Tp, int _Arity>
+struct __aggregate_all_of_dispatch<_Predicate, _Tp, _Arity, true>
+    : decltype(__aggregate_all_of_fn<_Arity>::template __call<_Predicate, _Tp>(0))
+{};
+
+// if _Tp is not an aggregate, return false.
+// Empty aggregates are true for any predicate.
+// The specialization is needed to skip computing the arity and save compile time.
+template <template <typename> class _Predicate,
+          typename _Tp,
+          bool = is_aggregate_v<_Tp>,
+          bool = is_empty_v<_Tp>> // required for nvc++ and NVCC+clang
 struct __aggregate_all_of : false_type
 {};
 
-// Applies a Predicate to every member reachable by aggregate initialization
+// (non-empty) aggregate
 template <template <typename> class _Predicate, typename _Tp>
-struct __aggregate_all_of<_Predicate, _Tp, true>
-    : decltype(__aggregate_all_of_fn<__aggregate_arity_v<_Tp>>::template __call<_Predicate, _Tp>(0))
+struct __aggregate_all_of<_Predicate, _Tp, true, false> : __aggregate_all_of_dispatch<_Predicate, _Tp>
+{};
+
+// Empty aggregate (true for any predicate)
+template <template <typename> class _Predicate, typename _Tp>
+struct __aggregate_all_of<_Predicate, _Tp, true, true> : true_type
 {};
 
 _CCCL_END_NAMESPACE_CUDA_STD
