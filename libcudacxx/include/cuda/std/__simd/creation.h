@@ -39,10 +39,7 @@
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
 //----------------------------------------------------------------------------------------------------------------------
-// Local traits: "enabled specialization of basic_vec/basic_mask" and "mask-element-size"
-//
-// The C++26 SIMD draft refers to "an enabled specialization of basic_vec/basic_mask". Mirror that with file-local
-// traits until the public simd-vec-type / simd-mask-type concepts are introduced.
+// Creation traits
 
 // TODO(fbusato): remove duplications across other PRs, move to a common place for basic_vec.h and basic_mask.h
 template <typename _Tp>
@@ -67,10 +64,11 @@ inline constexpr size_t __mask_element_size_v = 0;
 template <size_t _Bytes, typename _Abi>
 inline constexpr size_t __mask_element_size_v<basic_mask<_Bytes, _Abi>> = _Bytes;
 
-// Shorthand for the integer_sequence<__simd_size_type, N> / make_integer_sequence<__simd_size_type, N>
+// Shorthand for integer_sequence<__simd_size_type, N>
 template <__simd_size_type... _Ns>
 using __simd_size_seq = integer_sequence<__simd_size_type, _Ns...>;
 
+// Shorthand for make_integer_sequence<__simd_size_type, N>
 template <__simd_size_type _Np>
 using __make_simd_size_seq = make_integer_sequence<__simd_size_type, _Np>;
 
@@ -134,11 +132,11 @@ template <typename _SubVec, typename _Tail, typename _Src, __simd_size_type... _
 [[nodiscard]] _CCCL_API constexpr ::cuda::std::tuple<__repeat_t<_SubVec, _Js>..., _Tail>
 __make_chunk_tuple(const _Src& __src, __simd_size_seq<_Js...>) noexcept
 {
-  constexpr __simd_size_type __tail_offet = sizeof...(_Js) * _SubVec::__size;
+  constexpr __simd_size_type __tail_offset = sizeof...(_Js) * _SubVec::__size;
 
   return ::cuda::std::tuple<__repeat_t<_SubVec, _Js>..., _Tail>{
-    ::cuda::std::simd::__make_chunk<_SubVec, _Js * _SubVec::__size>(__src)..., // N copies of _SubVec (same as above)
-    ::cuda::std::simd::__make_chunk<_Tail, __tail_offet>(__src)}; // fill Tail with N % M elements at the end of Src
+    ::cuda::std::simd::__make_chunk<_SubVec, _Js * _SubVec::__size>(__src)..., // sizeof...(_Js) full sub-vectors
+    ::cuda::std::simd::__make_chunk<_Tail, __tail_offset>(__src)}; // fill _Tail with N % M elements at the end of _Src
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -182,7 +180,7 @@ _CCCL_REQUIRES(__is_enabled_basic_mask_v<_Tp> _CCCL_AND(__chunk_mask_tail_ok_v<_
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// [simd.creation], chunk<M>, with the size of the sub-vector M user-specified
+// [simd.creation], chunk<M>, with the size of the sub-vector M is user-specified
 
 template <__simd_size_type _Mp, typename _Up, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr auto chunk(const basic_vec<_Up, _Abi>& __src) noexcept
@@ -203,14 +201,8 @@ template <__simd_size_type _Mp, size_t _Bytes, typename _Abi>
 //----------------------------------------------------------------------------------------------------------------------
 // [simd.creation], cat
 // concatenate a sequence of SIMD vectors/masks
-//
-// cat(xs...) returns a data-parallel object whose i-th element is the i-th element of the concatenation of the xs
-// pack. The implementation builds a generator that, given a global index _Ip, computes the target arg index and local
-// offset at compile time via a comma-fold over the arg index pack and returns the corresponding element.
 
-// Find the target arg index _K for a global index _Ip given the per-arg sizes {_Sizes...}. Scans left-to-right and
-// picks the first bucket whose cumulative prefix sum covers _Ip. Returns sizeof...(_Sizes) on out-of-range
-// (unreachable for well-formed calls). Always called from cat, which guarantees sizeof...(_Sizes) >= 1.
+// given the index _Ip, return the index of the corresponding SIMD vector/mask in the range [0, N)
 template <__simd_size_type _Ip, __simd_size_type... _Sizes>
 [[nodiscard]] _CCCL_API _CCCL_CONSTEVAL size_t __cat_arg_index(__simd_size_seq<_Sizes...>) noexcept
 {
@@ -224,38 +216,42 @@ template <__simd_size_type _Ip, __simd_size_type... _Sizes>
     }
     __prefix += __sizes[__k];
   }
-  return sizeof...(_Sizes);
+  return sizeof...(_Sizes); // this line is not reachable because _Ip is in the range [0, M), where M is the total size
+                            // of the concatenation of the V1, V2, ..., VN
 }
 
 // Compute the local prefix sum (number of elements before arg _Kp) for a given target arg index _Kp.
 template <size_t _Kp, __simd_size_type... _Sizes>
 [[nodiscard]] _CCCL_API _CCCL_CONSTEVAL __simd_size_type __cat_local_prefix(__simd_size_seq<_Sizes...>) noexcept
 {
-  __simd_size_type __prefix = 0;
-  // if constexpr guard is needed because _Kp may be 0, in which case __k < _Kp is a pointless comparison of
-  // unsigned with zero (nvcc treats that warning as an error).
-  if constexpr (_Kp > 0)
+  __simd_size_type __prefix        = 0;
+  const __simd_size_type __sizes[] = {_Sizes...};
+  for (size_t __k = 0; __k != _Kp; ++__k)
   {
-    const __simd_size_type __sizes[] = {_Sizes...};
-    for (size_t __k = 0; __k < _Kp; ++__k)
-    {
-      __prefix += __sizes[__k];
-    }
+    __prefix += __sizes[__k];
   }
   return __prefix;
 }
 
+// Given a tuple of SIMD vectors/masks  {V1, V2, ..., VN}
+// - Let M be the total size of the concatenation of the V1, V2, ..., VN
+// - Create a generator where __i (_Ic) is in the range [0, M)
+// Algorithm:
+// 1. Given __i, compute the index __k of the corresponding SIMD vector/mask in the range [0, N)
+// 2. Compute the total number of elements before the __k-th SIMD vector/mask (prefix sum)
+// 3. Pick the __k-th SIMD vector/mask and return the element in the position (__i - __prefix)
 template <typename... _Vs>
 struct __cat_generator
 {
-  ::cuda::std::tuple<const _Vs&...> __args_;
+  const ::cuda::std::tuple<const _Vs&...> __args_;
 
   template <typename _Ic>
   [[nodiscard]] _CCCL_API constexpr auto operator()(_Ic) const noexcept
   {
+    constexpr __simd_size_seq<_Vs::__size...> __seq_sizes{};
     constexpr __simd_size_type __i      = _Ic::value;
-    constexpr size_t __k                = ::cuda::std::simd::__cat_arg_index<__i>(__simd_size_seq<_Vs::__size...>{});
-    constexpr __simd_size_type __prefix = ::cuda::std::simd::__cat_local_prefix<__k>(__simd_size_seq<_Vs::__size...>{});
+    constexpr size_t __k                = ::cuda::std::simd::__cat_arg_index<__i>(__seq_sizes);
+    constexpr __simd_size_type __prefix = ::cuda::std::simd::__cat_local_prefix<__k>(__seq_sizes);
     return ::cuda::std::get<__k>(__args_)[__i - __prefix];
   }
 };
@@ -266,32 +262,22 @@ template <typename... _Vs>
   return __cat_generator<_Vs...>{::cuda::std::tuple<const _Vs&...>{__xs...}};
 }
 
-// [simd.creation]/6 has no explicit _Constraints_ clause; the single requirement below is a QoI safety net that turns
-// "total concatenated size exceeds the largest enabled ABI" from a hard error inside `resize_t` into SFINAE.
-
-_CCCL_TEMPLATE(typename _Tp, typename _Abi0, typename... _Abis)
-_CCCL_REQUIRES(__is_enabled_abi_v<__deduce_abi_t<
-               _Tp,
-               basic_vec<_Tp, _Abi0>::__size + (__simd_size_type{0} + ... + basic_vec<_Tp, _Abis>::__size)>>)
+// c++ specification has no explicit constraints for cat()
+template <typename _Tp, typename _Abi0, typename... _Abis>
 [[nodiscard]] _CCCL_API constexpr auto
 cat(const basic_vec<_Tp, _Abi0>& __x0, const basic_vec<_Tp, _Abis>&... __xs) noexcept
 {
-  constexpr __simd_size_type __total =
-    basic_vec<_Tp, _Abi0>::__size + (__simd_size_type{0} + ... + basic_vec<_Tp, _Abis>::__size);
-  using __result_t = resize_t<__total, basic_vec<_Tp, _Abi0>>;
+  constexpr __simd_size_type __total = (basic_vec<_Tp, _Abi0>::__size + ... + basic_vec<_Tp, _Abis>::__size);
+  using __result_t                   = resize_t<__total, basic_vec<_Tp, _Abi0>>;
   return __result_t{::cuda::std::simd::__make_cat_generator(__x0, __xs...)};
 }
 
-_CCCL_TEMPLATE(size_t _Bytes, typename _Abi0, typename... _Abis)
-_CCCL_REQUIRES(__is_enabled_abi_v<__deduce_abi_t<
-               __integer_from<_Bytes>,
-               basic_mask<_Bytes, _Abi0>::__size + (__simd_size_type{0} + ... + basic_mask<_Bytes, _Abis>::__size)>>)
+template <size_t _Bytes, typename _Abi0, typename... _Abis>
 [[nodiscard]] _CCCL_API constexpr auto
 cat(const basic_mask<_Bytes, _Abi0>& __x0, const basic_mask<_Bytes, _Abis>&... __xs) noexcept
 {
-  constexpr __simd_size_type __total =
-    basic_mask<_Bytes, _Abi0>::__size + (__simd_size_type{0} + ... + basic_mask<_Bytes, _Abis>::__size);
-  using __result_t = resize_t<__total, basic_mask<_Bytes, _Abi0>>;
+  constexpr __simd_size_type __total = (basic_mask<_Bytes, _Abi0>::__size + ... + basic_mask<_Bytes, _Abis>::__size);
+  using __result_t                   = resize_t<__total, basic_mask<_Bytes, _Abi0>>;
   return __result_t{::cuda::std::simd::__make_cat_generator(__x0, __xs...)};
 }
 
