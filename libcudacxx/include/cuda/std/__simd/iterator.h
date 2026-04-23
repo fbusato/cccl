@@ -98,7 +98,7 @@ public:
 
   _CCCL_API constexpr __simd_iterator operator++(int) noexcept
   {
-    __simd_iterator __tmp = *this;
+    const __simd_iterator __tmp = *this;
     ++__offset_;
     _CCCL_ASSERT(::cuda::in_range(__offset_, __simd_size_type{0}, _Vp::__size),
                  "cuda::std::simd::__simd_iterator: offset is out of range");
@@ -107,13 +107,18 @@ public:
 
   _CCCL_API constexpr __simd_iterator& operator--() noexcept
   {
-    return *this -= 1;
+    --__offset_;
+    _CCCL_ASSERT(::cuda::in_range(__offset_, __simd_size_type{0}, _Vp::__size),
+                 "cuda::std::simd::__simd_iterator: offset is out of range");
+    return *this;
   }
 
   _CCCL_API constexpr __simd_iterator operator--(int) noexcept
   {
-    __simd_iterator __tmp = *this;
-    *this -= 1;
+    const __simd_iterator __tmp = *this;
+    --__offset_;
+    _CCCL_ASSERT(::cuda::in_range(__offset_, __simd_size_type{0}, _Vp::__size),
+                 "cuda::std::simd::__simd_iterator: offset is out of range");
     return __tmp;
   }
 
@@ -143,8 +148,7 @@ public:
 
   // [simd.iterator] comparisons
 
-  [[nodiscard]] _CCCL_API friend constexpr bool
-  operator==(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
+  [[nodiscard]] _CCCL_API friend constexpr bool operator==(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     return __a.__data_ == __b.__data_ && __a.__offset_ == __b.__offset_;
   }
@@ -156,7 +160,7 @@ public:
 
 #if _CCCL_STD_VER <= 2017
   [[nodiscard]]
-  _CCCL_API friend constexpr bool operator!=(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
+  _CCCL_API friend constexpr bool operator!=(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     return !(__a == __b);
   }
@@ -185,33 +189,28 @@ public:
   _CCCL_API friend constexpr auto operator<=>(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     _CCCL_ASSERT(__a.__data_ == __b.__data_, "cuda::std::simd::__simd_iterator: iterators refer to different objects");
-    _CCCL_ASSERT(__a.__data_ != nullptr, "cuda::std::simd::__simd_iterator: default-constructed iterator");
     return __a.__offset_ <=> __b.__offset_;
   }
 #else // ^^^ _LIBCUDACXX_HAS_SPACESHIP_OPERATOR() ^^^ / vvv !_LIBCUDACXX_HAS_SPACESHIP_OPERATOR() vvv
   [[nodiscard]]
-  _CCCL_API friend constexpr bool operator<(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
+  _CCCL_API friend constexpr bool operator<(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     _CCCL_ASSERT(__a.__data_ == __b.__data_, "cuda::std::simd::__simd_iterator: iterators refer to different objects");
-    _CCCL_ASSERT(__a.__data_ != nullptr, "cuda::std::simd::__simd_iterator: default-constructed iterator");
     return __a.__offset_ < __b.__offset_;
   }
 
-  [[nodiscard]] _CCCL_API friend constexpr bool
-  operator>(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
+  [[nodiscard]] _CCCL_API friend constexpr bool operator>(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     _CCCL_ASSERT(__a.__data_ == __b.__data_, "cuda::std::simd::__simd_iterator: iterators refer to different objects");
     return __b.__offset_ < __a.__offset_;
   }
 
-  [[nodiscard]] _CCCL_API friend constexpr bool
-  operator<=(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
+  [[nodiscard]] _CCCL_API friend constexpr bool operator<=(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     return !(__b < __a);
   }
 
-  [[nodiscard]] _CCCL_API friend constexpr bool
-  operator>=(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
+  [[nodiscard]] _CCCL_API friend constexpr bool operator>=(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
     return !(__a < __b);
   }
@@ -240,7 +239,6 @@ public:
   [[nodiscard]] _CCCL_API friend constexpr difference_type
   operator-(const __simd_iterator __a, const __simd_iterator __b) noexcept
   {
-    _CCCL_ASSERT(__a.__data_ != nullptr, "cuda::std::simd::__simd_iterator: data is nullptr");
     _CCCL_ASSERT(__a.__data_ == __b.__data_, "cuda::std::simd::__simd_iterator: iterators refer to different objects");
     return __a.__offset_ - __b.__offset_;
   }
@@ -248,14 +246,12 @@ public:
   [[nodiscard]] _CCCL_API friend constexpr difference_type
   operator-(const __simd_iterator __i, default_sentinel_t) noexcept
   {
-    _CCCL_ASSERT(__i.__data_ != nullptr, "cuda::std::simd::__simd_iterator: data is nullptr");
     return __i.__offset_ - _Vp::__size;
   }
 
   [[nodiscard]] _CCCL_API friend constexpr difference_type
   operator-(default_sentinel_t, const __simd_iterator __i) noexcept
   {
-    _CCCL_ASSERT(__i.__data_ != nullptr, "cuda::std::simd::__simd_iterator: data is nullptr");
     return _Vp::__size - __i.__offset_;
   }
 };
