@@ -90,7 +90,7 @@ _CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation = plus<>)
 _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
 [[nodiscard]] _CCCL_API constexpr _Tp reduce(
   const basic_vec<_Tp, _Abi>& __x,
-  _BinaryOperation __binary_op = plus<>{}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
+  _BinaryOperation __binary_op = {}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
 {
   vec<_Tp, 1> __result{__x[0]};
   _CCCL_PRAGMA_UNROLL_FULL()
