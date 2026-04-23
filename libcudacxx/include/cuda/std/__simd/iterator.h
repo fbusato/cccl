@@ -43,9 +43,9 @@ class __simd_iterator
   _Vp* __data_               = nullptr;
   __simd_size_type __offset_ = 0;
 
-  _CCCL_API constexpr __simd_iterator(_Vp& __d, const __simd_size_type __off) noexcept
-      : __data_{::cuda::std::addressof(__d)}
-      , __offset_{__off}
+  _CCCL_API constexpr __simd_iterator(_Vp& __data, const __simd_size_type __offset) noexcept
+      : __data_{::cuda::std::addressof(__data)}
+      , __offset_{__offset}
   {
     _CCCL_ASSERT(__data_ != nullptr, "cuda::std::simd::__simd_iterator: data is nullptr");
     _CCCL_ASSERT(::cuda::in_range(__offset_, __simd_size_type{0}, _Vp::__size),
