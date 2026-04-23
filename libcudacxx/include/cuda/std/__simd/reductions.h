@@ -46,8 +46,11 @@ template <typename _BinaryOp, typename _Tp>
 _CCCL_CONCEPT __reduction_binary_operation = _CCCL_REQUIRES_EXPR(
   (_BinaryOp, _Tp), const _BinaryOp __binary_op, const vec<_Tp, 1> __v)(_Same_as(vec<_Tp, 1>) __binary_op(__v, __v));
 
-template <typename _Tp, typename _BinaryOp>
-inline constexpr bool __is_nothrow_reduction_binary_operation_v = noexcept(
+template <typename _BinaryOp, typename _Tp, bool = __reduction_binary_operation<_BinaryOp, _Tp>>
+inline constexpr bool __is_nothrow_reduction_binary_operation_v = false;
+
+template <typename _BinaryOp, typename _Tp>
+inline constexpr bool __is_nothrow_reduction_binary_operation_v<_BinaryOp, _Tp, true> = noexcept(
   ::cuda::std::declval<const _BinaryOp&>()(::cuda::std::declval<vec<_Tp, 1>>(), ::cuda::std::declval<vec<_Tp, 1>>()));
 
 template <typename _Tp, typename _BinaryOp>
