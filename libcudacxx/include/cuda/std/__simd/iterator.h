@@ -82,9 +82,6 @@ public:
       , __offset_{__i.__offset_}
   {}
 
-  // the C++ specification does not require a noexcept for most operators, but the iterator only operates on pointer and
-  // integer type
-
   [[nodiscard]] _CCCL_API constexpr value_type operator*() const noexcept
   {
     _CCCL_ASSERT(__data_ != nullptr, "cuda::std::simd::__simd_iterator: data is nullptr");
