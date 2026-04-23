@@ -106,12 +106,12 @@ reduce(const basic_vec<_Tp, _Abi>& __x,
 // 2) unless BinaryOperation is one of plus<>, multiplies<>, bit_and<>, bit_or<>, or bit_xor<>
 _CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation)
 _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
-[[nodiscard]] _CCCL_API constexpr _Tp reduce(
-  const basic_vec<_Tp, _Abi>& __x,
-  const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
-  _BinaryOperation __binary_op,
-  const type_identity_t<_Tp>
-    __identity_element) noexcept(__is_nothrow_reduction_binary_operation_v<_BinaryOperation, _Tp>)
+[[nodiscard]] _CCCL_API constexpr _Tp
+reduce(const basic_vec<_Tp, _Abi>& __x,
+       const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
+       _BinaryOperation __binary_op,
+       const type_identity_t<_Tp> __identity_element) //
+  noexcept(__is_nothrow_reduction_binary_operation_v<_BinaryOperation, _Tp>)
 {
   vec<_Tp, 1> __result{__identity_element};
   _CCCL_PRAGMA_UNROLL_FULL()
