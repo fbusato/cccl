@@ -185,7 +185,9 @@ static_assert(!cuda::std::__aggregate_all_of<cuda::std::is_trivially_copyable, H
 // With the special case: arity == 1
 static_assert(cuda::std::__aggregate_all_of<always_true, AggregateWithDeletedDefault>::value);
 static_assert(!cuda::std::__aggregate_all_of<always_false, AggregateWithDeletedDefault>::value);
+#if !TEST_COMPILER(MSVC) || TEST_STD_VER > 2017
 static_assert(!cuda::std::__aggregate_all_of<cuda::std::is_integral, AggregateWithDeletedDefault>::value);
+#endif // !TEST_COMPILER(MSVC) || TEST_STD_VER > 2017
 
 int main(int, char**)
 {
