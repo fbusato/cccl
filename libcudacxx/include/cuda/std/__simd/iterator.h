@@ -90,7 +90,10 @@ public:
 
   _CCCL_API constexpr __simd_iterator& operator++() noexcept
   {
-    return *this += 1;
+    ++__offset_;
+    _CCCL_ASSERT(::cuda::in_range(__offset_, __simd_size_type{0}, _Vp::__size),
+                 "cuda::std::simd::__simd_iterator: offset is out of range");
+    return *this;
   }
 
   _CCCL_API constexpr __simd_iterator operator++(int) noexcept
