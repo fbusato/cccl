@@ -26,6 +26,7 @@
 #include <cuda/std/__concepts/totally_ordered.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__functional/operations.h>
+#include <cuda/std/__functional/operations_traits.h>
 #include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__limits/numeric_limits.h>
 #include <cuda/std/__limits/numeric_limits_ext.h>
@@ -33,7 +34,6 @@
 #include <cuda/std/__simd/basic_mask.h>
 #include <cuda/std/__simd/basic_vec.h>
 #include <cuda/std/__type_traits/always_false.h>
-#include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/type_identity.h>
 #include <cuda/std/__utility/declval.h>
 
@@ -53,26 +53,26 @@ template <typename _BinaryOp, typename _Tp>
 inline constexpr bool __is_nothrow_reduction_binary_operation_v<_BinaryOp, _Tp, true> = noexcept(
   ::cuda::std::declval<const _BinaryOp&>()(::cuda::std::declval<vec<_Tp, 1>>(), ::cuda::std::declval<vec<_Tp, 1>>()));
 
-template <typename _Tp, typename _BinaryOp>
+template <typename _BinaryOp>
 inline constexpr bool __is_reduce_default_supported_operation_v =
-  is_same_v<_BinaryOp, plus<>> //
-  || is_same_v<_BinaryOp, multiplies<>> //
-  || is_same_v<_BinaryOp, bit_and<>> //
-  || is_same_v<_BinaryOp, bit_or<>> //
-  || is_same_v<_BinaryOp, bit_xor<>>;
+  __is_plus_op_v<_BinaryOp> //
+  || __is_multiplies_op_v<_BinaryOp> //
+  || __is_bit_and_op_v<_BinaryOp> //
+  || __is_bit_or_op_v<_BinaryOp> //
+  || __is_bit_xor_op_v<_BinaryOp>;
 
 template <typename _Tp, typename _BinaryOp>
 [[nodiscard]] _CCCL_API constexpr _Tp __default_identity_element() noexcept
 {
-  if constexpr (is_same_v<_BinaryOp, plus<>> || is_same_v<_BinaryOp, bit_or<>> || is_same_v<_BinaryOp, bit_xor<>>)
+  if constexpr (__is_plus_op_v<_BinaryOp> || __is_bit_or_op_v<_BinaryOp> || __is_bit_xor_op_v<_BinaryOp>)
   {
     return _Tp{};
   }
-  else if constexpr (is_same_v<_BinaryOp, multiplies<>>)
+  else if constexpr (__is_multiplies_op_v<_BinaryOp>)
   {
     return _Tp(1);
   }
-  else if constexpr (is_same_v<_BinaryOp, bit_and<>>)
+  else if constexpr (__is_bit_and_op_v<_BinaryOp>)
   {
     return static_cast<_Tp>(~_Tp{});
   }
@@ -88,9 +88,9 @@ template <typename _Tp, typename _BinaryOp>
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation = plus<>)
 _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
-[[nodiscard]] _CCCL_API constexpr _Tp reduce(
-  const basic_vec<_Tp, _Abi>& __x,
-  _BinaryOperation __binary_op = {}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
+[[nodiscard]] _CCCL_API constexpr _Tp
+reduce(const basic_vec<_Tp, _Abi>& __x,
+       _BinaryOperation __binary_op = {}) noexcept(__is_nothrow_reduction_binary_operation_v<_BinaryOperation, _Tp>)
 {
   vec<_Tp, 1> __result{__x[0]};
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -111,7 +111,7 @@ _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
   const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
   _BinaryOperation __binary_op,
   const type_identity_t<_Tp>
-    __identity_element) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
+    __identity_element) noexcept(__is_nothrow_reduction_binary_operation_v<_BinaryOperation, _Tp>)
 {
   vec<_Tp, 1> __result{__identity_element};
   _CCCL_PRAGMA_UNROLL_FULL()
@@ -127,12 +127,11 @@ _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp>)
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _BinaryOperation = plus<>)
 _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp> _CCCL_AND
-                 __is_reduce_default_supported_operation_v<_Tp, _BinaryOperation>)
-[[nodiscard]] _CCCL_API constexpr _Tp
-reduce(const basic_vec<_Tp, _Abi>& __x,
-       const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
-       const _BinaryOperation __binary_op =
-         {}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
+                 __is_reduce_default_supported_operation_v<_BinaryOperation>)
+[[nodiscard]] _CCCL_API constexpr _Tp reduce(
+  const basic_vec<_Tp, _Abi>& __x,
+  const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
+  const _BinaryOperation __binary_op = {}) noexcept(__is_nothrow_reduction_binary_operation_v<_BinaryOperation, _Tp>)
 {
   return ::cuda::std::simd::reduce(
     __x, __mask, __binary_op, ::cuda::std::simd::__default_identity_element<_Tp, _BinaryOperation>());
@@ -266,9 +265,6 @@ template <size_t _Bytes, typename _Abi>
   return __count;
 }
 
-_CCCL_DIAG_PUSH
-_CCCL_DIAG_SUPPRESS_MSVC(4702) // unreachable code
-
 template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
@@ -281,13 +277,12 @@ template <size_t _Bytes, typename _Abi>
     }
   }
   _CCCL_ASSERT(false, "No bits are set");
-  return __simd_size_tpe(-1);
+  return __simd_size_type{-1};
 }
 
 template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
-  _CCCL_ASSERT(::cuda::std::simd::any_of(__k), "No bits are set");
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = __k.__size - 1; __i >= 0; --__i)
   {
@@ -296,11 +291,9 @@ template <size_t _Bytes, typename _Abi>
       return __i;
     }
   }
-  _CCCL_UNREACHABLE();
-  return 0;
+  _CCCL_ASSERT(false, "No bits are set");
+  return __simd_size_type{-1};
 }
-
-_CCCL_DIAG_POP
 
 // Scalar bool overloads
 
