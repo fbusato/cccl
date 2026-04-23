@@ -10,10 +10,11 @@
 
 // <cuda/std/__simd_>
 
-// [simd.iterator], class template __simd_iterator
+// [simd.iterator], iterator arithmetic for __simd_iterator
 //
-// dereference, increment/decrement, compound assignment,
-// arithmetic, comparisons, sentinel
+// pre/post increment and decrement, compound assignment (+=, -=),
+// binary arithmetic (it + n, n + it, it - n, it - it), and differences
+// between iterators and default_sentinel_t.
 
 #include <cuda/std/__simd_>
 #include <cuda/std/cassert>
@@ -21,30 +22,6 @@
 
 #include "../simd_test_utils.h"
 #include "test_macros.h"
-
-//----------------------------------------------------------------------------------------------------------------------
-// dereference and subscript
-
-template <typename T, int N>
-TEST_FUNC constexpr void test_dereference()
-{
-  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  Vec vec   = make_iota_vec<T, N>();
-
-  auto it = vec.begin();
-  for (int i = 0; i < N; ++i)
-  {
-    assert(*it == static_cast<T>(i));
-    assert(it[0] == static_cast<T>(i));
-    ++it;
-  }
-
-  auto it2 = vec.begin();
-  for (int i = 0; i < N; ++i)
-  {
-    assert(it2[i] == static_cast<T>(i));
-  }
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 // increment and decrement
@@ -111,7 +88,7 @@ TEST_FUNC constexpr void test_compound_assignment()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// arithmetic
+// binary arithmetic
 
 template <typename T, int N>
 TEST_FUNC constexpr void test_arithmetic()
@@ -140,71 +117,13 @@ TEST_FUNC constexpr void test_arithmetic()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// comparisons
-
-template <typename T, int N>
-TEST_FUNC constexpr void test_comparisons()
-{
-  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  Vec vec   = make_iota_vec<T, N>();
-
-  auto a = vec.begin();
-  auto b = vec.begin();
-
-  assert(a == b);
-  assert((a != b) == false);
-  assert((a < b) == false);
-  assert((a > b) == false);
-  assert(a <= b);
-  assert(a >= b);
-
-  if constexpr (N > 1)
-  {
-    auto c = a + 1;
-    assert(!(a == c));
-    assert(a != c);
-    assert(a < c);
-    assert(!(a > c));
-    assert(a <= c);
-    assert(!(a >= c));
-    assert(c > a);
-    assert(c >= a);
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// sentinel comparisons and noexcept
-
-template <typename T, int N>
-TEST_FUNC constexpr void test_sentinel()
-{
-  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  Vec vec{};
-
-  auto it = vec.begin();
-  assert(!(it == cuda::std::default_sentinel));
-  assert(it != cuda::std::default_sentinel);
-
-  it += N;
-  assert(it == cuda::std::default_sentinel);
-  assert(!(it != cuda::std::default_sentinel));
-
-  static_assert(noexcept(it == cuda::std::default_sentinel));
-  static_assert(noexcept(it - cuda::std::default_sentinel));
-  static_assert(noexcept(cuda::std::default_sentinel - it));
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 
 template <typename T, int N>
 TEST_FUNC constexpr void test_type()
 {
-  test_dereference<T, N>();
   test_increment_decrement<T, N>();
   test_compound_assignment<T, N>();
   test_arithmetic<T, N>();
-  test_comparisons<T, N>();
-  test_sentinel<T, N>();
 }
 
 DEFINE_BASIC_VEC_TEST()
