@@ -132,7 +132,7 @@ _CCCL_REQUIRES(__reduction_binary_operation<_BinaryOperation, _Tp> _CCCL_AND
 reduce(const basic_vec<_Tp, _Abi>& __x,
        const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
        const _BinaryOperation __binary_op =
-         plus<>{}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
+         {}) noexcept(__is_nothrow_reduction_binary_operation_v<_Tp, _BinaryOperation>)
 {
   return ::cuda::std::simd::reduce(
     __x, __mask, __binary_op, ::cuda::std::simd::__default_identity_element<_Tp, _BinaryOperation>());
