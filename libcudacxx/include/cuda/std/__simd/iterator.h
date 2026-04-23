@@ -200,7 +200,8 @@ public:
   [[nodiscard]] _CCCL_API friend constexpr bool
   operator>(const __simd_iterator& __a, const __simd_iterator& __b) noexcept
   {
-    return __b < __a;
+    _CCCL_ASSERT(__a.__data_ == __b.__data_, "cuda::std::simd::__simd_iterator: iterators refer to different objects");
+    return __b.__offset_ < __a.__offset_;
   }
 
   [[nodiscard]] _CCCL_API friend constexpr bool
