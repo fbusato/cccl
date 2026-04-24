@@ -31,6 +31,7 @@
 #include <cuda/std/__simd/utility.h>
 #include <cuda/std/__tuple_dir/get.h>
 #include <cuda/std/__tuple_dir/tuple.h>
+#include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__utility/integer_sequence.h>
 #include <cuda/std/array>
 
@@ -122,21 +123,31 @@ template <typename _SubVec, typename _Src, __simd_size_type... _Js>
   return __result_t{::cuda::std::simd::__make_chunk<_SubVec, _Js * _SubVec::__size>(__src)...};
 }
 
-// always returns T. Used for tuple<T, T, T, ...> below
-template <typename _Tp, __simd_size_type>
-using __repeat_t = _Tp;
+template <typename _SubVec, typename _Tail, __simd_size_type _NHead, __simd_size_type _Ip>
+using __select_head_or_tail_t = ::cuda::std::conditional_t<(_Ip < _NHead), _SubVec, _Tail>;
+
+template <typename _SubVec, typename _Tail, __simd_size_type _NHead, __simd_size_type _Ip, typename _Src>
+[[nodiscard]] _CCCL_API constexpr __select_head_or_tail_t<_SubVec, _Tail, _NHead, _Ip>
+__make_chunk_tuple_element(const _Src& __src) noexcept
+{
+  if constexpr (_Ip < _NHead) // use _SubVec
+  {
+    return ::cuda::std::simd::__make_chunk<_SubVec, _Ip * _SubVec::__size>(__src);
+  }
+  else // use _Tail
+  {
+    return ::cuda::std::simd::__make_chunk<_Tail, _NHead * _SubVec::__size>(__src);
+  }
+}
 
 // Remainder case: return tuple<_SubVec, ..., _SubVec, _Tail>
 // where _Tail is resize_t<src.size() % _SubVec​::​size(), _SubVec​>
 template <typename _SubVec, typename _Tail, typename _Src, __simd_size_type... _Js>
-[[nodiscard]] _CCCL_API constexpr ::cuda::std::tuple<__repeat_t<_SubVec, _Js>..., _Tail>
-__make_chunk_tuple(const _Src& __src, __simd_size_seq<_Js...>) noexcept
+[[nodiscard]] _CCCL_API constexpr auto __make_chunk_tuple(const _Src& __src, __simd_size_seq<_Js...>) noexcept
 {
-  constexpr __simd_size_type __tail_offset = sizeof...(_Js) * _SubVec::__size;
-
-  return ::cuda::std::tuple<__repeat_t<_SubVec, _Js>..., _Tail>{
-    ::cuda::std::simd::__make_chunk<_SubVec, _Js * _SubVec::__size>(__src)..., // sizeof...(_Js) full sub-vectors
-    ::cuda::std::simd::__make_chunk<_Tail, __tail_offset>(__src)}; // fill _Tail with N % M elements at the end of _Src
+  constexpr __simd_size_type __nhead = sizeof...(_Js) - 1; // all elements except the last one (_Tail)
+  using __result_t                   = ::cuda::std::tuple<__select_head_or_tail_t<_SubVec, _Tail, __nhead, _Js>...>;
+  return __result_t{::cuda::std::simd::__make_chunk_tuple_element<_SubVec, _Tail, __nhead, _Js>(__src)...};
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -157,7 +168,7 @@ _CCCL_REQUIRES(__is_enabled_basic_vec_v<_Tp> _CCCL_AND(__chunk_vec_tail_ok_v<_Tp
   else // remainder case
   {
     using __tail_t = resize_t<__rem, _Tp>;
-    return ::cuda::std::simd::__make_chunk_tuple<_Tp, __tail_t>(__src, __make_simd_size_seq<__nhead>{});
+    return ::cuda::std::simd::__make_chunk_tuple<_Tp, __tail_t>(__src, __make_simd_size_seq<__nhead + 1>{});
   }
 }
 
@@ -175,7 +186,7 @@ _CCCL_REQUIRES(__is_enabled_basic_mask_v<_Tp> _CCCL_AND(__chunk_mask_tail_ok_v<_
   else
   {
     using __tail_t = resize_t<__rem, _Tp>;
-    return ::cuda::std::simd::__make_chunk_tuple<_Tp, __tail_t>(__src, __make_simd_size_seq<__nhead>{});
+    return ::cuda::std::simd::__make_chunk_tuple<_Tp, __tail_t>(__src, __make_simd_size_seq<__nhead + 1>{});
   }
 }
 
