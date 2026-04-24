@@ -10,14 +10,12 @@
 
 // <cuda/std/__simd_>
 
-// [simd.iterator], spec-mandated nested typedefs of __simd_iterator
+// [simd.iterator], spec-mandated nested typedefs and iterator_traits
 //
-// value_type, iterator_category, difference_type for
+// value_type, iterator_category, iterator_concept, difference_type,
+// iterator_traits::reference and iterator_traits::pointer for
 // basic_vec::iterator, basic_vec::const_iterator, basic_mask::iterator,
 // basic_mask::const_iterator.
-//
-// iterator_concept is covered by concept.compile.pass.cpp via
-// cuda::std::random_access_iterator<Iter>.
 
 #include <cuda/std/__simd_>
 #include <cuda/std/cstddef>
@@ -31,9 +29,19 @@ namespace simd = cuda::std::simd;
 template <typename Iter, typename ValueType>
 TEST_FUNC void check_iter_traits()
 {
+  using Traits = cuda::std::iterator_traits<Iter>;
+
   static_assert(cuda::std::is_same_v<typename Iter::value_type, ValueType>);
   static_assert(cuda::std::is_same_v<typename Iter::iterator_category, cuda::std::input_iterator_tag>);
+  static_assert(cuda::std::is_same_v<typename Iter::iterator_concept, cuda::std::random_access_iterator_tag>);
   static_assert(cuda::std::is_same_v<typename Iter::difference_type, cuda::std::ptrdiff_t>);
+
+  static_assert(cuda::std::is_same_v<typename Traits::value_type, ValueType>);
+  static_assert(cuda::std::is_same_v<typename Traits::iterator_category, cuda::std::input_iterator_tag>);
+  static_assert(cuda::std::is_same_v<typename Traits::difference_type, cuda::std::ptrdiff_t>);
+  static_assert(cuda::std::is_same_v<typename Traits::reference, ValueType>);
+  static_assert(cuda::std::is_same_v<typename Traits::pointer, void>);
+  static_assert(cuda::std::is_same_v<cuda::std::iter_reference_t<Iter>, ValueType>);
 }
 
 template <typename T, int N>

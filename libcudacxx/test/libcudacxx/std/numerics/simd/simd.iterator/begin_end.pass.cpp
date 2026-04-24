@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (obj) 2026 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -69,12 +69,9 @@ TEST_FUNC constexpr void test_begin_end(Type& obj, const Type& const_obj)
   assert(cuda::std::begin(const_obj) != cuda::std::end(const_obj));
   assert(cuda::std::cbegin(const_obj) != cuda::std::cend(const_obj));
 
-  int count = 0;
-  for (auto it = obj.begin(); it != obj.end(); ++it)
-  {
-    ++count;
-  }
-  assert(count == N);
+  const auto end = obj.begin() + N;
+  assert(cuda::std::distance(obj.begin(), end) == N);
+  assert(end == obj.end());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

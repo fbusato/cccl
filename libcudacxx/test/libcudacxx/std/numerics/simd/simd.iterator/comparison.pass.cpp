@@ -18,6 +18,7 @@
 #include <cuda/std/__simd_>
 #include <cuda/std/cassert>
 #include <cuda/std/iterator>
+#include <cuda/std/type_traits>
 
 #include "../simd_test_utils.h"
 #include "test_macros.h"
@@ -29,10 +30,24 @@ template <typename T, int N>
 TEST_FUNC constexpr void test_comparisons()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  Vec vec   = make_iota_vec<T, N>();
+
+  Vec vec = make_iota_vec<T, N>();
 
   auto a = vec.begin();
   auto b = vec.begin();
+
+  static_assert(cuda::std::is_same_v<decltype(a == b), bool>);
+  static_assert(cuda::std::is_same_v<decltype(a != b), bool>);
+  static_assert(cuda::std::is_same_v<decltype(a < b), bool>);
+  static_assert(cuda::std::is_same_v<decltype(a > b), bool>);
+  static_assert(cuda::std::is_same_v<decltype(a <= b), bool>);
+  static_assert(cuda::std::is_same_v<decltype(a >= b), bool>);
+  static_assert(noexcept(a == b));
+  static_assert(noexcept(a != b));
+  static_assert(noexcept(a < b));
+  static_assert(noexcept(a > b));
+  static_assert(noexcept(a <= b));
+  static_assert(noexcept(a >= b));
 
   assert(a == b);
   assert((a != b) == false);
@@ -61,20 +76,35 @@ TEST_FUNC constexpr void test_comparisons()
 template <typename T, int N>
 TEST_FUNC constexpr void test_sentinel()
 {
-  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  using Vec      = simd::basic_vec<T, simd::fixed_size<N>>;
+  using Sentinel = cuda::std::default_sentinel_t;
+
   Vec vec{};
 
-  auto it = vec.begin();
-  assert(!(it == cuda::std::default_sentinel));
-  assert(it != cuda::std::default_sentinel);
+  auto it  = vec.begin();
+  auto end = vec.end();
+
+  static_assert(cuda::std::is_same_v<decltype(end), Sentinel>);
+  static_assert(cuda::std::is_same_v<decltype(it == end), bool>);
+  static_assert(cuda::std::is_same_v<decltype(it != end), bool>);
+  static_assert(cuda::std::is_same_v<decltype(end == it), bool>);
+  static_assert(cuda::std::is_same_v<decltype(end != it), bool>);
+  static_assert(noexcept(it == end));
+  static_assert(noexcept(it != end));
+  static_assert(noexcept(end == it));
+  static_assert(noexcept(end != it));
+
+  assert(!(it == end));
+  assert(it != end);
 
   it += N;
-  assert(it == cuda::std::default_sentinel);
-  assert(!(it != cuda::std::default_sentinel));
+  assert(it == end);
+  assert(!(it != end));
 
-  static_assert(noexcept(it == cuda::std::default_sentinel));
-  static_assert(noexcept(it - cuda::std::default_sentinel));
-  static_assert(noexcept(cuda::std::default_sentinel - it));
+  static_assert(cuda::std::is_same_v<decltype(it - end), typename decltype(it)::difference_type>);
+  static_assert(cuda::std::is_same_v<decltype(end - it), typename decltype(it)::difference_type>);
+  static_assert(noexcept(it - end));
+  static_assert(noexcept(end - it));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

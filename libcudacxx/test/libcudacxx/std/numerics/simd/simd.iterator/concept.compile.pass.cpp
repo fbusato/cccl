@@ -30,6 +30,7 @@ TEST_FUNC void check_iterator_concepts()
   static_assert(cuda::std::forward_iterator<Iter>);
   static_assert(cuda::std::bidirectional_iterator<Iter>);
   static_assert(cuda::std::random_access_iterator<Iter>);
+  static_assert(!cuda::std::contiguous_iterator<Iter>);
   static_assert(cuda::std::sentinel_for<Iter, Iter>);
   static_assert(cuda::std::sentinel_for<Sentinel, Iter>);
   static_assert(cuda::std::sized_sentinel_for<Iter, Iter>);
