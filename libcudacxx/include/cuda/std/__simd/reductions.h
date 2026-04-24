@@ -148,7 +148,7 @@ _CCCL_REQUIRES(totally_ordered<_Tp>)
   for (__simd_size_type __i = 1; __i < __x.__size; ++__i)
   {
     const auto __val = __x[__i];
-    if (!(__result < __val))
+    if (__val < __result)
     {
       __result = __val;
     }
@@ -168,7 +168,7 @@ reduce_min(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>:
     if (__mask[__i])
     {
       const auto __val = __x[__i];
-      if (!(__result < __val))
+      if (__val < __result)
       {
         __result = __val;
       }
@@ -188,7 +188,7 @@ _CCCL_REQUIRES(totally_ordered<_Tp>)
   for (__simd_size_type __i = 1; __i < __x.__size; ++__i)
   {
     const auto __val = __x[__i];
-    if (!(__val < __result))
+    if (__result < __val)
     {
       __result = __val;
     }
@@ -208,7 +208,7 @@ reduce_max(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>:
     if (__mask[__i])
     {
       const auto __val = __x[__i];
-      if (!(__val < __result))
+      if (__result < __val)
       {
         __result = __val;
       }
