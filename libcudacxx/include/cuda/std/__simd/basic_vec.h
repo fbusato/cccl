@@ -216,7 +216,7 @@ public:
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
-      __s_.__set(__i, __mask[__i] ? static_cast<value_type>(__data[__i]) : value_type());
+      __s_.__set(__i, __mask[__i] ? static_cast<value_type>(__data[__i]) : value_type{});
     }
   }
 
@@ -229,7 +229,7 @@ public:
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
-      __s_.__set(__i, value_type(__reals[__i], __imags[__i]));
+      __s_.__set(__i, value_type{__reals[__i], __imags[__i]});
     }
   }
 
@@ -280,7 +280,7 @@ public:
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
-      __s_.__set(__i, value_type(__v[__i], (*this)[__i].imag()));
+      __s_.__set(__i, value_type{__v[__i], (*this)[__i].imag()});
     }
   }
 
@@ -291,7 +291,7 @@ public:
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < __size; ++__i)
     {
-      __s_.__set(__i, value_type((*this)[__i].real(), __v[__i]));
+      __s_.__set(__i, value_type{(*this)[__i].real(), __v[__i]});
     }
   }
 
