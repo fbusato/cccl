@@ -24,53 +24,65 @@
 #include <cuda/std/__functional/operations.h>
 #include <cuda/std/__type_traits/is_same.h>
 
-// TODO(fbusato): move to _CCCL_HOSTED()
-#if !_CCCL_COMPILER(NVRTC)
-#  include <functional>
-#endif // !_CCCL_COMPILER(NVRTC)
-
 #include <cuda/std/__cccl/prologue.h>
+
+#if _CCCL_HOSTED()
+_CCCL_BEGIN_NAMESPACE_STD
+
+template <typename>
+struct plus;
+template <typename>
+struct multiplies;
+template <typename>
+struct bit_and;
+template <typename>
+struct bit_or;
+template <typename>
+struct bit_xor;
+
+_CCCL_END_NAMESPACE_STD
+#endif // _CCCL_HOSTED()
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD
 
 template <typename _BinaryOp>
 inline constexpr bool __is_plus_op_v =
   is_same_v<_BinaryOp, plus<>>
-#if !_CCCL_COMPILER(NVRTC)
-  || is_same_v<_BinaryOp, ::std::plus<>>
-#endif // !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
+  || is_same_v<_BinaryOp, ::std::plus<void>>
+#endif // _CCCL_HOSTED()
   ;
 
 template <typename _BinaryOp>
 inline constexpr bool __is_multiplies_op_v =
   is_same_v<_BinaryOp, multiplies<>>
-#if !_CCCL_COMPILER(NVRTC)
-  || is_same_v<_BinaryOp, ::std::multiplies<>>
-#endif // !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
+  || is_same_v<_BinaryOp, ::std::multiplies<void>>
+#endif // _CCCL_HOSTED()
   ;
 
 template <typename _BinaryOp>
 inline constexpr bool __is_bit_and_op_v =
   is_same_v<_BinaryOp, bit_and<>>
-#if !_CCCL_COMPILER(NVRTC)
-  || is_same_v<_BinaryOp, ::std::bit_and<>>
-#endif // !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
+  || is_same_v<_BinaryOp, ::std::bit_and<void>>
+#endif // _CCCL_HOSTED()
   ;
 
 template <typename _BinaryOp>
 inline constexpr bool __is_bit_or_op_v =
   is_same_v<_BinaryOp, bit_or<>>
-#if !_CCCL_COMPILER(NVRTC)
-  || is_same_v<_BinaryOp, ::std::bit_or<>>
-#endif // !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
+  || is_same_v<_BinaryOp, ::std::bit_or<void>>
+#endif // _CCCL_HOSTED()
   ;
 
 template <typename _BinaryOp>
 inline constexpr bool __is_bit_xor_op_v =
   is_same_v<_BinaryOp, bit_xor<>>
-#if !_CCCL_COMPILER(NVRTC)
-  || is_same_v<_BinaryOp, ::std::bit_xor<>>
-#endif // !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
+  || is_same_v<_BinaryOp, ::std::bit_xor<void>>
+#endif // _CCCL_HOSTED()
   ;
 
 _CCCL_END_NAMESPACE_CUDA_STD
