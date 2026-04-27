@@ -105,6 +105,7 @@ struct __simd_rotl_generator
   template <typename _Idx>
   [[nodiscard]] _CCCL_API constexpr __result_t operator()(_Idx) const noexcept
   {
+    _CCCL_ASSERT(::cuda::std::in_range<int>(__v1_[_Idx::value]), "rotl: count is out of range");
     return ::cuda::std::rotl(__v0_[_Idx::value], static_cast<int>(__v1_[_Idx::value]));
   }
 };
@@ -119,6 +120,7 @@ struct __simd_rotr_generator
   template <typename _Idx>
   [[nodiscard]] _CCCL_API constexpr __result_t operator()(_Idx) const noexcept
   {
+    _CCCL_ASSERT(::cuda::std::in_range<int>(__v1_[_Idx::value]), "rotr: count is out of range");
     return ::cuda::std::rotr(__v0_[_Idx::value], static_cast<int>(__v1_[_Idx::value]));
   }
 };
@@ -241,7 +243,7 @@ _CCCL_REQUIRES(is_integral_v<_Tp>)
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi, typename _Vp = basic_vec<_Tp, _Abi>)
 _CCCL_REQUIRES(__cccl_is_unsigned_integer_v<_Tp>)
-[[nodiscard]] _CCCL_API constexpr _Vp bit_ceil(const basic_vec<_Tp, _Abi>& __v)
+[[nodiscard]] _CCCL_API constexpr _Vp bit_ceil(const basic_vec<_Tp, _Abi>& __v) noexcept
 {
   return _Vp{__simd_bit_ceil_generator<_Vp>{__v}};
 }
@@ -266,8 +268,7 @@ inline constexpr bool __simd_is_valid_rotate_v =
   __cccl_is_unsigned_integer_v<_Tp0> //
   && is_integral_v<_Tp1> //
   && (__simd_size_v<_Tp0, _Abi0> == __simd_size_v<_Tp1, _Abi1>) //
-       &&sizeof(_Tp0)
-       == sizeof(_Tp1);
+  &&(sizeof(_Tp0) == sizeof(_Tp1));
 
 _CCCL_TEMPLATE(typename _Tp0,
                typename _Abi0,
