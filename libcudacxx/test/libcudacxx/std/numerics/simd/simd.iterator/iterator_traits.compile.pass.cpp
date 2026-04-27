@@ -38,6 +38,7 @@ TEST_FUNC void check_iter_traits()
 
   static_assert(cuda::std::is_same_v<typename Traits::value_type, ValueType>);
   static_assert(cuda::std::is_same_v<typename Traits::iterator_category, cuda::std::input_iterator_tag>);
+  static_assert(cuda::std::is_same_v<typename Traits::iterator_concept, cuda::std::random_access_iterator_tag>);
   static_assert(cuda::std::is_same_v<typename Traits::difference_type, cuda::std::ptrdiff_t>);
   static_assert(cuda::std::is_same_v<typename Traits::reference, ValueType>);
   static_assert(cuda::std::is_same_v<typename Traits::pointer, void>);

@@ -25,7 +25,9 @@
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__fwd/simd.h>
+#include <cuda/std/__iterator/advance.h>
 #include <cuda/std/__iterator/default_sentinel.h>
+#include <cuda/std/__iterator/distance.h>
 #include <cuda/std/__iterator/iterator_traits.h>
 #include <cuda/std/__memory/addressof.h>
 #include <cuda/std/__simd/abi.h>
@@ -257,6 +259,59 @@ public:
 };
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+template <typename _Vp>
+struct iterator_traits<simd::__simd_iterator<_Vp>>
+{
+  using __iter            = simd::__simd_iterator<_Vp>;
+  using iterator_concept  = typename __iter::iterator_concept;
+  using iterator_category = typename __iter::iterator_category;
+  using value_type        = typename __iter::value_type;
+  using difference_type   = typename __iter::difference_type;
+  using pointer           = void;
+  using reference         = value_type;
+};
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
+#if _CCCL_HAS_HOST_STD_LIB()
+_CCCL_BEGIN_NAMESPACE_STD
+
+template <typename _Diff, typename _Vp>
+_CCCL_HOST_API constexpr void advance(::cuda::std::simd::__simd_iterator<_Vp>& __iter, const _Diff __diff) noexcept
+{
+  ::cuda::std::advance(__iter, __diff);
+}
+
+template <typename _Vp>
+[[nodiscard]] _CCCL_HOST_API constexpr typename ::cuda::std::simd::__simd_iterator<_Vp>::difference_type distance(
+  const ::cuda::std::simd::__simd_iterator<_Vp> __first, const ::cuda::std::simd::__simd_iterator<_Vp> __last) noexcept
+{
+  return ::cuda::std::distance(__first, __last);
+}
+
+template <typename _Vp>
+[[nodiscard]] _CCCL_HOST_API constexpr ::cuda::std::simd::__simd_iterator<_Vp>
+next(::cuda::std::simd::__simd_iterator<_Vp> __iter,
+     const typename ::cuda::std::simd::__simd_iterator<_Vp>::difference_type __n = 1) noexcept
+{
+  ::cuda::std::advance(__iter, __n);
+  return __iter;
+}
+
+template <typename _Vp>
+[[nodiscard]] _CCCL_HOST_API constexpr ::cuda::std::simd::__simd_iterator<_Vp>
+prev(::cuda::std::simd::__simd_iterator<_Vp> __iter,
+     const typename ::cuda::std::simd::__simd_iterator<_Vp>::difference_type __n = 1) noexcept
+{
+  ::cuda::std::advance(__iter, -__n);
+  return __iter;
+}
+
+_CCCL_END_NAMESPACE_STD
+#endif // _CCCL_HAS_HOST_STD_LIB()
 
 #include <cuda/std/__cccl/epilogue.h>
 
