@@ -13,6 +13,7 @@
 
 #include <cuda/std/__simd_>
 #include <cuda/std/array>
+#include <cuda/std/cmath>
 #include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
 
@@ -88,6 +89,48 @@ TEST_FUNC constexpr simd::basic_vec<T, simd::fixed_size<N>> make_iota_vec()
   }
   return simd::basic_vec<T, simd::fixed_size<N>>(arr);
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// math utilities
+
+template <typename T>
+struct math_values
+{
+  template <typename I>
+  TEST_FUNC constexpr T operator()(I i) const noexcept
+  {
+    return static_cast<T>(static_cast<int>(i) - 1) / T{4};
+  }
+};
+
+template <typename T>
+struct positive_math_values
+{
+  template <typename I>
+  TEST_FUNC constexpr T operator()(I i) const noexcept
+  {
+    return static_cast<T>(i + 1) / T{4};
+  }
+};
+
+template <typename T>
+TEST_FUNC bool almost_equal(T lhs, T rhs, T tolerance) noexcept
+{
+  return cuda::std::fabs(lhs - rhs) <= tolerance;
+}
+
+// Each simd.math test file must define test_type<T, N>() and then define test() using this macro.
+// clang-format off
+#define DEFINE_SIMD_MATH_FLOATING_TEST()                           \
+  TEST_FUNC bool test()                                            \
+  {                                                                \
+    test_type<float, 1>();                                         \
+    test_type<float, 4>();                                         \
+    test_type<double, 1>();                                        \
+    test_type<double, 4>();                                        \
+    return true;                                                   \
+  }
+// clang-format on
 
 // Each vec test file must define test_type<T, N>() and then define test() using this macro.
 // clang-format off
