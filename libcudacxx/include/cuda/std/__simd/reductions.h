@@ -268,6 +268,7 @@ template <size_t _Bytes, typename _Abi>
 template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_min_index(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
+  _CCCL_ASSERT(::cuda::std::simd::any_of(__k), "No bits are set");
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 0; __i < __k.__size; ++__i)
   {
@@ -276,13 +277,13 @@ template <size_t _Bytes, typename _Abi>
       return __i;
     }
   }
-  _CCCL_ASSERT(false, "No bits are set");
   return __simd_size_type{-1};
 }
 
 template <size_t _Bytes, typename _Abi>
 [[nodiscard]] _CCCL_API constexpr __simd_size_type reduce_max_index(const basic_mask<_Bytes, _Abi>& __k) noexcept
 {
+  _CCCL_ASSERT(::cuda::std::simd::any_of(__k), "No bits are set");
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = __k.__size - 1; __i >= 0; --__i)
   {
@@ -291,7 +292,6 @@ template <size_t _Bytes, typename _Abi>
       return __i;
     }
   }
-  _CCCL_ASSERT(false, "No bits are set");
   return __simd_size_type{-1};
 }
 

@@ -263,6 +263,7 @@ TEST_FUNC constexpr void test_reduce_throwing_op()
   using Mask = typename Vec::mask_type;
   Vec vec{};
   Mask mask(true);
+  unused(vec, mask);
 
   static_assert(!noexcept(simd::reduce(vec, throwing_plus{})));
   static_assert(!noexcept(simd::reduce(vec, mask, throwing_plus{}, T{})));
