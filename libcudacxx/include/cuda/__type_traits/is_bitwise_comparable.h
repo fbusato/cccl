@@ -20,13 +20,18 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/__fwd/complex.h>
 #include <cuda/__type_traits/is_vector_type.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__fwd/array.h>
+#include <cuda/std/__fwd/complex.h>
 #include <cuda/std/__fwd/pair.h>
 #include <cuda/std/__fwd/tuple.h>
+#include <cuda/std/__type_traits/aggregate_members_all_of.h>
+#include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/has_unique_object_representation.h>
 #include <cuda/std/__type_traits/integral_constant.h>
+#include <cuda/std/__type_traits/is_aggregate.h>
 #include <cuda/std/__type_traits/is_extended_floating_point.h>
 #include <cuda/std/__type_traits/remove_cv.h>
 
@@ -34,34 +39,57 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA
 
-//! Users are allowed to specialize this variable template for their own types
-template <typename _Tp>
-constexpr bool is_bitwise_comparable_v =
-  ::cuda::std::has_unique_object_representations_v<::cuda::std::remove_cv_t<_Tp>>
-  && !::cuda::std::__is_extended_floating_point_v<::cuda::std::remove_cv_t<_Tp>>
-#if _CCCL_HAS_CTK()
-  && !::cuda::is_extended_fp_vector_type_v<::cuda::std::remove_cv_t<_Tp>>
-#endif // _CCCL_HAS_CTK()
-  ;
+template <typename _Tp, typename = void>
+inline constexpr bool __is_aggregate_bitwise_comparable_v = true;
 
 template <typename _Tp>
-constexpr bool is_bitwise_comparable_v<_Tp[]> = is_bitwise_comparable_v<_Tp>;
+inline constexpr bool __is_bitwise_comparable_v =
+  ::cuda::std::has_unique_object_representations_v<_Tp> // no padding, no float/double
+  && !::cuda::std::__is_extended_floating_point_v<_Tp> //
+  && !is_extended_fp_vector_type_v<_Tp> //
+  && __is_aggregate_bitwise_comparable_v<_Tp>;
+
+template <typename _Tp>
+inline constexpr bool __is_bitwise_comparable_v<_Tp[]> = __is_bitwise_comparable_v<_Tp>;
 
 template <typename _Tp, ::cuda::std::size_t _Size>
-constexpr bool is_bitwise_comparable_v<_Tp[_Size]> = is_bitwise_comparable_v<_Tp>;
+inline constexpr bool __is_bitwise_comparable_v<_Tp[_Size]> = __is_bitwise_comparable_v<_Tp>;
 
 template <typename _Tp, ::cuda::std::size_t _Size>
-constexpr bool is_bitwise_comparable_v<::cuda::std::array<_Tp, _Size>> = is_bitwise_comparable_v<_Tp>;
+inline constexpr bool __is_bitwise_comparable_v<::cuda::std::array<_Tp, _Size>> = __is_bitwise_comparable_v<_Tp>;
 
 template <typename _T1, typename _T2>
-constexpr bool is_bitwise_comparable_v<::cuda::std::pair<_T1, _T2>> =
-  (sizeof(::cuda::std::pair<_T1, _T2>) == sizeof(_T1) + sizeof(_T2))
-  && is_bitwise_comparable_v<_T1> && is_bitwise_comparable_v<_T2>;
+inline constexpr bool __is_bitwise_comparable_v<::cuda::std::pair<_T1, _T2>> =
+  ::cuda::std::has_unique_object_representations_v<::cuda::std::pair<_T1, _T2>> // avoid sizeof -> avoid fwd
+  && __is_bitwise_comparable_v<_T1> && __is_bitwise_comparable_v<_T2>;
 
 template <typename... _Ts>
-constexpr bool is_bitwise_comparable_v<::cuda::std::tuple<_Ts...>> =
-  (sizeof...(_Ts) == 0 || sizeof(::cuda::std::tuple<_Ts...>) == (sizeof(_Ts) + ... + 0))
-  && (is_bitwise_comparable_v<_Ts> && ...);
+inline constexpr bool __is_bitwise_comparable_v<::cuda::std::tuple<_Ts...>> =
+  ::cuda::std::has_unique_object_representations_v<::cuda::std::tuple<_Ts...>> // avoid sizeof -> avoid fwd
+  && (__is_bitwise_comparable_v<_Ts> && ...);
+
+template <typename _Tp>
+inline constexpr bool __is_bitwise_comparable_v<::cuda::std::complex<_Tp>> = false;
+
+template <typename _Tp>
+inline constexpr bool __is_bitwise_comparable_v<::cuda::complex<_Tp>> = false;
+
+// if all the previous conditions fail, check if the type is an aggregate and all its members are bitwise comparable
+template <typename _Tp>
+using __is_bitwise_comparable_callable = ::cuda::std::bool_constant<__is_bitwise_comparable_v<_Tp>>;
+
+// __aggregate_all_of_v returns true if the type is not an aggregate (or empty)
+template <typename _Tp>
+inline constexpr bool
+  __is_aggregate_bitwise_comparable_v<_Tp, ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp>, void>> =
+    ::cuda::std::__aggregate_all_of_v<__is_bitwise_comparable_callable, _Tp>;
+
+//----------------------------------------------------------------------------------------------------------------------
+// public variable template and alias
+
+// Users are allowed to specialize this variable template for their own types
+template <typename _Tp>
+inline constexpr bool is_bitwise_comparable_v = __is_bitwise_comparable_v<::cuda::std::remove_cv_t<_Tp>>;
 
 // defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>

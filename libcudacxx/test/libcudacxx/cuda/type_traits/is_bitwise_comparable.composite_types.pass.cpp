@@ -7,32 +7,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cuda/__complex_>
 #include <cuda/std/array>
+#include <cuda/std/complex>
 #include <cuda/std/tuple>
 #include <cuda/std/utility>
 #include <cuda/type_traits>
 
 #include "test_macros.h"
-
-template <class T>
-__host__ __device__ void test_is_bitwise_comparable()
-{
-  static_assert(cuda::is_bitwise_comparable<T>::value);
-  static_assert(cuda::is_bitwise_comparable_v<T>);
-  static_assert(cuda::is_bitwise_comparable_v<const T>);
-  static_assert(cuda::is_bitwise_comparable_v<volatile T>);
-  static_assert(cuda::is_bitwise_comparable_v<const volatile T>);
-}
-
-template <class T>
-__host__ __device__ void test_is_not_bitwise_comparable()
-{
-  static_assert(!cuda::is_bitwise_comparable<T>::value);
-  static_assert(!cuda::is_bitwise_comparable_v<T>);
-  static_assert(!cuda::is_bitwise_comparable_v<const T>);
-  static_assert(!cuda::is_bitwise_comparable_v<volatile T>);
-  static_assert(!cuda::is_bitwise_comparable_v<const volatile T>);
-}
 
 struct WithPadding
 {
@@ -48,21 +30,8 @@ struct UserSpecialization
 template <>
 constexpr bool cuda::is_bitwise_comparable_v<UserSpecialization> = true;
 
-__host__ __device__ void test()
+__host__ __device__ void test_composite_types()
 {
-  // types with unique object representations
-  test_is_bitwise_comparable<int>();
-  test_is_bitwise_comparable<unsigned>();
-  test_is_bitwise_comparable<char>();
-  test_is_bitwise_comparable<unsigned char>();
-  test_is_bitwise_comparable<short>();
-  test_is_bitwise_comparable<long long>();
-
-  // arrays
-  static_assert(cuda::is_bitwise_comparable_v<int[4]>);
-  static_assert(cuda::is_bitwise_comparable_v<const int[4]>);
-  static_assert(cuda::is_bitwise_comparable_v<unsigned char[8]>);
-
   // padding-free cuda::std::array, pair, tuple of bitwise comparable types
   static_assert(cuda::is_bitwise_comparable_v<cuda::std::array<int, 4>>);
   static_assert(cuda::is_bitwise_comparable_v<cuda::std::pair<int, unsigned>>);
@@ -73,33 +42,32 @@ __host__ __device__ void test()
   static_assert(!cuda::is_bitwise_comparable_v<cuda::std::pair<int, char>>);
   static_assert(!cuda::is_bitwise_comparable_v<cuda::std::tuple<int, unsigned, char>>);
 
-  // types without unique object representations
-  test_is_not_bitwise_comparable<float>();
-  test_is_not_bitwise_comparable<double>();
-  test_is_not_bitwise_comparable<WithPadding>();
+  // complex types are explicitly not bitwise comparable
+  static_assert(!cuda::is_bitwise_comparable_v<cuda::std::complex<int>>);
+  static_assert(!cuda::is_bitwise_comparable_v<const cuda::std::complex<int>>);
+  static_assert(!cuda::is_bitwise_comparable<cuda::std::complex<int>>::value);
+  static_assert(!cuda::is_bitwise_comparable_v<cuda::complex<int>>);
+  static_assert(!cuda::is_bitwise_comparable_v<const cuda::complex<int>>);
+  static_assert(!cuda::is_bitwise_comparable<cuda::complex<int>>::value);
 
-  // extended floating-point scalar types
+  static_assert(!cuda::is_bitwise_comparable_v<WithPadding>);
+
+  // user specialization of the variable template
+  static_assert(cuda::is_bitwise_comparable_v<UserSpecialization>);
+}
+
 #if _CCCL_HAS_NVFP16()
-  test_is_not_bitwise_comparable<__half>();
-#endif // _CCCL_HAS_NVFP16()
-#if _CCCL_HAS_NVBF16()
-  test_is_not_bitwise_comparable<__nv_bfloat16>();
-#endif // _CCCL_HAS_NVBF16()
-#if _CCCL_HAS_NVFP8_E4M3()
-  test_is_not_bitwise_comparable<__nv_fp8_e4m3>();
-#endif // _CCCL_HAS_NVFP8_E4M3()
 
-  // extended floating-point vector types
-#if _CCCL_HAS_NVFP16()
-  test_is_not_bitwise_comparable<__half2>();
-#endif // _CCCL_HAS_NVFP16()
-#if _CCCL_HAS_NVBF16()
-  test_is_not_bitwise_comparable<__nv_bfloat162>();
-#endif // _CCCL_HAS_NVBF16()
-#if _CCCL_HAS_NVFP8()
-  test_is_not_bitwise_comparable<__nv_fp8x2_e4m3>();
-#endif // _CCCL_HAS_NVFP8()
+struct NoPaddingExtendedFloatingPoint
+{
+  uint16_t x;
+  __half y;
+};
 
+#endif // _CCCL_HAS_NVFP16()
+
+__host__ __device__ void test_extended_floating_point_types()
+{
   // compositions of extended floating-point types
 #if _CCCL_HAS_NVFP16()
   static_assert(!cuda::is_bitwise_comparable_v<__half[4]>);
@@ -117,15 +85,12 @@ __host__ __device__ void test()
 #if _CCCL_HAS_NVFP16()
   static_assert(!cuda::is_bitwise_comparable_v<cuda::std::array<cuda::std::pair<__half, int>, 2>>);
   static_assert(!cuda::is_bitwise_comparable_v<cuda::std::tuple<cuda::std::array<__half, 4>, int>>);
+  static_assert(!cuda::is_bitwise_comparable_v<NoPaddingExtendedFloatingPoint>);
 #endif // _CCCL_HAS_NVFP16()
-
-  // user specialization of the variable template
-  static_assert(cuda::is_bitwise_comparable_v<UserSpecialization>);
-  static_assert(cuda::is_bitwise_comparable<UserSpecialization>::value);
 }
 
 int main(int, char**)
 {
-  test();
+  test_composite_types();
   return 0;
 }
