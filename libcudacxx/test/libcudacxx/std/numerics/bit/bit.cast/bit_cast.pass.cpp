@@ -8,6 +8,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// XFAIL: enable-tile
+// nvbug6077498: ICE when validating tile MLIR
+
 // <cuda/std/bit>
 //
 // template<class To, class From>
@@ -29,7 +32,7 @@
 // cuda::std::bit_cast does not preserve padding bits, so if T has padding bits,
 // the results might not memcmp cleanly.
 template <bool HasUniqueObjectRepresentations = true, typename T>
-__host__ __device__ void test_roundtrip_through_buffer(T from)
+TEST_FUNC void test_roundtrip_through_buffer(T from)
 {
   struct Buffer
   {
@@ -50,7 +53,7 @@ __host__ __device__ void test_roundtrip_through_buffer(T from)
 }
 
 template <bool HasUniqueObjectRepresentations = true, typename T>
-__host__ __device__ void test_roundtrip_through_nested_T(T from)
+TEST_FUNC void test_roundtrip_through_nested_T(T from)
 {
   struct Nested
   {
@@ -73,7 +76,7 @@ __host__ __device__ void test_roundtrip_through_nested_T(T from)
 }
 
 template <typename Intermediate, bool HasUniqueObjectRepresentations = true, typename T>
-__host__ __device__ void test_roundtrip_through(T from)
+TEST_FUNC void test_roundtrip_through(T from)
 {
   static_assert(sizeof(Intermediate) == sizeof(T));
 
@@ -102,7 +105,7 @@ struct TrivialPod
 };
 
 template <typename T>
-__host__ __device__ _CCCL_CONSTEXPR_BIT_CAST cuda::std::array<T, 10> generate_signed_integral_values()
+TEST_FUNC _CCCL_CONSTEXPR_BIT_CAST cuda::std::array<T, 10> generate_signed_integral_values()
 {
   return {cuda::std::numeric_limits<T>::min(),
           cuda::std::numeric_limits<T>::min() + 1,
@@ -117,7 +120,7 @@ __host__ __device__ _CCCL_CONSTEXPR_BIT_CAST cuda::std::array<T, 10> generate_si
 }
 
 template <typename T>
-__host__ __device__ _CCCL_CONSTEXPR_BIT_CAST cuda::std::array<T, 6> generate_unsigned_integral_values()
+TEST_FUNC _CCCL_CONSTEXPR_BIT_CAST cuda::std::array<T, 6> generate_unsigned_integral_values()
 {
   return {static_cast<T>(0),
           static_cast<T>(1),
@@ -127,7 +130,7 @@ __host__ __device__ _CCCL_CONSTEXPR_BIT_CAST cuda::std::array<T, 6> generate_uns
           cuda::std::numeric_limits<T>::max()};
 }
 
-__host__ __device__ bool tests()
+TEST_FUNC bool tests()
 {
   for (bool b : {false, true})
   {
@@ -531,7 +534,7 @@ __host__ __device__ bool tests()
 }
 
 #if defined(_CCCL_BUILTIN_BIT_CAST)
-__host__ __device__ constexpr bool basic_constexpr_test()
+TEST_FUNC constexpr bool basic_constexpr_test()
 {
   struct Nested
   {

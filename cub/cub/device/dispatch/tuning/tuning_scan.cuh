@@ -34,14 +34,11 @@
 #include <cuda/std/__algorithm/max.h>
 #include <cuda/std/__functional/invoke.h>
 #include <cuda/std/__functional/operations.h>
+#include <cuda/std/__host_stdlib/ostream>
 #include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/is_trivially_copy_constructible.h>
 #include <cuda/std/__type_traits/void_t.h>
 #include <cuda/std/optional>
-
-#if !_CCCL_COMPILER(NVRTC)
-#  include <ostream>
-#endif
 
 CUB_NAMESPACE_BEGIN
 
@@ -572,7 +569,7 @@ struct scan_lookback_policy
     return !(lhs == rhs);
   }
 
-#if !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
   friend ::std::ostream& operator<<(::std::ostream& os, const scan_lookback_policy& p)
   {
     return os
@@ -581,7 +578,7 @@ struct scan_lookback_policy
         << ", .load_modifier = " << p.load_modifier << ", .store_algorithm = " << p.store_algorithm
         << ", .scan_algorithm = " << p.scan_algorithm << ", .delay_constructor = " << p.delay_constructor << " }";
   }
-#endif // !_CCCL_COMPILER(NVRTC)
+#endif // _CCCL_HOSTED()
 };
 
 struct scan_warpspeed_policy
@@ -607,14 +604,14 @@ struct scan_warpspeed_policy
     return !(lhs == rhs);
   }
 
-#if !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
   friend ::std::ostream& operator<<(::std::ostream& os, const scan_warpspeed_policy& p)
   {
     return os << "scan_warpspeed_policy { .num_reduce_and_scan_warps = " << p.num_reduce_and_scan_warps
               << ", .look_ahead_items_per_thread = " << p.look_ahead_items_per_thread
               << ", .items_per_thread = " << p.items_per_thread << " }";
   }
-#endif // !_CCCL_COMPILER(NVRTC)
+#endif // _CCCL_HOSTED()
 };
 
 enum class scan_algorithm
@@ -623,7 +620,7 @@ enum class scan_algorithm
   warpspeed
 };
 
-#if !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
 inline ::std::ostream& operator<<(::std::ostream& os, scan_algorithm algorithm)
 {
   switch (algorithm)
@@ -636,7 +633,7 @@ inline ::std::ostream& operator<<(::std::ostream& os, scan_algorithm algorithm)
       return os << "scan_algorithm::<unknown>";
   }
 }
-#endif // !_CCCL_COMPILER(NVRTC)
+#endif // _CCCL_HOSTED()
 
 struct scan_policy
 {
@@ -654,13 +651,13 @@ struct scan_policy
     return !(lhs == rhs);
   }
 
-#if !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
   friend ::std::ostream& operator<<(::std::ostream& os, const scan_policy& p)
   {
     return os << "scan_policy { .algorithm = " << p.algorithm << ", .lookback = " << p.lookback
               << ", .warpspeed = " << p.warpspeed << " }";
   }
-#endif // !_CCCL_COMPILER(NVRTC)
+#endif // _CCCL_HOSTED()
 };
 
 #if _CCCL_HAS_CONCEPTS()
@@ -873,63 +870,113 @@ struct policy_selector
   // TODO(griwes): remove this field before policy_selector is publicly exposed
   bool benchmark_match;
 
+  _CCCL_API constexpr auto get_sm100_fallback_warpspeed_policy() const -> scan_warpspeed_policy
+  {
+    scan_warpspeed_policy warpspeed_policy{};
+
+    // TODO(bgruber): tune this
+#if _CCCL_COMPILER(NVHPC)
+    // need to reduce the number of threads to <= 256, so each thread can use up to 255 registers. This avoids an
+    // error in ptxas, see also: https://github.com/NVIDIA/cccl/issues/7700.
+    warpspeed_policy.num_reduce_and_scan_warps = 2;
+#else // _CCCL_COMPILER(NVHPC)
+    warpspeed_policy.num_reduce_and_scan_warps = 4;
+#endif // _CCCL_COMPILER(NVHPC)
+
+    // TODO(bgruber): 5 is a bit better for complex<float>
+    warpspeed_policy.look_ahead_items_per_thread = accum_size == 2 ? 3 : 4;
+
+    // manual tuning based on cub.bench.scan.exclusive.sum.base
+    // 256 / sizeof(InputValueT) - 1 should minimize bank conflicts (and fits into 48KiB SMEM)
+    // 2-byte types and double needed special handling
+    warpspeed_policy.items_per_thread = ::cuda::std::max(256 / (input_value_size == 2 ? 2 : accum_size) - 1, 1);
+    // TODO(bgruber): the special handling of double below is a LOT faster on B200, but exceeds 48KiB SMEM
+    // clang-format off
+      // |   F64   |      I64      |     72576      |  12.301 us |       8.18% |  12.987 us |       5.75% |     0.686 us |   5.58% |   SAME   |
+      // |   F64   |      I64      |    1056384     |  16.775 us |       5.70% |  16.091 us |       6.14% |    -0.684 us |  -4.08% |   SAME   |
+      // |   F64   |      I64      |    16781184    |  66.970 us |       1.41% |  58.024 us |       3.17% |    -8.946 us | -13.36% |   FAST   |
+      // |   F64   |      I64      |   268442496    | 863.826 us |       0.23% | 676.465 us |       0.98% |  -187.360 us | -21.69% |   FAST   |
+      // |   F64   |      I64      |   1073745792   |   3.419 ms |       0.11% |   2.664 ms |       0.48% |  -755.409 us | -22.09% |   FAST   |
+      // |   F64   |      I64      |   4294975104   |  13.641 ms |       0.05% |  10.575 ms |       0.24% | -3065.815 us | -22.48% |   FAST   |
+    // clang-format on
+    // (256 / (sizeof(InputValueT) == 2 ? 2 : (::cuda::std::is_same_v<InputValueT, double> ? 4 : sizeof(AccumT))) -
+    // 1);
+
+    return warpspeed_policy;
+  }
+
+  _CCCL_API constexpr auto get_sm120_fallback_warpspeed_policy() const -> scan_warpspeed_policy
+  {
+    auto policy = get_sm100_fallback_warpspeed_policy();
+    if (operation_t == op_kind_t::other && is_arithmetic_type(input_type))
+    {
+      if (input_value_size == 4 || input_value_size == 8)
+      {
+        policy.items_per_thread = 127;
+      }
+      else
+      {
+        policy.items_per_thread = ::cuda::std::min(policy.items_per_thread, input_value_size <= 2 ? 63 : 127);
+      }
+    }
+    return policy;
+  }
+
   _CCCL_API constexpr auto get_warpspeed_policy(::cuda::arch_id arch) const
     -> ::cuda::std::optional<scan_warpspeed_policy>
   {
+    if (arch >= ::cuda::arch_id::sm_120)
+    {
+      return get_sm120_fallback_warpspeed_policy();
+    }
     if (arch >= ::cuda::arch_id::sm_100)
     {
-      scan_warpspeed_policy warpspeed_policy{};
-
-      // TODO(bgruber): tune this
-#if _CCCL_COMPILER(NVHPC)
-      // need to reduce the number of threads to <= 256, so each thread can use up to 255 registers. This avoids an
-      // error in ptxas, see also: https://github.com/NVIDIA/cccl/issues/7700.
-      warpspeed_policy.num_reduce_and_scan_warps = 2;
-#else // _CCCL_COMPILER(NVHPC)
-      warpspeed_policy.num_reduce_and_scan_warps = 4;
-#endif // _CCCL_COMPILER(NVHPC)
-
-      // TODO(bgruber): 5 is a bit better for complex<float>
-      warpspeed_policy.look_ahead_items_per_thread = accum_size == 2 ? 3 : 4;
-
-      // manual tuning based on cub.bench.scan.exclusive.sum.base
-      // 256 / sizeof(InputValueT) - 1 should minimize bank conflicts (and fits into 48KiB SMEM)
-      // 2-byte types and double needed special handling
-      auto items_per_thread = ::cuda::std::max(256 / (input_value_size == 2 ? 2 : accum_size) - 1, 1);
-      // TODO(bgruber): the special handling of double below is a LOT faster on B200, but exceeds 48KiB SMEM
-      // clang-format off
-    // |   F64   |      I32      |     72576      |  11.295 us |       2.44% |  11.917 us |       8.02% |     0.622 us |   5.50% |   SLOW   |
-    // |   F64   |      I32      |    1056384     |  16.162 us |       6.24% |  15.847 us |       5.57% |    -0.315 us |  -1.95% |   SAME   |
-    // |   F64   |      I32      |    16781184    |  65.696 us |       1.64% |  60.650 us |       3.37% |    -5.046 us |  -7.68% |   FAST   |
-    // |   F64   |      I32      |   268442496    | 863.896 us |       0.22% | 679.100 us |       0.93% |  -184.796 us | -21.39% |   FAST   |
-    // |   F64   |      I32      |   1073745792   |   3.418 ms |       0.12% |   2.662 ms |       0.46% |  -755.740 us | -22.11% |   FAST   |
-    // |   F64   |      I64      |     72576      |  12.301 us |       8.18% |  12.987 us |       5.75% |     0.686 us |   5.58% |   SAME   |
-    // |   F64   |      I64      |    1056384     |  16.775 us |       5.70% |  16.091 us |       6.14% |    -0.684 us |  -4.08% |   SAME   |
-    // |   F64   |      I64      |    16781184    |  66.970 us |       1.41% |  58.024 us |       3.17% |    -8.946 us | -13.36% |   FAST   |
-    // |   F64   |      I64      |   268442496    | 863.826 us |       0.23% | 676.465 us |       0.98% |  -187.360 us | -21.69% |   FAST   |
-    // |   F64   |      I64      |   1073745792   |   3.419 ms |       0.11% |   2.664 ms |       0.48% |  -755.409 us | -22.09% |   FAST   |
-    // |   F64   |      I64      |   4294975104   |  13.641 ms |       0.05% |  10.575 ms |       0.24% | -3065.815 us | -22.48% |   FAST   |
-      // clang-format on
-      // (256 / (sizeof(InputValueT) == 2 ? 2 : (::cuda::std::is_same_v<InputValueT, double> ? 4 : sizeof(AccumT))) -
-      // 1);
-
-      if (arch >= ::cuda::arch_id::sm_120 && operation_t == op_kind_t::other && is_arithmetic_type(input_type))
+      // tunings from cub/benchmarks/bench/scan/exclusive/sum.warpspeed.cu
+      if (operation_t == op_kind_t::plus && accum_is_primitive_or_trivially_copy_constructible)
       {
-        if (input_value_size == 4 || input_value_size == 8)
+        switch (input_value_size)
         {
-          items_per_thread = 127;
-        }
-        else
-        {
-          items_per_thread = ::cuda::std::min(items_per_thread, input_value_size <= 2 ? 63 : 127);
+          case 1:
+            // wrps_4.lbi_8.ipt_160 ()  1.264254  1.264254  1.264254  1.264254
+            return scan_warpspeed_policy{4, 8, 160 - 1};
+            // TODO(gonidelis): we found this tuning but it regressed:
+            // wrps_3.lbi_4.ipt_96 ()  1.454824  1.247212  1.450590  1.560418
+            // return scan_warpspeed_policy{3, 4, 96 - 1};
+          case 2:
+            // TODO(gonidelis): we found this tuning but it regresses large problems, we should revisit this
+            // // wrps_4.lbi_2.ipt_96 ()  1.082511  0.929516  1.091523  1.264033
+            // return scan_warpspeed_policy{4, 2, 96 - 1};
+            // clang-format off
+            //|   I16   |      I64      |      2^16      |  17.304 us |       1.07% |  15.244 us |       0.77% |    -2.060 us | -11.91% |   FAST   |
+            //|   I16   |      I64      |      2^20      |  19.466 us |       1.21% |  17.266 us |       2.93% |    -2.200 us | -11.30% |   FAST   |
+            //|   I16   |      I64      |      2^24      |  39.565 us |       2.46% |  35.835 us |       4.25% |    -3.730 us |  -9.43% |   FAST   |
+            //|   I16   |      I64      |      2^28      | 224.318 us |       0.37% | 233.381 us |       0.46% |     9.063 us |   4.04% |   SLOW   |
+            //|   I16   |      I64      |      2^32      |   3.238 ms |       0.53% |   3.429 ms |       0.53% |   191.299 us |   5.91% |   SLOW   |
+            // clang-format on
+            // wrps_6.lbi_2.ipt_96 ()  1.167633  1.167633  1.167633  1.167633
+            return scan_warpspeed_policy{6, 2, 96 - 1};
+          case 4:
+            if (input_type == type_t::float32)
+            {
+              // wrps_4.lbi_3.ipt_88 ()  1.047200  1.002119  1.042654  1.081102
+              return scan_warpspeed_policy{4, 3, 88 - 1};
+            }
+            // wrps_4.lbi_3.ipt_80 ()  1.019078  0.999708  1.017346  1.052592
+            return scan_warpspeed_policy{4, 3, 80 - 1};
+          case 8:
+            // wrps_2.lbi_5.ipt_88 ()  1.085781   1.0  1.079245  1.103545
+            return scan_warpspeed_policy{2, 5, 88 - 1};
+          case 16:
+            // wrps_5.lbi_8.ipt_16 ()  1.159883  1.000000  1.143709  1.275821
+            return scan_warpspeed_policy{5, 8, 16 - 1};
+            // TODO(bgruber): tune for more data types
+          default:
+            break;
         }
       }
 
-      warpspeed_policy.items_per_thread = items_per_thread;
-
-      return warpspeed_policy;
+      return get_sm100_fallback_warpspeed_policy();
     }
-
     return {};
   }
 
@@ -938,8 +985,10 @@ struct policy_selector
     // We need `cuda::std::is_constant_evaluated` for the compile-time SMEM computation. And we need PTX ISA 8.6.
     // MSVC + nvcc < 13.1 just fails to compile `cub.test.device.scan.lid_1.types_0` with `Internal error` and nothing
     // else.
+    // The macro `CCCL_DISABLE_WARPSPEED_SCAN` will be left in as a kill-switch for users in case they find any bugs
+    // after we shipped the implementation. TODO(bgruber): remove CCCL_DISABLE_WARPSPEED_SCAN in CCCL 4.0
 #if __cccl_ptx_isa < 860 || !defined(_CCCL_BUILTIN_IS_CONSTANT_EVALUATED) \
-  || ((_CCCL_COMPILER(MSVC) && _CCCL_CUDA_COMPILER(NVCC, <, 13, 1)))
+  || ((_CCCL_COMPILER(MSVC) && _CCCL_CUDA_COMPILER(NVCC, <, 13, 1))) || defined(CCCL_DISABLE_WARPSPEED_SCAN)
     return false;
 #else
     if (!input_contiguous || !output_contiguous || !input_trivially_copyable || !output_trivially_copyable

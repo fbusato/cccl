@@ -5,6 +5,8 @@
 
 #include <cub/device/device_scan.cuh>
 
+#include <iostream>
+
 int main()
 {
   namespace stdexec = cuda::std::execution;
@@ -33,6 +35,6 @@ int main()
 
   if (error != cudaSuccess)
   {
-    std::cerr << "cub::DeviceScan::ExclusiveScan failed with status: " << error << std::endl;
+    std::cerr << "cub::DeviceScan::ExclusiveScan failed with status: " << error << '\n';
   }
 }
