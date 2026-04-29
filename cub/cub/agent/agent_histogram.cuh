@@ -37,7 +37,7 @@ enum BlockHistogramMemoryPreference
   BLEND
 };
 
-#if !_CCCL_COMPILER(NVRTC)
+#if _CCCL_HOSTED()
 inline ::std::ostream& operator<<(::std::ostream& os, BlockHistogramMemoryPreference mempref)
 {
   switch (mempref)
@@ -52,7 +52,7 @@ inline ::std::ostream& operator<<(::std::ostream& os, BlockHistogramMemoryPrefer
       return os << "<unknown BlockHistogramMemoryPreference: " << static_cast<int>(mempref) << ">";
   }
 }
-#endif // !_CCCL_COMPILER(NVRTC)
+#endif // _CCCL_HOSTED()
 
 //! Parameterizable tuning policy type for AgentHistogram
 //!
@@ -112,29 +112,6 @@ struct AgentHistogramPolicy
   ///< Cache load modifier for reading input elements
   static constexpr CacheLoadModifier LOAD_MODIFIER = LoadModifier;
 };
-
-#if defined(CUB_DEFINE_RUNTIME_POLICIES) || defined(CUB_ENABLE_POLICY_PTX_JSON)
-namespace detail
-{
-// Only define this when needed.
-// Because of overload woes, this depends on C++20 concepts. util_device.h checks that concepts are available when
-// either runtime policies or PTX JSON information are enabled, so if they are, this is always valid. The generic
-// version is always defined, and that's the only one needed for regular CUB operations.
-//
-// TODO: enable this unconditionally once concepts are always available
-CUB_DETAIL_POLICY_WRAPPER_DEFINE(
-  HistogramAgentPolicy,
-  (always_true),
-  (BLOCK_THREADS, BlockThreads, int),
-  (PIXELS_PER_THREAD, PixelsPerThread, int),
-  (IS_RLE_COMPRESS, IsRleCompress, bool),
-  (MEM_PREFERENCE, MemPreference, BlockHistogramMemoryPreference),
-  (IS_WORK_STEALING, IsWorkStealing, bool),
-  (VEC_SIZE, VecSize, int),
-  (LOAD_ALGORITHM, LoadAlgorithm, cub::BlockLoadAlgorithm),
-  (LOAD_MODIFIER, LoadModifier, cub::CacheLoadModifier))
-} // namespace detail
-#endif
 
 namespace detail::histogram
 {
@@ -328,9 +305,9 @@ struct AgentHistogram
         {
           if (bins[pixel] >= 0)
           {
-            NV_IF_TARGET(NV_PROVIDES_SM_60,
-                         (atomicAdd_block(privatized_histograms[ch] + bins[pixel], accumulator);),
-                         (atomicAdd(privatized_histograms[ch] + bins[pixel], accumulator);));
+            NV_IF_ELSE_TARGET(NV_PROVIDES_SM_60,
+                              (atomicAdd_block(privatized_histograms[ch] + bins[pixel], accumulator);),
+                              (atomicAdd(privatized_histograms[ch] + bins[pixel], accumulator);));
           }
 
           accumulator = 0;
@@ -341,9 +318,9 @@ struct AgentHistogram
       // Last pixel
       if (bins[pixels_per_thread - 1] >= 0)
       {
-        NV_IF_TARGET(NV_PROVIDES_SM_60,
-                     (atomicAdd_block(privatized_histograms[ch] + bins[pixels_per_thread - 1], accumulator);),
-                     (atomicAdd(privatized_histograms[ch] + bins[pixels_per_thread - 1], accumulator);));
+        NV_IF_ELSE_TARGET(NV_PROVIDES_SM_60,
+                          (atomicAdd_block(privatized_histograms[ch] + bins[pixels_per_thread - 1], accumulator);),
+                          (atomicAdd(privatized_histograms[ch] + bins[pixels_per_thread - 1], accumulator);));
       }
     }
   }
@@ -366,9 +343,9 @@ struct AgentHistogram
         privatized_decode_op[ch].template BinSelect<load_modifier>(samples[pixel][ch], bin, is_valid[pixel]);
         if (bin >= 0)
         {
-          NV_IF_TARGET(NV_PROVIDES_SM_60,
-                       (atomicAdd_block(privatized_histograms[ch] + bin, 1);),
-                       (atomicAdd(privatized_histograms[ch] + bin, 1);));
+          NV_IF_ELSE_TARGET(NV_PROVIDES_SM_60,
+                            (atomicAdd_block(privatized_histograms[ch] + bin, 1);),
+                            (atomicAdd(privatized_histograms[ch] + bin, 1);));
         }
       }
     }
