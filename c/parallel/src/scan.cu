@@ -232,7 +232,7 @@ struct scan_kernel_source
   {
     // we can ignore passing a wrong AccumT, since we only store a pointer, and the kernel will have the right type
     cub::detail::scan::tile_state_kernel_arg_t<scan_tile_state, char> arg;
-    ::cuda::std::__construct_at(&arg.lookahead, static_cast<cub::detail::warpspeed::tile_state_t<char>*>(ts));
+    ::cuda::std::__construct_at(&arg.warpspeed, static_cast<cub::detail::warpspeed::tile_state_t<char>*>(ts));
     return arg;
   }
 };
@@ -361,7 +361,7 @@ using namespace cub;
 using namespace cub::detail::scan;
 using cub::detail::delay_constructor_policy;
 using cub::detail::delay_constructor_kind;
-static_assert(device_scan_policy()(::cuda::arch_id{{CUB_PTX_ARCH / 10}}) == {6}, "Host generated and JIT compiled policy mismatch");
+static_assert(device_scan_policy()(detail::current_tuning_arch()) == {6}, "Host generated and JIT compiled policy mismatch");
 )XXX",
     input_it.value_type.size, // 0
     input_it.value_type.alignment, // 1
@@ -392,6 +392,7 @@ static_assert(device_scan_policy()(::cuda::arch_id{{CUB_PTX_ARCH / 10}}) == {6},
     ctk_path,
     "-rdc=true",
     "-dlto",
+    "-default-device",
     "-DCUB_DISABLE_CDP",
     "-std=c++20"};
 
