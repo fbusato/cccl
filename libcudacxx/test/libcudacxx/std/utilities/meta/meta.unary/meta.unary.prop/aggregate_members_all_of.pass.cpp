@@ -145,48 +145,48 @@ static_assert(cuda::std::__aggregate_arity_v<WithArray> == 4);
 #endif // !TEST_COMPILER(MSVC)
 
 //----------------------------------------------------------------------------------------------------------------------
-// __aggregate_all_of tests
+// __aggregate_all_of_v tests
 
 // empty aggregate: always true
-static_assert(cuda::std::__aggregate_all_of<always_true, Empty>::value);
-static_assert(cuda::std::__aggregate_all_of<always_false, Empty>::value);
+static_assert(cuda::std::__aggregate_all_of_v<always_true, Empty>);
+static_assert(cuda::std::__aggregate_all_of_v<always_false, Empty>);
 
 // all members satisfy the predicate
-static_assert(cuda::std::__aggregate_all_of<cuda::std::is_integral, AllInts>::value);
-static_assert(cuda::std::__aggregate_all_of<always_true, ThreeMembers>::value);
+static_assert(cuda::std::__aggregate_all_of_v<cuda::std::is_integral, AllInts>);
+static_assert(cuda::std::__aggregate_all_of_v<always_true, ThreeMembers>);
 
 // not all members satisfy the predicate
-static_assert(!cuda::std::__aggregate_all_of<cuda::std::is_integral, TwoMembers>::value); // mixed int/float
-static_assert(!cuda::std::__aggregate_all_of<always_false, OneMember>::value);
+static_assert(!cuda::std::__aggregate_all_of_v<cuda::std::is_integral, TwoMembers>); // mixed int/float
+static_assert(!cuda::std::__aggregate_all_of_v<always_false, OneMember>);
 
 // max arity aggregate
-static_assert(cuda::std::__aggregate_all_of<cuda::std::is_integral, LargeAggregate>::value);
+static_assert(cuda::std::__aggregate_all_of_v<cuda::std::is_integral, LargeAggregate>);
 
 // too many members: returns false (arity exceeds __aggregate_max_arity)
-static_assert(!cuda::std::__aggregate_all_of<cuda::std::is_integral, TooLarge>::value);
+static_assert(!cuda::std::__aggregate_all_of_v<cuda::std::is_integral, TooLarge>);
 
 // nested / array members
 #if !TEST_COMPILER(MSVC) // MSVC does not perform brace elision in SFINAE contexts
-static_assert(cuda::std::__aggregate_all_of<cuda::std::is_integral, Nested>::value);
-static_assert(cuda::std::__aggregate_all_of<cuda::std::is_integral, WithArray>::value);
-static_assert(cuda::std::__aggregate_all_of<cuda::std::is_trivially_copyable, Nested>::value);
-static_assert(cuda::std::__aggregate_all_of<cuda::std::is_trivially_copyable, WithArray>::value);
+static_assert(cuda::std::__aggregate_all_of_v<cuda::std::is_integral, Nested>);
+static_assert(cuda::std::__aggregate_all_of_v<cuda::std::is_integral, WithArray>);
+static_assert(cuda::std::__aggregate_all_of_v<cuda::std::is_trivially_copyable, Nested>);
+static_assert(cuda::std::__aggregate_all_of_v<cuda::std::is_trivially_copyable, WithArray>);
 #endif // !TEST_COMPILER(MSVC)
 
 // non-aggregate: always false
-static_assert(!cuda::std::__aggregate_all_of<always_true, NonAggregate>::value);
-static_assert(!cuda::std::__aggregate_all_of<cuda::std::is_integral, NonAggregate>::value);
+static_assert(!cuda::std::__aggregate_all_of_v<always_true, NonAggregate>);
+static_assert(!cuda::std::__aggregate_all_of_v<cuda::std::is_integral, NonAggregate>);
 
 // aggregate with a non-trivially-copyable member
-static_assert(!cuda::std::__aggregate_all_of<cuda::std::is_trivially_copyable, HasNonTriviallyCopyableMember>::value);
+static_assert(!cuda::std::__aggregate_all_of_v<cuda::std::is_trivially_copyable, HasNonTriviallyCopyableMember>);
 
 // Edge case: aggregate with a deleted default constructor.
 // Without the special handling for N=0, compilers do not agree on the arity
 // With the special case: arity == 1
-static_assert(cuda::std::__aggregate_all_of<always_true, AggregateWithDeletedDefault>::value);
-static_assert(!cuda::std::__aggregate_all_of<always_false, AggregateWithDeletedDefault>::value);
+static_assert(cuda::std::__aggregate_all_of_v<always_true, AggregateWithDeletedDefault>);
+static_assert(!cuda::std::__aggregate_all_of_v<always_false, AggregateWithDeletedDefault>);
 #if !TEST_COMPILER(MSVC) || TEST_STD_VER > 2017
-static_assert(!cuda::std::__aggregate_all_of<cuda::std::is_integral, AggregateWithDeletedDefault>::value);
+static_assert(!cuda::std::__aggregate_all_of_v<cuda::std::is_integral, AggregateWithDeletedDefault>);
 #endif // !TEST_COMPILER(MSVC) || TEST_STD_VER > 2017
 
 int main(int, char**)

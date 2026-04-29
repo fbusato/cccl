@@ -102,13 +102,11 @@ template <template <typename> class _Predicate,
           typename _Tp,
           int _Arity = __aggregate_arity_v<_Tp>,
           bool       = (_Arity > 0) && (_Arity <= __aggregate_max_arity)>
-struct __aggregate_all_of_dispatch : false_type
-{};
+inline constexpr bool __aggregate_all_of_dispatch_v = false;
 
 template <template <typename> class _Predicate, typename _Tp, int _Arity>
-struct __aggregate_all_of_dispatch<_Predicate, _Tp, _Arity, true>
-    : decltype(__aggregate_all_of_fn<_Arity>::template __call<_Predicate, _Tp>(0))
-{};
+inline constexpr bool __aggregate_all_of_dispatch_v<_Predicate, _Tp, _Arity, true> =
+  decltype(__aggregate_all_of_fn<_Arity>::template __call<_Predicate, _Tp>(0))::value;
 
 // if _Tp is not an aggregate, return false.
 // Empty aggregates are true for any predicate.
@@ -117,18 +115,16 @@ template <template <typename> class _Predicate,
           typename _Tp,
           bool = is_aggregate_v<_Tp>,
           bool = is_empty_v<_Tp>> // required for nvc++ and NVCC+clang
-struct __aggregate_all_of : false_type
-{};
+inline constexpr bool __aggregate_all_of_v = false;
 
 // (non-empty) aggregate
 template <template <typename> class _Predicate, typename _Tp>
-struct __aggregate_all_of<_Predicate, _Tp, true, false> : __aggregate_all_of_dispatch<_Predicate, _Tp>
-{};
+inline constexpr bool __aggregate_all_of_v<_Predicate, _Tp, true, false> =
+  __aggregate_all_of_dispatch_v<_Predicate, _Tp>;
 
 // Empty aggregate (true for any predicate)
 template <template <typename> class _Predicate, typename _Tp>
-struct __aggregate_all_of<_Predicate, _Tp, true, true> : true_type
-{};
+inline constexpr bool __aggregate_all_of_v<_Predicate, _Tp, true, true> = true;
 
 _CCCL_END_NAMESPACE_CUDA_STD
 
