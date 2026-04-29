@@ -119,19 +119,6 @@ TEST_FUNC bool almost_equal(T lhs, T rhs, T tolerance) noexcept
   return cuda::std::fabs(lhs - rhs) <= tolerance;
 }
 
-// Each simd.math test file must define test_type<T, N>() and then define test() using this macro.
-// clang-format off
-#define DEFINE_SIMD_MATH_FLOATING_TEST()                           \
-  TEST_FUNC bool test()                                            \
-  {                                                                \
-    test_type<float, 1>();                                         \
-    test_type<float, 4>();                                         \
-    test_type<double, 1>();                                        \
-    test_type<double, 4>();                                        \
-    return true;                                                   \
-  }
-// clang-format on
-
 // Each vec test file must define test_type<T, N>() and then define test() using this macro.
 // clang-format off
 #if defined(__cccl_lib_char8_t)
@@ -151,28 +138,44 @@ TEST_FUNC bool almost_equal(T lhs, T rhs, T tolerance) noexcept
 #endif
 
 #if _LIBCUDACXX_HAS_NVFP16()
-#  define _SIMD_TEST_FP16()                                       \
-    test_type<__half, 1>();                                       \
-    test_type<__half, 4>();
+#  define _SIMD_TEST_FP16(_N)                                     \
+    test_type<__half, _N>();
 #else
-#  define _SIMD_TEST_FP16()
+#  define _SIMD_TEST_FP16(_N)
 #endif
 
 #if _LIBCUDACXX_HAS_NVBF16()
-#  define _SIMD_TEST_BF16()                                       \
-    test_type<__nv_bfloat16, 1>();                                \
-    test_type<__nv_bfloat16, 4>();
+#  define _SIMD_TEST_BF16(_N)                                     \
+    test_type<__nv_bfloat16, _N>();
 #else
-#  define _SIMD_TEST_BF16()
+#  define _SIMD_TEST_BF16(_N)
 #endif
 
-// __half and __nv_bfloat16 constructors are not constexpr (CUDA toolkit limitation),
-// so they are tested only at runtime via test_runtime().
-#define DEFINE_BASIC_VEC_TEST_RUNTIME()                           \
-  TEST_FUNC bool test_runtime()                         \
+// Each simd.math test file must define test_type<T, N>() and then define test() using this macro.
+#define DEFINE_SIMD_MATH_FLOATING_TEST()                           \
+  TEST_FUNC bool test()                                            \
+  {                                                                \
+    test_type<float, 4>();                                         \
+    test_type<double, 4>();                                        \
+    return true;                                                   \
+  }
+
+// __half and __nv_bfloat16 constructors are not constexpr, they are tested only at runtime via test_runtime().
+#define DEFINE_SIMD_MATH_FLOATING_TEST_RUNTIME()                  \
+  TEST_FUNC bool test_runtime()                                   \
   {                                                               \
-    _SIMD_TEST_FP16()                                             \
-    _SIMD_TEST_BF16()                                             \
+    _SIMD_TEST_FP16(4)                                            \
+    _SIMD_TEST_BF16(4)                                            \
+    return true;                                                  \
+  }
+
+#define DEFINE_BASIC_VEC_TEST_RUNTIME()                           \
+  TEST_FUNC bool test_runtime()                                   \
+  {                                                               \
+    _SIMD_TEST_FP16(1)                                            \
+    _SIMD_TEST_FP16(4)                                            \
+    _SIMD_TEST_BF16(1)                                            \
+    _SIMD_TEST_BF16(4)                                            \
     return true;                                                  \
   }
 
