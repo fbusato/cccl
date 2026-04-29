@@ -159,6 +159,7 @@ _CCCL_API constexpr void __assert_load_store_alignment([[maybe_unused]] const _U
   }
 }
 
+// TODO(fbusato): use ::cuda::is_trivially_copyable_v
 // used in load/store preconditions
 template <typename _TpIn>
 inline constexpr bool __is_cuda_vectoriazable_v =
