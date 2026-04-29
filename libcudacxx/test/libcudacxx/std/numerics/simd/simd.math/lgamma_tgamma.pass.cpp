@@ -10,7 +10,7 @@
 
 // <cuda/std/__simd_>
 
-// [simd.math], error and gamma functions
+// [simd.math], gamma functions
 
 #include <cuda/std/__simd_>
 #include <cuda/std/cassert>
@@ -24,24 +24,16 @@ TEST_FUNC void test_type()
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec vec(positive_math_values<T>{});
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::erf(vec)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::erfc(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lgamma(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::tgamma(vec)), Vec>);
-  static_assert(noexcept(cuda::std::simd::erf(vec)));
-  static_assert(noexcept(cuda::std::simd::erfc(vec)));
   static_assert(noexcept(cuda::std::simd::lgamma(vec)));
   static_assert(noexcept(cuda::std::simd::tgamma(vec)));
 
-  Vec erf_result    = cuda::std::simd::erf(vec);
-  Vec erfc_result   = cuda::std::simd::erfc(vec);
   Vec lgamma_result = cuda::std::simd::lgamma(vec);
   Vec tgamma_result = cuda::std::simd::tgamma(vec);
   T tolerance       = T{1e-5};
   for (int i = 0; i < N; ++i)
   {
-    assert(almost_equal(erf_result[i], cuda::std::erf(vec[i]), tolerance));
-    assert(almost_equal(erfc_result[i], cuda::std::erfc(vec[i]), tolerance));
     assert(almost_equal(lgamma_result[i], cuda::std::lgamma(vec[i]), tolerance));
     assert(almost_equal(tgamma_result[i], cuda::std::tgamma(vec[i]), tolerance));
   }

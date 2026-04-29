@@ -10,7 +10,7 @@
 
 // <cuda/std/__simd_>
 
-// [simd.math], fma, lerp
+// [simd.math], lerp
 
 #include <cuda/std/__simd_>
 #include <cuda/std/cassert>
@@ -29,24 +29,11 @@ TEST_FUNC void test_type()
   T sy{2};
   T sz{0.25};
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, y, z)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lerp(x, y, z)), Vec>);
-  static_assert(noexcept(cuda::std::simd::fma(x, y, z)));
   static_assert(noexcept(cuda::std::simd::lerp(x, y, z)));
 
   // [simd.math]: each ternary overload accepts any combination of vec and scalar arguments where
-  // at least one operand is a `basic_vec`. Verify return type and `noexcept` for each permutation,
-  // and (for `lerp`) that the wrapper is `constexpr` matching `cuda::std::lerp`.
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(sy, y, z)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, sy, z)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, y, sz)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(sy, sz, z)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(sy, y, sz)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, sy, sz)), Vec>);
-  static_assert(noexcept(cuda::std::simd::fma(sy, y, z)));
-  static_assert(noexcept(cuda::std::simd::fma(x, sy, z)));
-  static_assert(noexcept(cuda::std::simd::fma(x, y, sz)));
-
+  // at least one operand is a basic_vec. Verify return type and noexcept for each permutation.
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lerp(sy, y, z)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lerp(x, sy, z)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lerp(x, y, sz)), Vec>);
@@ -57,33 +44,27 @@ TEST_FUNC void test_type()
   static_assert(noexcept(cuda::std::simd::lerp(x, sy, z)));
   static_assert(noexcept(cuda::std::simd::lerp(x, y, sz)));
 
-  Vec fma_result  = cuda::std::simd::fma(x, y, z);
   Vec lerp_result = cuda::std::simd::lerp(x, y, z);
   for (int i = 0; i < N; ++i)
   {
-    assert(fma_result[i] == cuda::std::fma(x[i], y[i], z[i]));
     assert(lerp_result[i] == cuda::std::lerp(x[i], y[i], z[i]));
   }
 
-  Vec fma_mixed_a  = cuda::std::simd::fma(sy, y, z);
-  Vec fma_mixed_b  = cuda::std::simd::fma(x, sy, z);
-  Vec fma_mixed_c  = cuda::std::simd::fma(x, y, sz);
   Vec lerp_mixed_a = cuda::std::simd::lerp(x, sy, z);
   Vec lerp_mixed_b = cuda::std::simd::lerp(x, y, sz);
   for (int i = 0; i < N; ++i)
   {
-    assert(fma_mixed_a[i] == cuda::std::fma(sy, y[i], z[i]));
-    assert(fma_mixed_b[i] == cuda::std::fma(x[i], sy, z[i]));
-    assert(fma_mixed_c[i] == cuda::std::fma(x[i], y[i], sz));
     assert(lerp_mixed_a[i] == cuda::std::lerp(x[i], sy, z[i]));
     assert(lerp_mixed_b[i] == cuda::std::lerp(x[i], y[i], sz));
   }
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()
+DEFINE_SIMD_MATH_FLOATING_TEST_RUNTIME()
 
 int main(int, char**)
 {
   assert(test());
+  assert(test_runtime());
   return 0;
 }
