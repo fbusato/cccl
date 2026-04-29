@@ -22,7 +22,6 @@ template <typename T, int N>
 TEST_FUNC void test_type()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-
   Vec vec(positive_math_values<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::exp(vec)), Vec>);
@@ -61,9 +60,11 @@ TEST_FUNC void test_type()
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()
+DEFINE_SIMD_MATH_FLOATING_TEST_RUNTIME()
 
 int main(int, char**)
 {
   assert(test());
+  assert(test_runtime());
   return 0;
 }

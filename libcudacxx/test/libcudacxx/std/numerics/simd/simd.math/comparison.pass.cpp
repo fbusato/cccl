@@ -41,7 +41,7 @@ TEST_FUNC void test_type()
   static_assert(noexcept(cuda::std::simd::islessgreater(lhs, rhs)));
   static_assert(noexcept(cuda::std::simd::isunordered(lhs, rhs)));
 
-  // [simd.math]: scalar broadcast permutations must produce the same `mask_type`.
+  // [simd.math]: scalar broadcast permutations must produce the same mask_type.
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::isgreater(scalar, rhs)), Mask>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::isgreater(lhs, scalar)), Mask>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::isless(scalar, rhs)), Mask>);
@@ -79,9 +79,11 @@ TEST_FUNC void test_type()
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()
+DEFINE_SIMD_MATH_FLOATING_TEST_RUNTIME()
 
 int main(int, char**)
 {
   assert(test());
+  assert(test_runtime());
   return 0;
 }

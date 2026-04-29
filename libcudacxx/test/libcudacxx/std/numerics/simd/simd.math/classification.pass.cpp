@@ -58,9 +58,11 @@ TEST_FUNC void test_type()
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()
+DEFINE_SIMD_MATH_FLOATING_TEST_RUNTIME()
 
 int main(int, char**)
 {
   assert(test());
+  assert(test_runtime());
   return 0;
 }

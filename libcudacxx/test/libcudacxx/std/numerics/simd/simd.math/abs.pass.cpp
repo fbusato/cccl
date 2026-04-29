@@ -27,12 +27,13 @@ struct has_simd_fabs<V, cuda::std::void_t<decltype(cuda::std::simd::fabs(cuda::s
     : cuda::std::true_type
 {};
 
+template <typename T>
 struct signed_values
 {
   template <typename I>
-  TEST_FUNC constexpr int operator()(I i) const noexcept
+  TEST_FUNC constexpr T operator()(I i) const noexcept
   {
-    return static_cast<int>(i) - 2;
+    return static_cast<T>(static_cast<int>(i) - 2);
   }
 };
 
@@ -40,7 +41,6 @@ template <typename T, int N>
 TEST_FUNC void test_type()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-
   Vec vec(math_values<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::abs(vec)), Vec>);
@@ -58,28 +58,41 @@ TEST_FUNC void test_type()
   }
 }
 
-TEST_FUNC void test_signed_integral()
+template <typename T, int N>
+TEST_FUNC void test_signed_integral_type()
 {
-  using Vec = simd::basic_vec<int, simd::fixed_size<4>>;
-
-  Vec vec(signed_values{});
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  Vec vec(signed_values<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::abs(vec)), Vec>);
   static_assert(noexcept(cuda::std::simd::abs(vec)));
   static_assert(!has_simd_fabs<Vec>::value);
 
   Vec result = cuda::std::simd::abs(vec);
-  for (int i = 0; i < 4; ++i)
+  for (int i = 0; i < N; ++i)
   {
     assert(result[i] == (vec[i] < 0 ? -vec[i] : vec[i]));
   }
 }
 
+TEST_FUNC void test_signed_integral()
+{
+  test_signed_integral_type<int8_t, 4>();
+  test_signed_integral_type<int16_t, 4>();
+  test_signed_integral_type<int32_t, 4>();
+  test_signed_integral_type<int64_t, 4>();
+#if _CCCL_HAS_INT128()
+  test_signed_integral_type<__int128_t, 4>();
+#endif // _CCCL_HAS_INT128()
+}
+
 DEFINE_SIMD_MATH_FLOATING_TEST()
+DEFINE_SIMD_MATH_FLOATING_TEST_RUNTIME()
 
 int main(int, char**)
 {
   assert(test());
+  assert(test_runtime());
   test_signed_integral();
   return 0;
 }

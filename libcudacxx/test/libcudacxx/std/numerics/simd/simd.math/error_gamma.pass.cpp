@@ -22,36 +22,37 @@ template <typename T, int N>
 TEST_FUNC void test_type()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  Vec vec(positive_math_values<T>{});
 
-  Vec x(positive_math_values<T>{});
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::erf(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::erfc(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lgamma(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::tgamma(vec)), Vec>);
+  static_assert(noexcept(cuda::std::simd::erf(vec)));
+  static_assert(noexcept(cuda::std::simd::erfc(vec)));
+  static_assert(noexcept(cuda::std::simd::lgamma(vec)));
+  static_assert(noexcept(cuda::std::simd::tgamma(vec)));
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::erf(x)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::erfc(x)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lgamma(x)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::tgamma(x)), Vec>);
-  static_assert(noexcept(cuda::std::simd::erf(x)));
-  static_assert(noexcept(cuda::std::simd::erfc(x)));
-  static_assert(noexcept(cuda::std::simd::lgamma(x)));
-  static_assert(noexcept(cuda::std::simd::tgamma(x)));
-
-  Vec erf_result    = cuda::std::simd::erf(x);
-  Vec erfc_result   = cuda::std::simd::erfc(x);
-  Vec lgamma_result = cuda::std::simd::lgamma(x);
-  Vec tgamma_result = cuda::std::simd::tgamma(x);
+  Vec erf_result    = cuda::std::simd::erf(vec);
+  Vec erfc_result   = cuda::std::simd::erfc(vec);
+  Vec lgamma_result = cuda::std::simd::lgamma(vec);
+  Vec tgamma_result = cuda::std::simd::tgamma(vec);
   T tolerance       = T{1e-5};
   for (int i = 0; i < N; ++i)
   {
-    assert(almost_equal(erf_result[i], cuda::std::erf(x[i]), tolerance));
-    assert(almost_equal(erfc_result[i], cuda::std::erfc(x[i]), tolerance));
-    assert(almost_equal(lgamma_result[i], cuda::std::lgamma(x[i]), tolerance));
-    assert(almost_equal(tgamma_result[i], cuda::std::tgamma(x[i]), tolerance));
+    assert(almost_equal(erf_result[i], cuda::std::erf(vec[i]), tolerance));
+    assert(almost_equal(erfc_result[i], cuda::std::erfc(vec[i]), tolerance));
+    assert(almost_equal(lgamma_result[i], cuda::std::lgamma(vec[i]), tolerance));
+    assert(almost_equal(tgamma_result[i], cuda::std::tgamma(vec[i]), tolerance));
   }
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()
+DEFINE_SIMD_MATH_FLOATING_TEST_RUNTIME()
 
 int main(int, char**)
 {
   assert(test());
+  assert(test_runtime());
   return 0;
 }
