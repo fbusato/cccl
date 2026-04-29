@@ -19,19 +19,15 @@
 #include "../simd_test_utils.h"
 
 template <typename T, int N>
-TEST_FUNC void test_type()
+TEST_FUNC void test_non_scalar()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-
   Vec x(positive_math_values<T>{});
   Vec y(T{0.5});
-  T sy{0.5};
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::pow(x, y)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::pow(x, sy)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::pow(sy, x)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::pow(x, y)), Vec>);
   static_assert(noexcept(cuda::std::simd::pow(x, y)));
-  static_assert(noexcept(cuda::std::simd::pow(sy, x)));
 
   Vec pow_result = cuda::std::simd::pow(x, y);
   T tolerance    = T{1e-5};
@@ -39,14 +35,37 @@ TEST_FUNC void test_type()
   {
     assert(almost_equal(pow_result[i], cuda::std::pow(x[i], y[i]), tolerance));
   }
+}
 
-  Vec pow_vs = cuda::std::simd::pow(x, sy);
-  Vec pow_sv = cuda::std::simd::pow(sy, x);
+template <typename T, int N>
+TEST_FUNC void test_scalar()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+
+  Vec x(positive_math_values<T>{});
+  T scalar_y{0.5};
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::pow(x, scalar_y)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::pow(scalar_y, x)), Vec>);
+
+  static_assert(noexcept(cuda::std::simd::pow(x, scalar_y)));
+  static_assert(noexcept(cuda::std::simd::pow(scalar_y, x)));
+
+  Vec pow_vec_scalar = cuda::std::simd::pow(x, scalar_y);
+  Vec pow_scalar_vec = cuda::std::simd::pow(scalar_y, x);
+  T tolerance        = T{1e-5};
   for (int i = 0; i < N; ++i)
   {
-    assert(almost_equal(pow_vs[i], cuda::std::pow(x[i], sy), tolerance));
-    assert(almost_equal(pow_sv[i], cuda::std::pow(sy, x[i]), tolerance));
+    assert(almost_equal(pow_vec_scalar[i], cuda::std::pow(x[i], scalar_y), tolerance));
+    assert(almost_equal(pow_scalar_vec[i], cuda::std::pow(scalar_y, x[i]), tolerance));
   }
+}
+
+template <typename T, int N>
+TEST_FUNC void test_type()
+{
+  test_non_scalar<T, N>();
+  test_scalar<T, N>();
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()

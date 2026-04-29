@@ -19,7 +19,25 @@
 #include "../simd_test_utils.h"
 
 template <typename T, int N>
-TEST_FUNC void test_type()
+TEST_FUNC void test_non_scalar()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  Vec vec(positive_math_values<T>{});
+  Vec next(T{2});
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::nextafter(vec, next)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::nextafter(vec, next)), Vec>);
+  static_assert(noexcept(cuda::std::simd::nextafter(vec, next)));
+
+  Vec nextafter_result = cuda::std::simd::nextafter(vec, next);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(nextafter_result[i] == cuda::std::nextafter(vec[i], next[i]));
+  }
+}
+
+template <typename T, int N>
+TEST_FUNC void test_scalar()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
 
@@ -27,25 +45,25 @@ TEST_FUNC void test_type()
   Vec next(T{2});
   T scalar_next{2};
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::nextafter(vec, next)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::nextafter(vec, scalar_next)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::nextafter(scalar_next, next)), Vec>);
-  static_assert(noexcept(cuda::std::simd::nextafter(vec, next)));
   static_assert(noexcept(cuda::std::simd::nextafter(vec, scalar_next)));
+  static_assert(noexcept(cuda::std::simd::nextafter(scalar_next, next)));
 
-  Vec nextafter_result = cuda::std::simd::nextafter(vec, next);
+  Vec nextafter_vec_scalar = cuda::std::simd::nextafter(vec, scalar_next);
+  Vec nextafter_scalar_vec = cuda::std::simd::nextafter(scalar_next, next);
   for (int i = 0; i < N; ++i)
   {
-    assert(nextafter_result[i] == cuda::std::nextafter(vec[i], next[i]));
+    assert(nextafter_vec_scalar[i] == cuda::std::nextafter(vec[i], scalar_next));
+    assert(nextafter_scalar_vec[i] == cuda::std::nextafter(scalar_next, next[i]));
   }
+}
 
-  Vec nextafter_vs = cuda::std::simd::nextafter(vec, scalar_next);
-  Vec nextafter_sv = cuda::std::simd::nextafter(scalar_next, next);
-  for (int i = 0; i < N; ++i)
-  {
-    assert(nextafter_vs[i] == cuda::std::nextafter(vec[i], scalar_next));
-    assert(nextafter_sv[i] == cuda::std::nextafter(scalar_next, next[i]));
-  }
+template <typename T, int N>
+TEST_FUNC void test_type()
+{
+  test_non_scalar<T, N>();
+  test_scalar<T, N>();
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()

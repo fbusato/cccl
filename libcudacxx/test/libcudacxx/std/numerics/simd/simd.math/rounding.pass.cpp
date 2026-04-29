@@ -37,6 +37,18 @@ TEST_FUNC void test_type()
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::llrint(vec)), LLongVec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lround(vec)), LongVec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::llround(vec)), LLongVec>);
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::ceil(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::floor(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::nearbyint(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::rint(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::round(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::trunc(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::lrint(vec)), LongVec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::llrint(vec)), LLongVec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::lround(vec)), LongVec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::llround(vec)), LLongVec>);
+
   static_assert(noexcept(cuda::std::simd::ceil(vec)));
   static_assert(noexcept(cuda::std::simd::floor(vec)));
   static_assert(noexcept(cuda::std::simd::nearbyint(vec)));

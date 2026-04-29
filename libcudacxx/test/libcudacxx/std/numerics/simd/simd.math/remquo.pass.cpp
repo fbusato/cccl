@@ -19,20 +19,17 @@
 #include "../simd_test_utils.h"
 
 template <typename T, int N>
-TEST_FUNC void test_type()
+TEST_FUNC void test_non_scalar()
 {
   using Vec    = simd::basic_vec<T, simd::fixed_size<N>>;
   using IntVec = simd::rebind_t<int, Vec>;
 
   Vec lhs(positive_math_values<T>{});
   Vec rhs(T{0.5});
-  T scalar{0.5};
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::remquo(lhs, rhs, cuda::std::declval<IntVec*>())), Vec>);
-  static_assert(
-    cuda::std::is_same_v<decltype(cuda::std::simd::remquo(lhs, scalar, cuda::std::declval<IntVec*>())), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::remquo(lhs, rhs, cuda::std::declval<IntVec*>())), Vec>);
   static_assert(noexcept(cuda::std::simd::remquo(lhs, rhs, cuda::std::declval<IntVec*>())));
-  static_assert(noexcept(cuda::std::simd::remquo(lhs, scalar, cuda::std::declval<IntVec*>())));
 
   IntVec quotients;
   Vec remquo_result = cuda::std::simd::remquo(lhs, rhs, &quotients);
@@ -42,6 +39,20 @@ TEST_FUNC void test_type()
     assert(remquo_result[i] == cuda::std::remquo(lhs[i], rhs[i], &quotient));
     assert(quotients[i] == quotient);
   }
+}
+
+template <typename T, int N>
+TEST_FUNC void test_scalar()
+{
+  using Vec    = simd::basic_vec<T, simd::fixed_size<N>>;
+  using IntVec = simd::rebind_t<int, Vec>;
+
+  Vec lhs(positive_math_values<T>{});
+  T scalar{0.5};
+
+  static_assert(
+    cuda::std::is_same_v<decltype(cuda::std::simd::remquo(lhs, scalar, cuda::std::declval<IntVec*>())), Vec>);
+  static_assert(noexcept(cuda::std::simd::remquo(lhs, scalar, cuda::std::declval<IntVec*>())));
 
   IntVec mixed_quotients;
   Vec remquo_mixed = cuda::std::simd::remquo(lhs, scalar, &mixed_quotients);
@@ -51,6 +62,13 @@ TEST_FUNC void test_type()
     assert(remquo_mixed[i] == cuda::std::remquo(lhs[i], scalar, &quotient));
     assert(mixed_quotients[i] == quotient);
   }
+}
+
+template <typename T, int N>
+TEST_FUNC void test_type()
+{
+  test_non_scalar<T, N>();
+  test_scalar<T, N>();
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()

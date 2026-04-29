@@ -19,30 +19,51 @@
 #include "../simd_test_utils.h"
 
 template <typename T, int N>
-TEST_FUNC void test_type()
+TEST_FUNC void test_non_scalar()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  Vec lhs(positive_math_values<T>{});
+  Vec rhs(T{0.5});
 
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmod(lhs, rhs)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::fmod(lhs, rhs)), Vec>);
+  static_assert(noexcept(cuda::std::simd::fmod(lhs, rhs)));
+
+  Vec fmod_result = cuda::std::simd::fmod(lhs, rhs);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(fmod_result[i] == cuda::std::fmod(lhs[i], rhs[i]));
+  }
+}
+
+template <typename T, int N>
+TEST_FUNC void test_scalar()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
   Vec lhs(positive_math_values<T>{});
   Vec rhs(T{0.5});
   T scalar{0.5};
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmod(lhs, rhs)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmod(lhs, scalar)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmod(scalar, rhs)), Vec>);
-  static_assert(noexcept(cuda::std::simd::fmod(lhs, rhs)));
+
   static_assert(noexcept(cuda::std::simd::fmod(lhs, scalar)));
   static_assert(noexcept(cuda::std::simd::fmod(scalar, rhs)));
 
-  Vec fmod_result = cuda::std::simd::fmod(lhs, rhs);
-  Vec fmod_vs     = cuda::std::simd::fmod(lhs, scalar);
-  Vec fmod_sv     = cuda::std::simd::fmod(scalar, rhs);
+  Vec fmod_vec_scalar = cuda::std::simd::fmod(lhs, scalar);
+  Vec fmod_scalar_vec = cuda::std::simd::fmod(scalar, rhs);
   for (int i = 0; i < N; ++i)
   {
-    assert(fmod_result[i] == cuda::std::fmod(lhs[i], rhs[i]));
-    assert(fmod_vs[i] == cuda::std::fmod(lhs[i], scalar));
-    assert(fmod_sv[i] == cuda::std::fmod(scalar, rhs[i]));
+    assert(fmod_vec_scalar[i] == cuda::std::fmod(lhs[i], scalar));
+    assert(fmod_scalar_vec[i] == cuda::std::fmod(scalar, rhs[i]));
   }
+}
+
+template <typename T, int N>
+TEST_FUNC void test_type()
+{
+  test_non_scalar<T, N>();
+  test_scalar<T, N>();
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()

@@ -22,10 +22,10 @@ template <typename T, int N>
 TEST_FUNC void test_type()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-
   Vec lhs(positive_math_values<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::modf(lhs, cuda::std::declval<Vec*>())), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::modf(lhs, cuda::std::declval<Vec*>())), Vec>);
   static_assert(noexcept(cuda::std::simd::modf(lhs, cuda::std::declval<Vec*>())));
 
   Vec integrals;

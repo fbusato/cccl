@@ -19,33 +19,50 @@
 #include "../simd_test_utils.h"
 
 template <typename T, int N>
-TEST_FUNC void test_type()
+TEST_FUNC void test_non_scalar()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-
   Vec lhs(positive_math_values<T>{});
   Vec rhs(T{0.5});
-  T scalar{0.5};
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmin(lhs, rhs)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::fmin(lhs, rhs)), Vec>);
   static_assert(noexcept(cuda::std::simd::fmin(lhs, rhs)));
-
-  // [simd.math]: scalar broadcast variants
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmin(lhs, scalar)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmin(scalar, rhs)), Vec>);
-  static_assert(noexcept(cuda::std::simd::fmin(lhs, scalar)));
 
   Vec fmin_result = cuda::std::simd::fmin(lhs, rhs);
   for (int i = 0; i < N; ++i)
   {
     assert(fmin_result[i] == cuda::std::fmin(lhs[i], rhs[i]));
   }
+}
 
-  Vec fmin_sv = cuda::std::simd::fmin(scalar, rhs);
+template <typename T, int N>
+TEST_FUNC void test_scalar()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  Vec lhs(positive_math_values<T>{});
+  Vec rhs(T{0.5});
+  T scalar{0.5};
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmin(lhs, scalar)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fmin(scalar, rhs)), Vec>);
+  static_assert(noexcept(cuda::std::simd::fmin(lhs, scalar)));
+  static_assert(noexcept(cuda::std::simd::fmin(scalar, rhs)));
+
+  Vec fmin_vec_scalar = cuda::std::simd::fmin(lhs, scalar);
+  Vec fmin_scalar_vec = cuda::std::simd::fmin(scalar, rhs);
   for (int i = 0; i < N; ++i)
   {
-    assert(fmin_sv[i] == cuda::std::fmin(scalar, rhs[i]));
+    assert(fmin_vec_scalar[i] == cuda::std::fmin(lhs[i], scalar));
+    assert(fmin_scalar_vec[i] == cuda::std::fmin(scalar, rhs[i]));
   }
+}
+
+template <typename T, int N>
+TEST_FUNC void test_type()
+{
+  test_non_scalar<T, N>();
+  test_scalar<T, N>();
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()

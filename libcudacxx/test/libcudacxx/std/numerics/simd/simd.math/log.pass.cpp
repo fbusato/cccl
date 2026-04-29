@@ -28,6 +28,12 @@ TEST_FUNC void test_type()
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::log10(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::log1p(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::log2(vec)), Vec>);
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::log(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::log10(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::log1p(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::log2(vec)), Vec>);
+
   static_assert(noexcept(cuda::std::simd::log(vec)));
   static_assert(noexcept(cuda::std::simd::log10(vec)));
   static_assert(noexcept(cuda::std::simd::log1p(vec)));

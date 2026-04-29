@@ -22,13 +22,18 @@ template <typename T, int N>
 TEST_FUNC void test_type()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-
   Vec vec(math_values<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::acos(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::asin(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::cos(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::sin(vec)), Vec>);
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::acos(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::asin(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::cos(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::sin(vec)), Vec>);
+
   static_assert(noexcept(cuda::std::simd::acos(vec)));
   static_assert(noexcept(cuda::std::simd::asin(vec)));
   static_assert(noexcept(cuda::std::simd::cos(vec)));

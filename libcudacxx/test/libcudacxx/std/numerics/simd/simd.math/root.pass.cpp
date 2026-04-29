@@ -25,18 +25,22 @@ TEST_FUNC void test_type()
 
   Vec x(positive_math_values<T>{});
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::cbrt(x)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::sqrt(x)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::cbrt(x)), Vec>);
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::sqrt(x)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::cbrt(x)), Vec>);
+
   static_assert(noexcept(cuda::std::simd::cbrt(x)));
   static_assert(noexcept(cuda::std::simd::sqrt(x)));
 
-  Vec cbrt_result = cuda::std::simd::cbrt(x);
   Vec sqrt_result = cuda::std::simd::sqrt(x);
+  Vec cbrt_result = cuda::std::simd::cbrt(x);
   T tolerance     = T{1e-5};
   for (int i = 0; i < N; ++i)
   {
-    assert(almost_equal(cbrt_result[i], cuda::std::cbrt(x[i]), tolerance));
     assert(almost_equal(sqrt_result[i], cuda::std::sqrt(x[i]), tolerance));
+    assert(almost_equal(cbrt_result[i], cuda::std::cbrt(x[i]), tolerance));
   }
 }
 

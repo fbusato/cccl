@@ -18,15 +18,6 @@
 
 #include "../simd_test_utils.h"
 
-template <typename V, typename = void>
-struct has_simd_fabs : cuda::std::false_type
-{};
-
-template <typename V>
-struct has_simd_fabs<V, cuda::std::void_t<decltype(cuda::std::simd::fabs(cuda::std::declval<V>()))>>
-    : cuda::std::true_type
-{};
-
 template <typename T>
 struct signed_values
 {
@@ -37,6 +28,7 @@ struct signed_values
   }
 };
 
+// floating point types
 template <typename T, int N>
 TEST_FUNC void test_type()
 {
@@ -44,8 +36,9 @@ TEST_FUNC void test_type()
   Vec vec(math_values<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::abs(vec)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::abs(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fabs(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::abs(vec)), Vec>);
+
   static_assert(noexcept(cuda::std::simd::abs(vec)));
   static_assert(noexcept(cuda::std::simd::fabs(vec)));
 
@@ -58,6 +51,13 @@ TEST_FUNC void test_type()
   }
 }
 
+template <typename V, typename = void>
+inline constexpr bool has_simd_fabs = false;
+
+template <typename V>
+inline constexpr bool has_simd_fabs<V, cuda::std::void_t<decltype(cuda::std::simd::fabs(cuda::std::declval<V>()))>> =
+  true;
+
 template <typename T, int N>
 TEST_FUNC void test_signed_integral_type()
 {
@@ -66,7 +66,7 @@ TEST_FUNC void test_signed_integral_type()
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::abs(vec)), Vec>);
   static_assert(noexcept(cuda::std::simd::abs(vec)));
-  static_assert(!has_simd_fabs<Vec>::value);
+  static_assert(!has_simd_fabs<Vec>); // check that fabs is not supported for signed integral types
 
   Vec result = cuda::std::simd::abs(vec);
   for (int i = 0; i < N; ++i)

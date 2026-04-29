@@ -10,7 +10,7 @@
 
 // <cuda/std/__simd_>
 
-// [simd.math], ilogb, logb
+// [simd.math], ldexp
 
 #include <cuda/std/__simd_>
 #include <cuda/std/cassert>
@@ -23,23 +23,26 @@ TEST_FUNC void test_type()
 {
   using Vec    = simd::basic_vec<T, simd::fixed_size<N>>;
   using IntVec = simd::rebind_t<int, Vec>;
+
   Vec vec(positive_math_values<T>{});
+  IntVec exponents(1);
+  int scalar_exp = 1;
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::ilogb(vec)), IntVec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::logb(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::ldexp(vec, exponents)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::ldexp(vec, scalar_exp)), Vec>);
+  static_assert(noexcept(cuda::std::simd::ldexp(vec, exponents)));
+  static_assert(noexcept(cuda::std::simd::ldexp(vec, scalar_exp)));
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::ilogb(vec)), IntVec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::logb(vec)), Vec>);
-
-  static_assert(noexcept(cuda::std::simd::ilogb(vec)));
-  static_assert(noexcept(cuda::std::simd::logb(vec)));
-
-  IntVec ilogb_result = cuda::std::simd::ilogb(vec);
-  Vec logb_result     = cuda::std::simd::logb(vec);
+  Vec ldexp_result = cuda::std::simd::ldexp(vec, exponents);
   for (int i = 0; i < N; ++i)
   {
-    assert(ilogb_result[i] == cuda::std::ilogb(vec[i]));
-    assert(logb_result[i] == cuda::std::logb(vec[i]));
+    assert(ldexp_result[i] == cuda::std::ldexp(vec[i], exponents[i]));
+  }
+
+  Vec ldexp_scalar = cuda::std::simd::ldexp(vec, scalar_exp);
+  for (int i = 0; i < N; ++i)
+  {
+    assert(ldexp_scalar[i] == cuda::std::ldexp(vec[i], scalar_exp));
   }
 }
 

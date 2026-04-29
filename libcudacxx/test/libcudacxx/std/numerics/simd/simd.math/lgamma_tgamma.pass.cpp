@@ -26,6 +26,10 @@ TEST_FUNC void test_type()
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::lgamma(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::tgamma(vec)), Vec>);
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::lgamma(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::tgamma(vec)), Vec>);
+
   static_assert(noexcept(cuda::std::simd::lgamma(vec)));
   static_assert(noexcept(cuda::std::simd::tgamma(vec)));
 

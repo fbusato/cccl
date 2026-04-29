@@ -23,10 +23,10 @@ TEST_FUNC void test_type()
 {
   using Vec    = simd::basic_vec<T, simd::fixed_size<N>>;
   using IntVec = simd::rebind_t<int, Vec>;
-
   Vec vec(positive_math_values<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::frexp(vec, cuda::std::declval<IntVec*>())), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::frexp(vec, cuda::std::declval<IntVec*>())), Vec>);
   static_assert(noexcept(cuda::std::simd::frexp(vec, cuda::std::declval<IntVec*>())));
 
   IntVec exponents;

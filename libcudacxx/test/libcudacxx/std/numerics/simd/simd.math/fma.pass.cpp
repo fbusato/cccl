@@ -19,45 +19,70 @@
 #include "../simd_test_utils.h"
 
 template <typename T, int N>
-TEST_FUNC void test_type()
+TEST_FUNC void test_non_scalar()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-
   Vec x(positive_math_values<T>{});
   Vec y(T{2});
   Vec z(T{0.25});
-  T sy{2};
-  T sz{0.25};
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, y, z)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::fma(x, y, z)), Vec>);
   static_assert(noexcept(cuda::std::simd::fma(x, y, z)));
-
-  // we need to check all permutations of vec and scalar arguments
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(sy, y, z)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, sy, z)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, y, sz)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(sy, sz, z)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(sy, y, sz)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, sy, sz)), Vec>);
-  static_assert(noexcept(cuda::std::simd::fma(sy, y, z)));
-  static_assert(noexcept(cuda::std::simd::fma(x, sy, z)));
-  static_assert(noexcept(cuda::std::simd::fma(x, y, sz)));
 
   Vec fma_result = cuda::std::simd::fma(x, y, z);
   for (int i = 0; i < N; ++i)
   {
     assert(fma_result[i] == cuda::std::fma(x[i], y[i], z[i]));
   }
+}
 
-  Vec fma_mixed_a = cuda::std::simd::fma(sy, y, z);
-  Vec fma_mixed_b = cuda::std::simd::fma(x, sy, z);
-  Vec fma_mixed_c = cuda::std::simd::fma(x, y, sz);
+template <typename T, int N>
+TEST_FUNC void test_scalar()
+{
+  using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
+  Vec x(positive_math_values<T>{});
+  Vec y(T{2});
+  Vec z(T{0.25});
+  T scalar_y{2};
+  T scalar_z{0.25};
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(scalar_y, y, z)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, scalar_y, z)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, y, scalar_z)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(scalar_y, scalar_z, z)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(scalar_y, y, scalar_z)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fma(x, scalar_y, scalar_z)), Vec>);
+
+  static_assert(noexcept(cuda::std::simd::fma(scalar_y, y, z)));
+  static_assert(noexcept(cuda::std::simd::fma(x, scalar_y, z)));
+  static_assert(noexcept(cuda::std::simd::fma(x, y, scalar_z)));
+  static_assert(noexcept(cuda::std::simd::fma(scalar_y, scalar_z, z)));
+  static_assert(noexcept(cuda::std::simd::fma(scalar_y, y, scalar_z)));
+  static_assert(noexcept(cuda::std::simd::fma(x, scalar_y, scalar_z)));
+
+  Vec fma_mixed1 = cuda::std::simd::fma(scalar_y, y, z);
+  Vec fma_mixed2 = cuda::std::simd::fma(x, scalar_y, z);
+  Vec fma_mixed3 = cuda::std::simd::fma(x, y, scalar_z);
+  Vec fma_mixed4 = cuda::std::simd::fma(scalar_y, scalar_z, z);
+  Vec fma_mixed5 = cuda::std::simd::fma(scalar_y, y, scalar_z);
+  Vec fma_mixed6 = cuda::std::simd::fma(x, scalar_y, scalar_z);
   for (int i = 0; i < N; ++i)
   {
-    assert(fma_mixed_a[i] == cuda::std::fma(sy, y[i], z[i]));
-    assert(fma_mixed_b[i] == cuda::std::fma(x[i], sy, z[i]));
-    assert(fma_mixed_c[i] == cuda::std::fma(x[i], y[i], sz));
+    assert(fma_mixed1[i] == cuda::std::fma(scalar_y, y[i], z[i]));
+    assert(fma_mixed2[i] == cuda::std::fma(x[i], scalar_y, z[i]));
+    assert(fma_mixed3[i] == cuda::std::fma(x[i], y[i], scalar_z));
+    assert(fma_mixed4[i] == cuda::std::fma(scalar_y, scalar_z, z[i]));
+    assert(fma_mixed5[i] == cuda::std::fma(scalar_y, y[i], scalar_z));
+    assert(fma_mixed6[i] == cuda::std::fma(x[i], scalar_y, scalar_z));
   }
+}
+
+template <typename T, int N>
+TEST_FUNC void test_type()
+{
+  test_non_scalar<T, N>();
+  test_scalar<T, N>();
 }
 
 DEFINE_SIMD_MATH_FLOATING_TEST()

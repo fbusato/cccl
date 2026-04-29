@@ -10,7 +10,7 @@
 
 // <cuda/std/__simd_>
 
-// [simd.math], remainder
+// [simd.math], atan2
 
 #include <cuda/std/__simd_>
 #include <cuda/std/cassert>
@@ -22,17 +22,17 @@ template <typename T, int N>
 TEST_FUNC void test_non_scalar()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  Vec lhs(positive_math_values<T>{});
-  Vec rhs(T{0.5});
+  Vec vec(math_values<T>{});
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::remainder(lhs, rhs)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::remainder(lhs, rhs)), Vec>);
-  static_assert(noexcept(cuda::std::simd::remainder(lhs, rhs)));
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::atan2(vec, vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::atan2(vec, vec)), Vec>);
+  static_assert(noexcept(cuda::std::simd::atan2(vec, vec)));
 
-  Vec remainder_result = cuda::std::simd::remainder(lhs, rhs);
+  Vec atan2_result = cuda::std::simd::atan2(vec, vec);
+  T tolerance      = T{1e-5};
   for (int i = 0; i < N; ++i)
   {
-    assert(remainder_result[i] == cuda::std::remainder(lhs[i], rhs[i]));
+    assert(almost_equal(atan2_result[i], cuda::std::atan2(vec[i], vec[i]), tolerance));
   }
 }
 
@@ -40,21 +40,21 @@ template <typename T, int N>
 TEST_FUNC void test_scalar()
 {
   using Vec = simd::basic_vec<T, simd::fixed_size<N>>;
-  Vec lhs(positive_math_values<T>{});
-  Vec rhs(T{0.5});
+  Vec vec(math_values<T>{});
   T scalar{0.5};
 
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::remainder(lhs, scalar)), Vec>);
-  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::remainder(scalar, rhs)), Vec>);
-  static_assert(noexcept(cuda::std::simd::remainder(lhs, scalar)));
-  static_assert(noexcept(cuda::std::simd::remainder(scalar, rhs)));
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::atan2(vec, scalar)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::atan2(scalar, vec)), Vec>);
+  static_assert(noexcept(cuda::std::simd::atan2(vec, scalar)));
+  static_assert(noexcept(cuda::std::simd::atan2(scalar, vec)));
 
-  Vec remainder_vs = cuda::std::simd::remainder(lhs, scalar);
-  Vec remainder_sv = cuda::std::simd::remainder(scalar, rhs);
+  Vec atan2_vec_scalar = cuda::std::simd::atan2(vec, scalar);
+  Vec atan2_scalar_vec = cuda::std::simd::atan2(scalar, vec);
+  T tolerance          = T{1e-5};
   for (int i = 0; i < N; ++i)
   {
-    assert(remainder_vs[i] == cuda::std::remainder(lhs[i], scalar));
-    assert(remainder_sv[i] == cuda::std::remainder(scalar, rhs[i]));
+    assert(almost_equal(atan2_vec_scalar[i], cuda::std::atan2(vec[i], scalar), tolerance));
+    assert(almost_equal(atan2_scalar_vec[i], cuda::std::atan2(scalar, vec[i]), tolerance));
   }
 }
 

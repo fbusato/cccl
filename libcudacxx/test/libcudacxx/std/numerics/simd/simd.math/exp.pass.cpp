@@ -27,6 +27,11 @@ TEST_FUNC void test_type()
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::exp(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::exp2(vec)), Vec>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::expm1(vec)), Vec>);
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::exp(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::exp2(vec)), Vec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::expm1(vec)), Vec>);
+
   static_assert(noexcept(cuda::std::simd::exp(vec)));
   static_assert(noexcept(cuda::std::simd::exp2(vec)));
   static_assert(noexcept(cuda::std::simd::expm1(vec)));

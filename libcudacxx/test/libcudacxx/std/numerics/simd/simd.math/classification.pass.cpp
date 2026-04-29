@@ -24,7 +24,6 @@ TEST_FUNC void test_type()
   using Vec    = simd::basic_vec<T, simd::fixed_size<N>>;
   using IntVec = simd::rebind_t<int, Vec>;
   using Mask   = typename Vec::mask_type;
-
   Vec vec(math_values<T>{});
 
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::fpclassify(vec)), IntVec>);
@@ -33,6 +32,14 @@ TEST_FUNC void test_type()
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::isnan(vec)), Mask>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::isnormal(vec)), Mask>);
   static_assert(cuda::std::is_same_v<decltype(cuda::std::simd::signbit(vec)), Mask>);
+
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::fpclassify(vec)), IntVec>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::isfinite(vec)), Mask>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::isinf(vec)), Mask>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::isnan(vec)), Mask>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::isnormal(vec)), Mask>);
+  static_assert(cuda::std::is_same_v<decltype(cuda::std::signbit(vec)), Mask>);
+
   static_assert(noexcept(cuda::std::simd::fpclassify(vec)));
   static_assert(noexcept(cuda::std::simd::isfinite(vec)));
   static_assert(noexcept(cuda::std::simd::isinf(vec)));
