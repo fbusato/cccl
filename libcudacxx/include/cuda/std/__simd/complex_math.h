@@ -21,11 +21,19 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/std/__complex/complex.h>
+#include <cuda/std/__complex/exponential_functions.h>
+#include <cuda/std/__complex/hyperbolic_functions.h>
+#include <cuda/std/__complex/inverse_hyperbolic_functions.h>
+#include <cuda/std/__complex/inverse_trigonometric_functions.h>
+#include <cuda/std/__complex/logarithms.h>
+#include <cuda/std/__complex/math.h>
+#include <cuda/std/__complex/roots.h>
+#include <cuda/std/__complex/trigonometric_functions.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__simd/basic_vec.h>
 #include <cuda/std/__simd/exposition.h>
 #include <cuda/std/__simd/type_traits.h>
-#include <cuda/std/complex>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -126,7 +134,7 @@ struct __fn_log10
 struct __fn_sqrt
 {
   template <typename _Tp>
-  [[nodiscard]] _CCCL_API constexpr auto operator()(const _Tp& __z) const
+  [[nodiscard]] _CCCL_API constexpr auto operator()(const _Tp& __z) const noexcept
   {
     return ::cuda::std::sqrt(__z);
   }
@@ -198,7 +206,7 @@ struct __fn_sinh
 struct __fn_asinh
 {
   template <typename _Tp>
-  [[nodiscard]] _CCCL_API constexpr auto operator()(const _Tp& __z) const
+  [[nodiscard]] _CCCL_API constexpr auto operator()(const _Tp& __z) const noexcept
   {
     return ::cuda::std::asinh(__z);
   }
