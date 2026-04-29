@@ -76,6 +76,7 @@ TEST_FUNC void test_scalar()
   Vec hypot_vec_scalar_scalar = cuda::std::simd::hypot(x, scalar_y, z);
   Vec hypot_scalar_vec_scalar = cuda::std::simd::hypot(scalar_y, y, z);
   Vec hypot_scalar_scalar_vec = cuda::std::simd::hypot(scalar_y, scalar_x, x);
+  T tolerance                 = T{1e-5};
   for (int i = 0; i < N; ++i)
   {
     assert(almost_equal(hypot_vec_scalar[i], cuda::std::hypot(x[i], scalar_y), tolerance));
