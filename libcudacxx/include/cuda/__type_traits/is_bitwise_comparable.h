@@ -25,8 +25,7 @@
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__fwd/array.h>
 #include <cuda/std/__fwd/complex.h>
-#include <cuda/std/__fwd/pair.h>
-#include <cuda/std/__fwd/tuple.h>
+#include <cuda/std/__tuple_dir/tuple.h> // required for sizeof
 #include <cuda/std/__type_traits/aggregate_members_all_of.h>
 #include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/has_unique_object_representation.h>
@@ -34,6 +33,7 @@
 #include <cuda/std/__type_traits/is_aggregate.h>
 #include <cuda/std/__type_traits/is_extended_floating_point.h>
 #include <cuda/std/__type_traits/remove_cv.h>
+#include <cuda/std/__utility/pair.h> // required for sizeof
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -45,8 +45,10 @@ inline constexpr bool __is_aggregate_bitwise_comparable_v = true;
 template <typename _Tp>
 inline constexpr bool __is_bitwise_comparable_v =
   ::cuda::std::has_unique_object_representations_v<_Tp> // no padding, no float/double
+#if _CCCL_HAS_CTK()
   && !::cuda::std::__is_extended_floating_point_v<_Tp> //
   && !is_extended_fp_vector_type_v<_Tp> //
+#endif // _CCCL_HAS_CTK()
   && __is_aggregate_bitwise_comparable_v<_Tp>;
 
 template <typename _Tp>
@@ -60,12 +62,12 @@ inline constexpr bool __is_bitwise_comparable_v<::cuda::std::array<_Tp, _Size>> 
 
 template <typename _T1, typename _T2>
 inline constexpr bool __is_bitwise_comparable_v<::cuda::std::pair<_T1, _T2>> =
-  ::cuda::std::has_unique_object_representations_v<::cuda::std::pair<_T1, _T2>> // avoid sizeof -> avoid fwd
+  (sizeof(::cuda::std::pair<_T1, _T2>) == sizeof(_T1) + sizeof(_T2))
   && __is_bitwise_comparable_v<_T1> && __is_bitwise_comparable_v<_T2>;
 
 template <typename... _Ts>
 inline constexpr bool __is_bitwise_comparable_v<::cuda::std::tuple<_Ts...>> =
-  ::cuda::std::has_unique_object_representations_v<::cuda::std::tuple<_Ts...>> // avoid sizeof -> avoid fwd
+  (sizeof...(_Ts) == 0 || sizeof(::cuda::std::tuple<_Ts...>) == (sizeof(_Ts) + ... + 0))
   && (__is_bitwise_comparable_v<_Ts> && ...);
 
 template <typename _Tp>

@@ -60,7 +60,7 @@ __host__ __device__ void test_composite_types()
 
 struct NoPaddingExtendedFloatingPoint
 {
-  uint16_t x;
+  unsigned short x;
   __half y;
 };
 
