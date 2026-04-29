@@ -260,12 +260,13 @@ public:
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
-_CCCL_BEGIN_NAMESPACE_CUDA_STD
+#if _CCCL_HAS_HOST_STD_LIB()
+_CCCL_BEGIN_NAMESPACE_STD
 
 template <typename _Vp>
-struct iterator_traits<simd::__simd_iterator<_Vp>>
+struct iterator_traits<::cuda::std::simd::__simd_iterator<_Vp>>
 {
-  using __iter            = simd::__simd_iterator<_Vp>;
+  using __iter            = ::cuda::std::simd::__simd_iterator<_Vp>;
   using iterator_concept  = typename __iter::iterator_concept;
   using iterator_category = typename __iter::iterator_category;
   using value_type        = typename __iter::value_type;
@@ -273,11 +274,6 @@ struct iterator_traits<simd::__simd_iterator<_Vp>>
   using pointer           = void;
   using reference         = value_type;
 };
-
-_CCCL_END_NAMESPACE_CUDA_STD
-
-#if _CCCL_HAS_HOST_STD_LIB()
-_CCCL_BEGIN_NAMESPACE_STD
 
 template <typename _Diff, typename _Vp>
 _CCCL_HOST_API constexpr void advance(::cuda::std::simd::__simd_iterator<_Vp>& __iter, const _Diff __diff) noexcept
