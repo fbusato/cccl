@@ -36,8 +36,7 @@ struct TrivialPod
 TEST_FUNC bool tests()
 {
   // User-defined trivially copyable type
-  for (const TrivialPod& i :
-       {TrivialPod{0, 0.0f}, TrivialPod{1, 1.0f}, TrivialPod{-1, 3.5f}, TrivialPod{42, 2.5f}})
+  for (const TrivialPod& i : {TrivialPod{0, 0.0f}, TrivialPod{1, 1.0f}, TrivialPod{-1, 3.5f}, TrivialPod{42, 2.5f}})
   {
     test_roundtrip_through_nested_T(i);
     test_roundtrip_through_buffer(i);

@@ -48,8 +48,7 @@ _CCCL_HOST_API graph_node_ref
 __fill_bytes_graph_impl(path_builder& __pb, ::cuda::std::span<_DstTy, _DstSize> __dst, ::cuda::std::uint8_t __value)
 {
   static_assert(!::cuda::std::is_const_v<_DstTy>, "Fill destination can't be const");
-  static_assert(::cuda::is_trivially_copyable_v<_DstTy>,
-                "Fill destination element type must be trivially copyable");
+  static_assert(::cuda::is_trivially_copyable_v<_DstTy>, "Fill destination element type must be trivially copyable");
 
   auto __deps = __pb.get_dependencies();
   ::CUgraphNodeParams __params{};
