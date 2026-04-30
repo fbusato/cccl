@@ -32,7 +32,6 @@
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_aggregate.h>
 #include <cuda/std/__type_traits/is_extended_floating_point.h>
-#include <cuda/std/__type_traits/remove_cv.h>
 #include <cuda/std/__utility/pair.h> // required for sizeof
 
 #include <cuda/std/__cccl/prologue.h>
@@ -46,8 +45,8 @@ template <typename _Tp>
 inline constexpr bool __is_bitwise_comparable_v =
   ::cuda::std::has_unique_object_representations_v<_Tp> // no padding, no float/double
 #if _CCCL_HAS_CTK()
-  && !::cuda::std::__is_extended_floating_point_v<_Tp> //
-  && !is_extended_fp_vector_type_v<_Tp> //
+  && !::cuda::std::__is_extended_floating_point_v<_Tp> // scalar extended floating-point types
+  && !is_extended_fp_vector_type_v<_Tp> // vector extended floating-point types
 #endif // _CCCL_HAS_CTK()
   && __is_aggregate_bitwise_comparable_v<_Tp>;
 
@@ -83,7 +82,7 @@ using __is_bitwise_comparable_callable = ::cuda::std::bool_constant<__is_bitwise
 // __aggregate_all_of_v returns true if the type is not an aggregate (or empty)
 template <typename _Tp>
 inline constexpr bool
-  __is_aggregate_bitwise_comparable_v<_Tp, ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp>, void>> =
+  __is_aggregate_bitwise_comparable_v<_Tp, ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp>>> =
     ::cuda::std::__aggregate_all_of_v<__is_bitwise_comparable_callable, _Tp>;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -91,7 +90,16 @@ inline constexpr bool
 
 // Users are allowed to specialize this variable template for their own types
 template <typename _Tp>
-inline constexpr bool is_bitwise_comparable_v = __is_bitwise_comparable_v<::cuda::std::remove_cv_t<_Tp>>;
+inline constexpr bool is_bitwise_comparable_v = __is_bitwise_comparable_v<_Tp>;
+
+template <typename _Tp>
+inline constexpr bool is_bitwise_comparable_v<const _Tp> = is_bitwise_comparable_v<_Tp>;
+
+template <typename _Tp>
+inline constexpr bool is_bitwise_comparable_v<volatile _Tp> = is_bitwise_comparable_v<_Tp>;
+
+template <typename _Tp>
+inline constexpr bool is_bitwise_comparable_v<const volatile _Tp> = is_bitwise_comparable_v<_Tp>;
 
 // defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>

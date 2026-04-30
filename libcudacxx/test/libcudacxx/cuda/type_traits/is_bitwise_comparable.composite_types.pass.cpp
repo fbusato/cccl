@@ -16,6 +16,12 @@
 
 #include "test_macros.h"
 
+struct WithNoPadding
+{
+  int x;
+  int y;
+};
+
 struct WithPadding
 {
   int x;
@@ -43,17 +49,21 @@ __host__ __device__ void test_composite_types()
   static_assert(!cuda::is_bitwise_comparable_v<cuda::std::tuple<int, unsigned, char>>);
 
   // complex types are explicitly not bitwise comparable
-  static_assert(!cuda::is_bitwise_comparable_v<cuda::std::complex<int>>);
-  static_assert(!cuda::is_bitwise_comparable_v<const cuda::std::complex<int>>);
-  static_assert(!cuda::is_bitwise_comparable<cuda::std::complex<int>>::value);
-  static_assert(!cuda::is_bitwise_comparable_v<cuda::complex<int>>);
-  static_assert(!cuda::is_bitwise_comparable_v<const cuda::complex<int>>);
-  static_assert(!cuda::is_bitwise_comparable<cuda::complex<int>>::value);
+  static_assert(!cuda::is_bitwise_comparable_v<cuda::std::complex<float>>);
+  static_assert(!cuda::is_bitwise_comparable_v<const cuda::std::complex<float>>);
 
+  static_assert(cuda::is_bitwise_comparable_v<WithNoPadding>);
   static_assert(!cuda::is_bitwise_comparable_v<WithPadding>);
 
   // user specialization of the variable template
   static_assert(cuda::is_bitwise_comparable_v<UserSpecialization>);
+  static_assert(cuda::is_bitwise_comparable_v<const UserSpecialization>);
+  static_assert(cuda::is_bitwise_comparable_v<volatile UserSpecialization>);
+  static_assert(cuda::is_bitwise_comparable_v<const volatile UserSpecialization>);
+  static_assert(cuda::is_bitwise_comparable<UserSpecialization>::value);
+  static_assert(cuda::is_bitwise_comparable<const UserSpecialization>::value);
+  static_assert(cuda::is_bitwise_comparable<volatile UserSpecialization>::value);
+  static_assert(cuda::is_bitwise_comparable<const volatile UserSpecialization>::value);
 }
 
 #if _CCCL_HAS_NVFP16()
@@ -92,5 +102,6 @@ __host__ __device__ void test_extended_floating_point_types()
 int main(int, char**)
 {
   test_composite_types();
+  test_extended_floating_point_types();
   return 0;
 }
