@@ -21,7 +21,10 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/__cmath/ceil_div.h>
 #include <cuda/__utility/in_range.h>
+#include <cuda/std/__bit/bit_cast.h>
+#include <cuda/std/__cstring/memcpy.h>
 #include <cuda/std/__fwd/simd.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__utility/integer_sequence.h>
@@ -161,13 +164,32 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __plus(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-    _SimdStorage __result;
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (__simd_size_type __i = 0; __i < _Np; ++__i)
+#if 0 // _CCCL_HAS_NVFP16()
+    if constexpr (is_same_v<_Tp, ::__half> && _Np >= 2)
     {
-      __result.__data[__i] = (__lhs.__data[__i] + __rhs.__data[__i]);
+      constexpr auto __half_size = ::cuda::ceil_div(_Np, __simd_size_type{2});
+      using __half2_storage      = __simd_storage<::__half2, __fixed_size<__half_size>>;
+      using __half2_operations   = __simd_operations<::__half2, __fixed_size<__half_size>>;
+      __half2_storage __lhs_half2;
+      __half2_storage __rhs_half2;
+      ::cuda::std::memcpy((void*) &__lhs_half2, (void*) &__lhs, sizeof(__lhs));
+      ::cuda::std::memcpy((void*) &__rhs_half2, (void*) &__rhs, sizeof(__rhs));
+      const auto __result_half2 = __half2_operations::__plus(__lhs_half2, __rhs_half2);
+      _SimdStorage __result;
+      ::cuda::std::memcpy((void*) &__result, (void*) &__result_half2, sizeof(__result));
+      return __result;
     }
-    return __result;
+    else
+#endif // _CCCL_HAS_NVFP16()
+    {
+      _SimdStorage __result;
+      _CCCL_PRAGMA_UNROLL_FULL()
+      for (__simd_size_type __i = 0; __i < _Np; ++__i)
+      {
+        __result.__data[__i] = (__lhs.__data[__i] + __rhs.__data[__i]);
+      }
+      return __result;
+    }
   }
 
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
