@@ -21,17 +21,16 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/__complex/complex.h>
-#include <cuda/__type_traits/is_vector_type.h>
+#include <cuda/__fwd/complex.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__fwd/array.h>
 #include <cuda/std/__fwd/complex.h>
 #include <cuda/std/__fwd/pair.h>
 #include <cuda/std/__fwd/tuple.h>
-#include <cuda/std/__type_traits/aggregate_members.h>
+#include <cuda/std/__type_traits/aggregate_members_all_of.h>
 #include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/integral_constant.h>
-#include <cuda/std/__type_traits/is_extended_floating_point.h>
+#include <cuda/std/__type_traits/is_aggregate.h>
 #include <cuda/std/__type_traits/is_trivially_copyable.h>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -43,11 +42,21 @@ inline constexpr bool __is_aggregate_trivially_copyable_v = false;
 
 template <typename _Tp>
 inline constexpr bool __is_trivially_copyable_v =
-  ::cuda::std::is_trivially_copyable_v<_Tp> || ::cuda::std::__is_extended_floating_point_v<_Tp>
-#if _CCCL_HAS_CTK()
-  || is_extended_fp_vector_type_v<_Tp>
-#endif // _CCCL_HAS_CTK()
-  || __is_aggregate_trivially_copyable_v<_Tp>;
+  ::cuda::std::is_trivially_copyable_v<_Tp> || __is_aggregate_trivially_copyable_v<_Tp>;
+
+#if _CCCL_HAS_NVFP16()
+
+template <>
+inline constexpr bool __is_trivially_copyable_v<::__half2> = true;
+
+#endif // _CCCL_HAS_NVFP16()
+
+#if _CCCL_HAS_NVBF16()
+
+template <>
+inline constexpr bool __is_trivially_copyable_v<::__nv_bfloat162> = true;
+
+#endif // _CCCL_HAS_NVBF16()
 
 template <typename _Tp>
 inline constexpr bool __is_trivially_copyable_v<_Tp[]> = __is_trivially_copyable_v<_Tp>;
@@ -78,7 +87,7 @@ using __is_trivially_copyable_callable = ::cuda::std::bool_constant<__is_trivial
 template <typename _Tp>
 inline constexpr bool
   __is_aggregate_trivially_copyable_v<_Tp, ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp>>> =
-    ::cuda::std::__aggregate_all_of<__is_trivially_copyable_callable, _Tp>::value;
+    ::cuda::std::__aggregate_all_of_v<__is_trivially_copyable_callable, _Tp>;
 
 //----------------------------------------------------------------------------------------------------------------------
 // public traits
@@ -88,12 +97,6 @@ inline constexpr bool is_trivially_copyable_v = __is_trivially_copyable_v<_Tp>;
 
 template <typename _Tp>
 inline constexpr bool is_trivially_copyable_v<const _Tp> = is_trivially_copyable_v<_Tp>;
-
-template <typename _Tp>
-inline constexpr bool is_trivially_copyable_v<volatile _Tp> = is_trivially_copyable_v<_Tp>;
-
-template <typename _Tp>
-inline constexpr bool is_trivially_copyable_v<const volatile _Tp> = is_trivially_copyable_v<_Tp>;
 
 // defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>
