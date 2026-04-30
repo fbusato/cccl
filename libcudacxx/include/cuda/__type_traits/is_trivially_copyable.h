@@ -21,7 +21,7 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/__fwd/complex.h>
+#include <cuda/__complex/complex.h>
 #include <cuda/__type_traits/is_vector_type.h>
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__fwd/array.h>
@@ -33,7 +33,6 @@
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_extended_floating_point.h>
 #include <cuda/std/__type_traits/is_trivially_copyable.h>
-#include <cuda/std/__type_traits/remove_const.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -46,7 +45,7 @@ template <typename _Tp>
 inline constexpr bool __is_trivially_copyable_v =
   ::cuda::std::is_trivially_copyable_v<_Tp> || ::cuda::std::__is_extended_floating_point_v<_Tp>
 #if _CCCL_HAS_CTK()
-  || ::cuda::is_extended_fp_vector_type_v<_Tp>
+  || is_extended_fp_vector_type_v<_Tp>
 #endif // _CCCL_HAS_CTK()
   || __is_aggregate_trivially_copyable_v<_Tp>;
 
@@ -66,25 +65,11 @@ inline constexpr bool __is_trivially_copyable_v<::cuda::std::pair<_T1, _T2>> =
 template <typename... _Ts>
 inline constexpr bool __is_trivially_copyable_v<::cuda::std::tuple<_Ts...>> = (__is_trivially_copyable_v<_Ts> && ...);
 
-#if _CCCL_HAS_NVFP16()
+template <typename _Tp>
+inline constexpr bool __is_trivially_copyable_v<complex<_Tp>> = true;
 
-template <>
-inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__half>> = true;
-
-template <>
-inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__half>> = true;
-
-#endif // _CCCL_HAS_NVFP16
-
-#if _CCCL_HAS_NVBF16()
-
-template <>
-inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<::__nv_bfloat16>> = true;
-
-template <>
-inline constexpr bool __is_trivially_copyable_v<::cuda::complex<::__nv_bfloat16>> = true;
-
-#endif // _CCCL_HAS_NVBF16
+template <typename _Tp>
+inline constexpr bool __is_trivially_copyable_v<::cuda::std::complex<_Tp>> = true;
 
 // if all the previous conditions fail, check if the type is an aggregate and all its members are trivially copyable
 template <typename _Tp>
@@ -99,8 +84,18 @@ inline constexpr bool
 // public traits
 
 template <typename _Tp>
-inline constexpr bool is_trivially_copyable_v = __is_trivially_copyable_v<::cuda::std::remove_const_t<_Tp>>;
+inline constexpr bool is_trivially_copyable_v = __is_trivially_copyable_v<_Tp>;
 
+template <typename _Tp>
+inline constexpr bool is_trivially_copyable_v<const _Tp> = is_trivially_copyable_v<_Tp>;
+
+template <typename _Tp>
+inline constexpr bool is_trivially_copyable_v<volatile _Tp> = is_trivially_copyable_v<_Tp>;
+
+template <typename _Tp>
+inline constexpr bool is_trivially_copyable_v<const volatile _Tp> = is_trivially_copyable_v<_Tp>;
+
+// defined as alias so users cannot specialize it (they should specialize the variable template instead)
 template <typename _Tp>
 using is_trivially_copyable = ::cuda::std::bool_constant<is_trivially_copyable_v<_Tp>>;
 
