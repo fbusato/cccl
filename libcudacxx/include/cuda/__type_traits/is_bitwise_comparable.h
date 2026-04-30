@@ -73,7 +73,7 @@ template <typename _Tp>
 inline constexpr bool __is_bitwise_comparable_v<::cuda::std::complex<_Tp>> = false;
 
 template <typename _Tp>
-inline constexpr bool __is_bitwise_comparable_v<::cuda::complex<_Tp>> = false;
+inline constexpr bool __is_bitwise_comparable_v<complex<_Tp>> = false;
 
 // if all the previous conditions fail, check if the type is an aggregate and all its members are bitwise comparable
 template <typename _Tp>
