@@ -29,7 +29,7 @@ function(simd_codegen_add_tests arch)
     cmake_path(GET test_path FILENAME test_file)
     cmake_path(REMOVE_EXTENSION test_file LAST_ONLY OUTPUT_VARIABLE test_name)
 
-    if (test_name STREQUAL "plus_f32" AND NOT arch EQUAL 100)
+    if (test_name MATCHES "_f32x2$" AND NOT arch EQUAL 100)
       continue()
     endif()
 
