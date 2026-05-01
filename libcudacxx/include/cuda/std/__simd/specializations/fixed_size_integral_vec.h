@@ -153,6 +153,39 @@ struct __simd_operations<_Tp, __fixed_size<_Np>, enable_if_t<__is_fixed_size_sma
     }
     return __fixed_size_operations<_Tp, _Np>::__bitwise_xor(__lhs, __rhs);
   }
+
+  // Binary arithmetic operations
+
+  [[nodiscard]] _CCCL_API static constexpr _SimdStorage
+  __plus(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
+  {
+    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
+    {
+      const auto __lhs_udata = __to_unsigned_storage(__lhs);
+      const auto __rhs_udata = __to_unsigned_storage(__rhs);
+      __unsigned_storage_t __result_udata{};
+      _CCCL_PRAGMA_UNROLL_FULL()
+      for (__simd_size_type __i = 0; __i < __usize; ++__i)
+      {
+        if constexpr (is_same_v<_Tp, uint16_t> || is_same_v<_Tp, int16_t>)
+        {
+          __result_udata[__i] = ::__vadd2(__lhs_udata[__i], __rhs_udata[__i]);
+        }
+        else if constexpr (is_same_v<_Tp, uint8_t> || is_same_v<_Tp, int8_t>)
+        {
+          __result_udata[__i] = ::__vadd4(__lhs_udata[__i], __rhs_udata[__i]);
+        }
+      }
+      _SimdStorage __result = __copy_from_unsigned_storage(__result_udata);
+      _CCCL_PRAGMA_UNROLL_FULL()
+      for (auto __i = __usize * __ratio; __i < _Np; ++__i)
+      {
+        __result.__data[__i] = (__lhs.__data[__i] + __rhs.__data[__i]);
+      }
+      return __result;
+    }
+    return __fixed_size_operations<_Tp, _Np>::__plus(__lhs, __rhs);
+  }
 };
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
