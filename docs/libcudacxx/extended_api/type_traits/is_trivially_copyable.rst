@@ -73,4 +73,3 @@ Examples
 
 
 `See it on Godbolt 🔗 <https://godbolt.org/z/PqccjfEv6>`__
-
