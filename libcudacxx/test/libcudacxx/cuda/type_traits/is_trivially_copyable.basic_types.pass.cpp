@@ -15,7 +15,7 @@
 #include "test_macros.h"
 
 template <class T>
-__host__ __device__ void test_is_trivially_copyable()
+TEST_FUNC void test_is_trivially_copyable()
 {
   static_assert(cuda::is_trivially_copyable<T>::value);
   static_assert(cuda::is_trivially_copyable<const T>::value);
