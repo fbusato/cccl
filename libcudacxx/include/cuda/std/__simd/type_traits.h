@@ -32,16 +32,17 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
+template <typename _Tp, size_t _Np>
+inline constexpr size_t __simd_internal_alignment_v =
+  ::cuda::__is_valid_alignment(_Np * alignof(_Tp)) ? _Np * alignof(_Tp) : alignof(_Tp);
+
 // [simd.traits], alignment
 template <typename _Tp, typename _Up = typename _Tp::value_type>
 struct alignment;
 
 template <typename _Tp, typename _Abi, typename _Up>
 struct alignment<basic_vec<_Tp, _Abi>, _Up>
-    : integral_constant<size_t,
-                        ::cuda::__is_valid_alignment(__simd_size_v<_Tp, _Abi> * alignof(_Up))
-                          ? __simd_size_v<_Tp, _Abi> * alignof(_Up)
-                          : alignof(_Up)>
+    : integral_constant<size_t, __simd_internal_alignment_v<_Up, __simd_size_v<_Tp, _Abi>>>
 {
   static_assert(__is_vectorizable_v<_Up>, "U must be a vectorizable type");
 };

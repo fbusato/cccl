@@ -23,6 +23,7 @@
 
 #include <cuda/__utility/in_range.h>
 #include <cuda/std/__fwd/simd.h>
+#include <cuda/std/__simd/type_traits.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__utility/integer_sequence.h>
 
@@ -40,15 +41,11 @@ struct __fixed_size
 
 // Element-per-slot simd storage for fixed_size ABI
 template <typename _Tp, __simd_size_type _Np>
-struct __simd_storage<_Tp, __fixed_size<_Np>>
+struct alignas(__simd_internal_alignment_v<_Tp, _Np>) __simd_storage<_Tp, __fixed_size<_Np>>
 {
   using value_type = _Tp;
 
   _Tp __data[_Np]{};
-
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage()                                 = default;
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage(const __simd_storage&)            = default;
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage& operator=(const __simd_storage&) = default;
 
   [[nodiscard]] _CCCL_API constexpr _Tp __get(const __simd_size_type __idx) const noexcept
   {
