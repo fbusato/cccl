@@ -35,7 +35,7 @@ The trait also propagates through composite types:
 - ``cuda::std::tuple<Ts...>``: trivially copyable when all ``Ts...`` are.
 - ``cuda::std::complex<T>``: trivially copyable when ``T`` is.
 - ``cuda::complex<T>``: trivially copyable when ``T`` is.
-- Aggregates (types that can be initialized with a braced initializer list ``{}``): trivially copyable when all their members are.
+- `Aggregates <https://en.cppreference.com/cpp/language/aggregate_initialization>`__: trivially copyable when all their members are.
 
   - On MSVC, recursive data-member inspection is not supported beyond the first level.
 
@@ -70,3 +70,7 @@ Examples
    static_assert(cuda::is_trivially_copyable_v<cuda::std::pair<__half2, __half>>);
    static_assert(cuda::is_trivially_copyable_v<cuda::std::tuple<__half, __half2>>);
    static_assert(cuda::is_trivially_copyable_v<cuda::std::pair<__half2, int>>);
+
+
+`See it on Godbolt 🔗 <https://godbolt.org/z/PqccjfEv6>`__
+
