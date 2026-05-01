@@ -23,7 +23,9 @@
 
 #include <cuda/__utility/in_range.h>
 #include <cuda/std/__fwd/simd.h>
+#include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/integral_constant.h>
+#include <cuda/std/__type_traits/is_integral.h>
 #include <cuda/std/__utility/integer_sequence.h>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -40,15 +42,11 @@ struct __fixed_size
 
 // Element-per-slot simd storage for fixed_size ABI
 template <typename _Tp, __simd_size_type _Np>
-struct __simd_storage<_Tp, __fixed_size<_Np>>
+struct alignas(alignof(_Tp) * _Np) __simd_storage<_Tp, __fixed_size<_Np>>
 {
   using value_type = _Tp;
 
   _Tp __data[_Np]{};
-
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage()                                 = default;
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage(const __simd_storage&)            = default;
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage& operator=(const __simd_storage&) = default;
 
   [[nodiscard]] _CCCL_API constexpr _Tp __get(const __simd_size_type __idx) const noexcept
   {
@@ -63,9 +61,12 @@ struct __simd_storage<_Tp, __fixed_size<_Np>>
   }
 };
 
+template <typename _Tp, __simd_size_type _Np>
+inline constexpr bool __is_fixed_size_small_integral_v = is_integral_v<_Tp> && sizeof(_Tp) < 4;
+
 // Simd operations for fixed_size ABI
 template <typename _Tp, __simd_size_type _Np>
-struct __simd_operations<_Tp, __fixed_size<_Np>>
+struct __fixed_size_operations
 {
   using _SimdStorage = __simd_storage<_Tp, __fixed_size<_Np>>;
   using _MaskStorage = __mask_storage<sizeof(_Tp), __fixed_size<_Np>>;
@@ -90,7 +91,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     ((__result.__data[_Is] = __g(integral_constant<__simd_size_type, _Is>())), ...);
     return __result;
 #else // ^^^ C++20 ^^^ / vvv C++17 vvv
-    return _SimdStorage{{ __g(integral_constant<__simd_size_type, _Is>())... }};
+    return _SimdStorage{{__g(integral_constant<__simd_size_type, _Is>())...}};
 #endif // _CCCL_STD_VER < 2020
   }
 
@@ -354,6 +355,12 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     return __result;
   }
 };
+
+template <typename _Tp, __simd_size_type _Np>
+struct __simd_operations<_Tp, __fixed_size<_Np>, enable_if_t<!__is_fixed_size_small_integral_v<_Tp, _Np>>>
+    : __fixed_size_operations<_Tp, _Np>
+{};
+
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>
