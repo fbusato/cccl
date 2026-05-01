@@ -37,7 +37,7 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
-_CCCL_API inline void __add_f32x2(
+_CCCL_DEVICE_API inline void __add_f32x2(
   const float __lhs1,
   const float __lhs2,
   const float __rhs1,
@@ -46,9 +46,12 @@ _CCCL_API inline void __add_f32x2(
   float& __result2) noexcept
 {
 #  if _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
-  const auto __result = ::__fadd2_rn(::float2{__lhs1, __lhs2}, ::float2{__rhs1, __rhs2});
-  __result1           = __result.x;
-  __result2           = __result.y;
+  // clang-format off
+  NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
+               (const auto __result = ::__fadd2_rn(::float2{__lhs1, __lhs2}, ::float2{__rhs1, __rhs2});
+                __result1           = __result.x;
+                __result2           = __result.y;))
+  // clang-format on
 #  elif __cccl_ptx_isa >= 860ULL
   asm("add.f32x2 {%0, %1}, {%2, %3}, {%4, %5};"
       : "=f"(__result1), "=f"(__result2)
@@ -57,7 +60,7 @@ _CCCL_API inline void __add_f32x2(
 }
 
 template <size_t _Np>
-_CCCL_API constexpr void
+_CCCL_DEVICE_API constexpr void
 __plus_f32x2(const float (&__lhs)[_Np], const float (&__rhs)[_Np], float (&__result)[_Np]) noexcept
 {
   _CCCL_PRAGMA_UNROLL_FULL()
