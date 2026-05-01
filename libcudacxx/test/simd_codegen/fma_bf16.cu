@@ -3,14 +3,14 @@
 
 #if _CCCL_HAS_NVBF16()
 
-#include <cuda_bf16.h>
+#  include <cuda_bf16.h>
 
 namespace simd = cuda::std::simd;
 
 using Vec_bf16_4 = simd::basic_vec<__nv_bfloat16, simd::fixed_size<4>>;
 
-extern "C" __global__ void test_fma_bf16_4(
-  const __nv_bfloat16* lhs, const __nv_bfloat16* rhs, const __nv_bfloat16* add, __nv_bfloat16* out)
+extern "C" __global__ void
+test_fma_bf16_4(const __nv_bfloat16* lhs, const __nv_bfloat16* rhs, const __nv_bfloat16* add, __nv_bfloat16* out)
 {
   const cuda::std::array<__nv_bfloat16, 4> lhs_values{lhs[0], lhs[1], lhs[2], lhs[3]};
   const cuda::std::array<__nv_bfloat16, 4> rhs_values{rhs[0], rhs[1], rhs[2], rhs[3]};

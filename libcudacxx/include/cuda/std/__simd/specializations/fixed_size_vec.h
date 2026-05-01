@@ -26,6 +26,7 @@
 #include <cuda/std/__bit/bit_cast.h>
 #include <cuda/std/__cstring/memcpy.h>
 #include <cuda/std/__fwd/simd.h>
+#include <cuda/std/__simd/specializations/intrinsic.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__utility/integer_sequence.h>
 
@@ -164,6 +165,19 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __plus(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
+#if _CCCL_HAS_SIMD_F32X2()
+    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
+    {
+      if constexpr (is_same_v<_Tp, float> && _Np >= 2)
+      {
+        NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
+                     (_SimdStorage __result; //
+                      ::cuda::std::simd::__plus_f32x2(__lhs.__data, __rhs.__data, __result.__data);
+                      return __result;))
+      }
+    }
+#endif // _CCCL_HAS_SIMD_F32X2()
+
 #if 0 // _CCCL_HAS_NVFP16()
     if constexpr (is_same_v<_Tp, ::__half> && _Np >= 2)
     {

@@ -1,6 +1,9 @@
 add_custom_target(libcudacxx.test.simd.sass)
 
-find_program(filecheck NAMES FileCheck FileCheck-21 FileCheck-20 FileCheck-19 FileCheck-18)
+find_program(
+  filecheck
+  NAMES FileCheck FileCheck-21 FileCheck-20 FileCheck-19 FileCheck-18
+)
 
 if (filecheck)
   message("-- ${filecheck} found... building simd codegen tests")
@@ -25,6 +28,10 @@ function(simd_codegen_add_tests arch)
   foreach (test_path IN LISTS libcudacxx_simd_codegen_tests)
     cmake_path(GET test_path FILENAME test_file)
     cmake_path(REMOVE_EXTENSION test_file LAST_ONLY OUTPUT_VARIABLE test_name)
+
+    if (test_name STREQUAL "plus_f32" AND NOT arch EQUAL 100)
+      continue()
+    endif()
 
     set(target_name "simd_codegen_sm${arch}_${test_name}")
     set(check_prefixes "SMXX,SM${arch}")

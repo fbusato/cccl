@@ -3,7 +3,7 @@
 
 #if _CCCL_HAS_NVFP16()
 
-#include <cuda_fp16.h>
+#  include <cuda_fp16.h>
 
 namespace simd = cuda::std::simd;
 
