@@ -9,6 +9,7 @@ Type traits
 
    type_traits/is_floating_point
    type_traits/is_trivially_copyable
+   type_traits/is_bitwise_comparable
    type_traits/vector_types
 
 .. list-table::
@@ -32,5 +33,7 @@ Type traits
 
    * - :ref:`cuda::is_trivially_copyable <libcudacxx-extended-api-type_traits-is_trivially_copyable>`
      - Relaxed trivially copyable check including extended floating-point types
+   * - :ref:`cuda::is_bitwise_comparable <libcudacxx-extended-api-type_traits-is_bitwise_comparable>`
+     - User-specializable bitwise comparability check
      - CCCL 3.4.0
      - CUDA 13.4
