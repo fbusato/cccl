@@ -52,6 +52,25 @@ __host__ __device__ bool operator==(cuda::complex<T> a, cuda::complex<T> b)
   return a.real() == b.real() && a.imag() == b.imag();
 }
 
+template <int Size>
+struct large_custom_t
+{
+  unsigned char data[Size];
+};
+
+template <int Size>
+__host__ __device__ bool operator==(const large_custom_t<Size>& a, const large_custom_t<Size>& b)
+{
+  for (int i = 0; i < Size; ++i)
+  {
+    if (a.data[i] != b.data[i])
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 template <typename T>
 __host__ __device__ void test_memcpy_roundtrip(T from)
 {
@@ -211,6 +230,9 @@ __host__ __device__ bool tests()
   TEST_CUDA_VECTOR_TYPE(double, 1)
   TEST_CUDA_VECTOR_TYPE(double, 2)
   TEST_CUDA_VECTOR_TYPE(double, 3)
+
+  test_memcpy_roundtrip(large_custom_t<128>{});
+  test_memcpy_roundtrip(large_custom_t<512>{});
 
   for (dim3 i :
        {dim3{0u, 1u, 2u},

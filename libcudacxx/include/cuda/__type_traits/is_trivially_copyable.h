@@ -85,9 +85,10 @@ template <typename _Tp>
 using __is_trivially_copyable_callable = ::cuda::std::bool_constant<__is_trivially_copyable_v<_Tp>>;
 
 template <typename _Tp>
-inline constexpr bool
-  __is_aggregate_trivially_copyable_v<_Tp, ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp>>> =
-    ::cuda::std::__aggregate_all_of_v<__is_trivially_copyable_callable, _Tp>;
+inline constexpr bool __is_aggregate_trivially_copyable_v<
+  _Tp,
+  ::cuda::std::enable_if_t<::cuda::std::is_aggregate_v<_Tp> && !::cuda::std::is_trivially_copyable_v<_Tp>>> =
+  ::cuda::std::__aggregate_all_of_v<__is_trivially_copyable_callable, _Tp>;
 
 //----------------------------------------------------------------------------------------------------------------------
 // public traits
