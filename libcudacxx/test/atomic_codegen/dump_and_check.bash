@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 ## Usage: dump_and_check test.a test.cu PREFIXES [cuobjdump-mode]
 input_archive=$1
