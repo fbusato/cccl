@@ -44,10 +44,6 @@ struct __simd_storage<_Tp, __fixed_size<_Np>>
 
   _Tp __data[_Np]{};
 
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage()                                 = default;
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage(const __simd_storage&)            = default;
-  _CCCL_HIDE_FROM_ABI constexpr __simd_storage& operator=(const __simd_storage&) = default;
-
   [[nodiscard]] _CCCL_API constexpr _Tp __get(const __simd_size_type __idx) const noexcept
   {
     _CCCL_ASSERT(::cuda::in_range(__idx, __simd_size_type{0}, _Np), "Index is out of bounds");

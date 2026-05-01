@@ -1,7 +1,15 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of libcu++ in the CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
 #include <cuda/std/__simd_> // IWYU pragma: keep
 #include <cuda/std/array>
-
-#if _CCCL_HAS_SIMD_F32X2()
 
 namespace simd = cuda::std::simd;
 
@@ -27,5 +35,3 @@ extern "C" __global__ void test_operator_increment_f32_4(const float* in, float*
 ; SM100: {{.*FADD2.*}}
 
 */
-
-#endif // _CCCL_HAS_SIMD_F32X2()

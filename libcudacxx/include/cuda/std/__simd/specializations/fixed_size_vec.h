@@ -80,7 +80,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
         // clang-format off
         NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
                      (constexpr _SimdStorage __one = __broadcast(1.0f);
-                      __s                      = ::cuda::std::simd::__plus_f32x2(__s, __one);
+                      __s                          = ::cuda::std::simd::__plus_f32x2(__s, __one);
                       return;))
         // clang-format on
       }
@@ -103,7 +103,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
         // clang-format off
         NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
                      (constexpr _SimdStorage __one = __broadcast(1.0f);
-                      __s                      = ::cuda::std::simd::__minus_f32x2(__s, __one);
+                      __s                          = ::cuda::std::simd::__minus_f32x2(__s, __one);
                       return;))
         // clang-format on
       }

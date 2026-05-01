@@ -21,11 +21,10 @@
 #  pragma system_header
 #endif // no system header
 
-#if _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8) || (__cccl_ptx_isa >= 860ULL)
-#  define _CCCL_HAS_SIMD_F32X2() 1
-#else
-#  define _CCCL_HAS_SIMD_F32X2() 0
-#endif // _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8) || (__cccl_ptx_isa >= 860ULL)
+#define _CCCL_HAS_SIMD_F32X2_INTRINSICS() (_CCCL_CUDACC_AT_LEAST(12, 8) && _CCCL_HAS_CTK())
+#define _CCCL_HAS_SIMD_F32X2_PTX()        (__cccl_ptx_isa >= 860ULL)
+
+#define _CCCL_HAS_SIMD_F32X2() (_CCCL_HAS_SIMD_F32X2_INTRINSICS() || _CCCL_HAS_SIMD_F32X2_PTX())
 
 #if _CCCL_HAS_SIMD_F32X2()
 
@@ -45,14 +44,14 @@ _CCCL_DEVICE_API inline void __add_f32x2(
   float& __result1,
   float& __result2) noexcept
 {
-#  if _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
+#  if _CCCL_HAS_SIMD_F32X2_INTRINSICS()
   // clang-format off
   NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
                (const auto __result = ::__fadd2_rn(::float2{__lhs1, __lhs2}, ::float2{__rhs1, __rhs2});
                 __result1           = __result.x;
                 __result2           = __result.y;))
   // clang-format on
-#  elif (__cccl_ptx_isa >= 860ULL) // PTX ISA 8.6
+#  elif _CCCL_HAS_SIMD_F32X2_PTX() // PTX ISA 8.6
   asm("{.reg .b64 __lhs, __rhs, __result;"
       "mov.b64 __lhs, {%2, %3};"
       "mov.b64 __rhs, {%4, %5};"
@@ -60,7 +59,7 @@ _CCCL_DEVICE_API inline void __add_f32x2(
       "mov.b64 {%0, %1}, __result;}"
       : "=f"(__result1), "=f"(__result2)
       : "f"(__lhs1), "f"(__lhs2), "f"(__rhs1), "f"(__rhs2));
-#  endif // _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
+#  endif // _CCCL_HAS_SIMD_F32X2_INTRINSICS()
 }
 
 _CCCL_DEVICE_API inline void __mul_f32x2(
@@ -71,14 +70,14 @@ _CCCL_DEVICE_API inline void __mul_f32x2(
   float& __result1,
   float& __result2) noexcept
 {
-#  if _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
+#  if _CCCL_HAS_SIMD_F32X2_INTRINSICS()
   // clang-format off
   NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
                (const auto __result = ::__fmul2_rn(::float2{__lhs1, __lhs2}, ::float2{__rhs1, __rhs2});
                 __result1           = __result.x;
                 __result2           = __result.y;))
   // clang-format on
-#  elif (__cccl_ptx_isa >= 860ULL) // PTX ISA 8.6
+#  elif _CCCL_HAS_SIMD_F32X2_PTX() // PTX ISA 8.6
   asm("{.reg .b64 __lhs, __rhs, __result;"
       "mov.b64 __lhs, {%2, %3};"
       "mov.b64 __rhs, {%4, %5};"
@@ -86,7 +85,7 @@ _CCCL_DEVICE_API inline void __mul_f32x2(
       "mov.b64 {%0, %1}, __result;}"
       : "=f"(__result1), "=f"(__result2)
       : "f"(__lhs1), "f"(__lhs2), "f"(__rhs1), "f"(__rhs2));
-#  endif // _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
+#  endif // _CCCL_HAS_SIMD_F32X2_INTRINSICS()
 }
 
 _CCCL_DEVICE_API inline void __sub_f32x2(
@@ -97,14 +96,14 @@ _CCCL_DEVICE_API inline void __sub_f32x2(
   float& __result1,
   float& __result2) noexcept
 {
-#  if _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
+#  if _CCCL_HAS_SIMD_F32X2_INTRINSICS()
   // clang-format off
   NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
                (const auto __result = ::__fadd2_rn(::float2{__lhs1, __lhs2}, ::float2{-__rhs1, -__rhs2});
                 __result1           = __result.x;
                 __result2           = __result.y;))
   // clang-format on
-#  elif (__cccl_ptx_isa >= 860ULL) // PTX ISA 8.6
+#  elif _CCCL_HAS_SIMD_F32X2_PTX() // PTX ISA 8.6
   // clang-format off
   NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
                (asm("{.reg .b64 __lhs, __rhs, __result;"
@@ -115,7 +114,7 @@ _CCCL_DEVICE_API inline void __sub_f32x2(
                     : "=f"(__result1), "=f"(__result2)
                     : "f"(__lhs1), "f"(__lhs2), "f"(__rhs1), "f"(__rhs2));))
   // clang-format on
-#  endif // _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
+#  endif // _CCCL_HAS_SIMD_F32X2_INTRINSICS()
 }
 
 _CCCL_DEVICE_API inline void __fma_f32x2(
@@ -128,7 +127,7 @@ _CCCL_DEVICE_API inline void __fma_f32x2(
   float& __result1,
   float& __result2) noexcept
 {
-#  if _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
+#  if _CCCL_HAS_SIMD_F32X2_INTRINSICS()
   // clang-format off
   NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
                (const auto __result =
@@ -136,7 +135,7 @@ _CCCL_DEVICE_API inline void __fma_f32x2(
                 __result1 = __result.x;
                 __result2 = __result.y;))
   // clang-format on
-#  elif (__cccl_ptx_isa >= 860ULL) // PTX ISA 8.6
+#  elif _CCCL_HAS_SIMD_F32X2_PTX() // PTX ISA 8.6
   asm("{.reg .b64 __lhs, __rhs, __add, __result;"
       "mov.b64 __lhs, {%2, %3};"
       "mov.b64 __rhs, {%4, %5};"
@@ -145,7 +144,7 @@ _CCCL_DEVICE_API inline void __fma_f32x2(
       "mov.b64 {%0, %1}, __result;}"
       : "=f"(__result1), "=f"(__result2)
       : "f"(__lhs1), "f"(__lhs2), "f"(__rhs1), "f"(__rhs2), "f"(__add1), "f"(__add2));
-#  endif // _CCCL_CUDA_COMPILER(NVCC, >=, 12, 8)
+#  endif // _CCCL_HAS_SIMD_F32X2_INTRINSICS()
 }
 
 template <__simd_size_type _Np>

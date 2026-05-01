@@ -1,3 +1,13 @@
+##===----------------------------------------------------------------------===##
+##
+## Part of libcu++ in the CUDA C++ Core Libraries,
+## under the Apache License v2.0 with LLVM Exceptions.
+## See https://llvm.org/LICENSE.txt for license information.
+## SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+## SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
+##
+##===----------------------------------------------------------------------===##
+
 add_custom_target(libcudacxx.test.simd.sass)
 
 find_program(
@@ -20,7 +30,7 @@ if (NOT "NVHPC" STREQUAL "${CMAKE_CXX_COMPILER_ID}")
 endif()
 
 set(simd_codegen_cuda_archs 80 90)
-if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.9)
+if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.8)
   list(APPEND simd_codegen_cuda_archs 100 120)
 endif()
 
