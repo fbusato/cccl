@@ -34,17 +34,38 @@ if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.8)
   list(APPEND simd_codegen_cuda_archs 100 120)
 endif()
 
-function(simd_codegen_add_tests arch)
-  foreach (test_path IN LISTS libcudacxx_simd_codegen_tests)
-    cmake_path(GET test_path FILENAME test_file)
-    cmake_path(REMOVE_EXTENSION test_file LAST_ONLY OUTPUT_VARIABLE test_name)
+function(simd_codegen_add_tests test_path)
+  cmake_path(GET test_path FILENAME test_file)
+  cmake_path(REMOVE_EXTENSION test_file LAST_ONLY OUTPUT_VARIABLE test_name)
 
-    if (test_name MATCHES "_f32x2$" AND NOT arch EQUAL 100)
-      continue()
-    endif()
+  file(READ "${test_path}" test_contents)
+  string(
+    REGEX MATCH
+    "SM[0-9][0-9]*"
+    has_arch_specific_prefix
+    "${test_contents}"
+  )
 
+  # search for SMXX prefixes in the test contents
+  set(test_archs)
+  if (has_arch_specific_prefix)
+    foreach (arch IN LISTS simd_codegen_cuda_archs)
+      string(FIND "${test_contents}" "SM${arch}" arch_specific_prefix)
+      if (NOT arch_specific_prefix EQUAL -1)
+        list(APPEND test_archs "${arch}")
+      endif()
+    endforeach()
+  else()
+    set(test_archs ${simd_codegen_cuda_archs})
+  endif()
+
+  # Run tests for each architecture specified in the test file
+  foreach (arch IN LISTS test_archs)
     set(target_name "simd_codegen_sm${arch}_${test_name}")
-    set(check_prefixes "SMXX,SM${arch}")
+    set(check_prefixes "SMXX")
+    if (has_arch_specific_prefix)
+      string(APPEND check_prefixes ",SM${arch}")
+    endif()
 
     add_library(${target_name} STATIC "${test_path}")
 
@@ -77,6 +98,6 @@ function(simd_codegen_add_tests arch)
   endforeach()
 endfunction()
 
-foreach (arch IN LISTS simd_codegen_cuda_archs)
-  simd_codegen_add_tests(${arch})
+foreach (test_path IN LISTS libcudacxx_simd_codegen_tests)
+  simd_codegen_add_tests("${test_path}")
 endforeach()

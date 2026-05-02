@@ -22,9 +22,11 @@
 #endif // no system header
 
 #include <cuda/std/__fwd/simd.h>
+#include <cuda/std/__simd/specializations/fixed_size_mask.h>
 #include <cuda/std/__simd/specializations/fixed_size_storage.h>
-#include <cuda/std/__simd/specializations/fp32x2_intrinsics.h>
+#include <cuda/std/__type_traits/enable_if.h>
 #include <cuda/std/__type_traits/integral_constant.h>
+#include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__utility/integer_sequence.h>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -33,7 +35,10 @@ _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
 // Simd operations for fixed_size ABI
 template <typename _Tp, __simd_size_type _Np>
-struct __simd_operations<_Tp, __fixed_size<_Np>>
+inline constexpr bool __is_fixed_size_float_v = is_same_v<_Tp, float> && _Np >= 2;
+
+template <typename _Tp, __simd_size_type _Np>
+struct __fixed_size_operations
 {
   using _SimdStorage = __simd_storage<_Tp, __fixed_size<_Np>>;
   using _MaskStorage = __mask_storage<sizeof(_Tp), __fixed_size<_Np>>;
@@ -58,7 +63,7 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     ((__result.__data[_Is] = __g(integral_constant<__simd_size_type, _Is>())), ...);
     return __result;
 #else // ^^^ C++20 ^^^ / vvv C++17 vvv
-    return _SimdStorage{{ __g(integral_constant<__simd_size_type, _Is>())... }};
+    return _SimdStorage{{__g(integral_constant<__simd_size_type, _Is>())...}};
 #endif // _CCCL_STD_VER < 2020
   }
 
@@ -72,20 +77,6 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
 
   _CCCL_API static constexpr void __increment(_SimdStorage& __s) noexcept
   {
-#if _CCCL_HAS_SIMD_F32X2()
-    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
-    {
-      if constexpr (is_same_v<_Tp, float> && _Np >= 2)
-      {
-        // clang-format off
-        NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
-                     (constexpr _SimdStorage __one = __broadcast(1.0f);
-                      __s                          = ::cuda::std::simd::__plus_f32x2(__s, __one);
-                      return;))
-        // clang-format on
-      }
-    }
-#endif // _CCCL_HAS_SIMD_F32X2()
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -95,20 +86,6 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
 
   _CCCL_API static constexpr void __decrement(_SimdStorage& __s) noexcept
   {
-#if _CCCL_HAS_SIMD_F32X2()
-    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
-    {
-      if constexpr (is_same_v<_Tp, float> && _Np >= 2)
-      {
-        // clang-format off
-        NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
-                     (constexpr _SimdStorage __one = __broadcast(1.0f);
-                      __s                          = ::cuda::std::simd::__minus_f32x2(__s, __one);
-                      return;))
-        // clang-format on
-      }
-    }
-#endif // _CCCL_HAS_SIMD_F32X2()
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
@@ -142,19 +119,6 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   _CCCL_DIAG_SUPPRESS_MSVC(4146) // unary minus applied to unsigned type
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage __unary_minus(const _SimdStorage& __s) noexcept
   {
-#if _CCCL_HAS_SIMD_F32X2()
-    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
-    {
-      if constexpr (is_same_v<_Tp, float> && _Np >= 2)
-      {
-        // clang-format off
-        NV_IF_TARGET(NV_IS_EXACTLY_SM_100,
-                     (constexpr _SimdStorage __zero = __broadcast(0.0f);
-                      return ::cuda::std::simd::__minus_f32x2(__zero, __s);))
-        // clang-format on
-      }
-    }
-#endif // _CCCL_HAS_SIMD_F32X2()
     _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
@@ -170,38 +134,18 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __plus(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-#if _CCCL_HAS_SIMD_F32X2()
-    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
+    _SimdStorage __result;
+    _CCCL_PRAGMA_UNROLL_FULL()
+    for (__simd_size_type __i = 0; __i < _Np; ++__i)
     {
-      if constexpr (is_same_v<_Tp, float> && _Np >= 2)
-      {
-        NV_IF_TARGET(NV_IS_EXACTLY_SM_100, (return ::cuda::std::simd::__plus_f32x2(__lhs, __rhs);))
-      }
+      __result.__data[__i] = (__lhs.__data[__i] + __rhs.__data[__i]);
     }
-#endif // _CCCL_HAS_SIMD_F32X2()
-    {
-      _SimdStorage __result;
-      _CCCL_PRAGMA_UNROLL_FULL()
-      for (__simd_size_type __i = 0; __i < _Np; ++__i)
-      {
-        __result.__data[__i] = (__lhs.__data[__i] + __rhs.__data[__i]);
-      }
-      return __result;
-    }
+    return __result;
   }
 
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __minus(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-#if _CCCL_HAS_SIMD_F32X2()
-    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
-    {
-      if constexpr (is_same_v<_Tp, float> && _Np >= 2)
-      {
-        NV_IF_TARGET(NV_IS_EXACTLY_SM_100, (return ::cuda::std::simd::__minus_f32x2(__lhs, __rhs);))
-      }
-    }
-#endif // _CCCL_HAS_SIMD_F32X2()
     _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
@@ -214,15 +158,6 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
   [[nodiscard]] _CCCL_API static constexpr _SimdStorage
   __multiplies(const _SimdStorage& __lhs, const _SimdStorage& __rhs) noexcept
   {
-#if _CCCL_HAS_SIMD_F32X2()
-    _CCCL_IF_NOT_CONSTEVAL_DEFAULT
-    {
-      if constexpr (is_same_v<_Tp, float> && _Np >= 2)
-      {
-        NV_IF_TARGET(NV_IS_EXACTLY_SM_100, (return ::cuda::std::simd::__multiplies_f32x2(__lhs, __rhs);))
-      }
-    }
-#endif // _CCCL_HAS_SIMD_F32X2()
     _SimdStorage __result;
     _CCCL_PRAGMA_UNROLL_FULL()
     for (__simd_size_type __i = 0; __i < _Np; ++__i)
@@ -392,6 +327,13 @@ struct __simd_operations<_Tp, __fixed_size<_Np>>
     return __result;
   }
 };
+
+// Default path (no optimizations)
+template <typename _Tp, __simd_size_type _Np>
+struct __simd_operations<_Tp, __fixed_size<_Np>, enable_if_t<!__is_fixed_size_float_v<_Tp, _Np>>>
+    : __fixed_size_operations<_Tp, _Np>
+{};
+
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
 #include <cuda/std/__cccl/epilogue.h>

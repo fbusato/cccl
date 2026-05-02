@@ -46,7 +46,7 @@ using mask = basic_mask<sizeof(_Tp), __deduce_abi_t<_Tp, _Np>>;
 template <typename _Tp, typename _Abi>
 struct __simd_storage;
 
-template <typename _Tp, typename _Abi>
+template <typename _Tp, typename _Abi, typename = void>
 struct __simd_operations;
 
 template <size_t _Bytes, typename _Abi>
