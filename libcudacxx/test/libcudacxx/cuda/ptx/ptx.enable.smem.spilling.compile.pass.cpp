@@ -19,6 +19,7 @@ __global__ void test_enable_smem_spilling()
 #endif // __cccl_ptx_isa >= 900
 }
 
+
 int main(int, char**)
 {
   return 0;
