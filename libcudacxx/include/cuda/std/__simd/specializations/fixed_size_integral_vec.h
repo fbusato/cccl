@@ -117,7 +117,10 @@ struct __simd_operations<_Tp, __fixed_size<_Np>, __simd_operations_small_integra
 #  if _CCCL_HAS_SIMD_8BIT()
       else if constexpr (sizeof(_Tp) == 1)
       {
-        NV_IF_TARGET(NV_HAS_FEATURE_SM_120f, (__s = __plus(__s, __one); return;))
+        NV_DISPATCH_TARGET(NV_HAS_FEATURE_SM_107f,
+                           (__s = __plus(__s, __one); return;),
+                           NV_HAS_FEATURE_SM_120f,
+                           (__s = __plus(__s, __one); return;))
       }
 #  endif // _CCCL_HAS_SIMD_8BIT()
     }
@@ -137,7 +140,10 @@ struct __simd_operations<_Tp, __fixed_size<_Np>, __simd_operations_small_integra
 #  if _CCCL_HAS_SIMD_8BIT()
       else if constexpr (sizeof(_Tp) == 1)
       {
-        NV_IF_TARGET(NV_HAS_FEATURE_SM_120f, (__s = __plus(__s, __minus_one); return;))
+        NV_DISPATCH_TARGET(NV_HAS_FEATURE_SM_107f,
+                           (__s = __plus(__s, __minus_one); return;),
+                           NV_HAS_FEATURE_SM_120f,
+                           (__s = __plus(__s, __minus_one); return;))
       }
 #  endif // _CCCL_HAS_SIMD_8BIT()
     }
@@ -158,7 +164,10 @@ struct __simd_operations<_Tp, __fixed_size<_Np>, __simd_operations_small_integra
 #  if _CCCL_HAS_SIMD_8BIT()
       else if constexpr (sizeof(_Tp) == 1)
       {
-        NV_IF_TARGET(NV_HAS_FEATURE_SM_120f, (return __plus(__bitwise_not(__s), __one);))
+        NV_DISPATCH_TARGET(NV_HAS_FEATURE_SM_107f,
+                           (return __plus(__bitwise_not(__s), __one);),
+                           NV_HAS_FEATURE_SM_120f,
+                           (return __plus(__bitwise_not(__s), __one);))
       }
 #  endif // _CCCL_HAS_SIMD_8BIT()
     }
@@ -184,9 +193,13 @@ struct __simd_operations<_Tp, __fixed_size<_Np>, __simd_operations_small_integra
 #  if _CCCL_HAS_SIMD_8BIT()
       else if constexpr (sizeof(_Tp) == 1)
       {
-        NV_IF_TARGET(NV_HAS_FEATURE_SM_120f,
-                     (return ::cuda::std::simd::__copy_from_unsigned_storage<__simd_storage_t>(
-                               ::cuda::std::simd::__vadd_8bit_x4(__lhs_u, __rhs_u));))
+        NV_DISPATCH_TARGET(
+          NV_HAS_FEATURE_SM_107f,
+          (return ::cuda::std::simd::__copy_from_unsigned_storage<__simd_storage_t>(
+                    ::cuda::std::simd::__vadd_8bit_x4(__lhs_u, __rhs_u));),
+          NV_HAS_FEATURE_SM_120f,
+          (return ::cuda::std::simd::__copy_from_unsigned_storage<__simd_storage_t>(
+                    ::cuda::std::simd::__vadd_8bit_x4(__lhs_u, __rhs_u));))
       }
 #  endif // _CCCL_HAS_SIMD_8BIT()
     }
@@ -206,7 +219,10 @@ struct __simd_operations<_Tp, __fixed_size<_Np>, __simd_operations_small_integra
 #  if _CCCL_HAS_SIMD_8BIT()
       else if constexpr (sizeof(_Tp) == 1)
       {
-        NV_IF_TARGET(NV_HAS_FEATURE_SM_120f, (return __plus(__lhs, __unary_minus(__rhs));))
+        NV_DISPATCH_TARGET(NV_HAS_FEATURE_SM_107f,
+                           (return __plus(__lhs, __unary_minus(__rhs));),
+                           NV_HAS_FEATURE_SM_120f,
+                           (return __plus(__lhs, __unary_minus(__rhs));))
       }
 #  endif // _CCCL_HAS_SIMD_8BIT()
     }
