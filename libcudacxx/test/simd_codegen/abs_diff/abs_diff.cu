@@ -15,6 +15,8 @@ namespace simd = cuda::std::simd;
 
 using Vec_s8_x4  = simd::basic_vec<cuda::std::int8_t, simd::fixed_size<4>>;
 using Vec_u8_x4  = simd::basic_vec<cuda::std::uint8_t, simd::fixed_size<4>>;
+using Vec_s16_x2 = simd::basic_vec<cuda::std::int16_t, simd::fixed_size<2>>;
+using Vec_u16_x2 = simd::basic_vec<cuda::std::uint16_t, simd::fixed_size<2>>;
 using Vec_s32_x2 = simd::basic_vec<cuda::std::int32_t, simd::fixed_size<2>>;
 using Vec_u32_x2 = simd::basic_vec<cuda::std::uint32_t, simd::fixed_size<2>>;
 
@@ -24,6 +26,16 @@ __device__ Vec_u32_x2 test_abs_diff_u32_x2(Vec_u32_x2 lhs, Vec_u32_x2 rhs)
 }
 
 __device__ Vec_u32_x2 test_abs_diff_s32_x2(Vec_s32_x2 lhs, Vec_s32_x2 rhs)
+{
+  return cuda::simd::abs_diff(lhs, rhs);
+}
+
+__device__ Vec_u16_x2 test_abs_diff_u16_x2(Vec_u16_x2 lhs, Vec_u16_x2 rhs)
+{
+  return cuda::simd::abs_diff(lhs, rhs);
+}
+
+__device__ Vec_u16_x2 test_abs_diff_s16_x2(Vec_s16_x2 lhs, Vec_s16_x2 rhs)
 {
   return cuda::simd::abs_diff(lhs, rhs);
 }
@@ -61,6 +73,34 @@ __device__ Vec_u8_x4 test_abs_diff_s8_x4(Vec_s8_x4 lhs, Vec_s8_x4 rhs)
 ; SM120: {{.*VIMNMX\.U8x4.*}}
 ; SM120: {{.*VIMNMX\.U8x4.*}}
 ; SM120: {{.*VIADD\.U8x4.*}}
+
+; SMXX-LABEL: {{[[:space:]]*}}Function : {{.*test_abs_diff_s16_x2.*}}
+; SM90: {{.*VIMNMX\.S16x2.*}}
+; SM90: {{.*VIMNMX\.S16x2.*}}
+; SM90: {{.*VIADD\.16x2.*}}
+; SM100: {{.*VIMNMX\.S16x2.*}}
+; SM100: {{.*VIMNMX\.S16x2.*}}
+; SM100: {{.*VIADD\.16x2.*}}
+; SM107: {{.*VIMNMX\.S16x2.*}}
+; SM107: {{.*VIMNMX\.S16x2.*}}
+; SM107: {{.*VIADD\.16x2.*}}
+; SM120: {{.*VIMNMX\.S16x2.*}}
+; SM120: {{.*VIMNMX\.S16x2.*}}
+; SM120: {{.*VIADD\.16x2.*}}
+
+; SMXX-LABEL: {{[[:space:]]*}}Function : {{.*test_abs_diff_u16_x2.*}}
+; SM90: {{.*VIMNMX\.U16x2.*}}
+; SM90: {{.*VIMNMX\.U16x2.*}}
+; SM90: {{.*VIADD\.16x2.*}}
+; SM100: {{.*VIMNMX\.U16x2.*}}
+; SM100: {{.*VIMNMX\.U16x2.*}}
+; SM100: {{.*VIADD\.16x2.*}}
+; SM107: {{.*VIMNMX\.U16x2.*}}
+; SM107: {{.*VIMNMX\.U16x2.*}}
+; SM107: {{.*VIADD\.16x2.*}}
+; SM120: {{.*VIMNMX\.U16x2.*}}
+; SM120: {{.*VIMNMX\.U16x2.*}}
+; SM120: {{.*VIADD\.16x2.*}}
 
 ; SMXX-LABEL: {{[[:space:]]*}}Function : {{.*test_abs_diff_s32_x2.*}}
 ; SM90: {{.*VABSDIFF.*}}
