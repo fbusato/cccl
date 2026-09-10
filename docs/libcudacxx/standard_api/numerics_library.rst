@@ -69,8 +69,8 @@ Any Standard C++ header not listed below is omitted.
      - CUDA 13.3
      - `\<random\> <https://en.cppreference.com/w/cpp/header/random>`_
 
-   * - :ref:`\<cuda/simd\> <libcudacxx-standard-api-numerics-simd>`
-     - Data-parallel types and operations
+   * - :ref:`\<cuda/std/__simd_\> <libcudacxx-standard-api-numerics-simd>`
+     - Data-parallel types and operations (partial implementation)
      - CCCL 3.6.0
      - CUDA 13.6
      - `\<simd\> <https://en.cppreference.com/w/cpp/header/simd>`_

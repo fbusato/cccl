@@ -1,9 +1,23 @@
 .. _libcudacxx-standard-api-numerics-simd:
 
-``<cuda/simd>``
-===============
+``<cuda/std/__simd_>``
+=======================
 
-The ``<cuda/simd>`` header provides the C++ Standard Library data-parallel types and operations in ``cuda::std::simd``. CUDA-specific extensions in ``cuda::simd`` are documented in the :ref:`SIMD extended API <libcudacxx-extended-api-simd>`.
+The internal ``<cuda/std/__simd_>`` header provides a partial implementation of the C++ Standard Library data-parallel types and operations in ``cuda::std::simd``.
+The public ``<cuda/simd>`` header includes this partial implementation together with the CUDA-specific extensions in ``cuda::simd``, which are documented in the :ref:`SIMD extended API <libcudacxx-extended-api-simd>`.
+
+Feature-test macros
+-------------------
+
+libcu++ uses the ``__cccl_lib_`` prefix for library feature-test macros to avoid conflicts with the host standard library.
+Including either ``<cuda/simd>`` or ``<cuda/std/version>`` defines:
+
+- ``__cccl_lib_simd`` as ``202411L``.
+- ``__cccl_lib_simd_complex`` as ``202502L``.
+- ``__cccl_lib_simd_permutations`` as ``202506L``.
+
+The current C++29 ``__cpp_lib_simd`` value is not advertised because it includes ``iota``.
+Likewise, ``__cccl_lib_simd_bitops`` is not defined because the corresponding C++29 operations are not implemented.
 
 Differences from the C++ Standard
 ---------------------------------
