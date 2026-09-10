@@ -518,6 +518,20 @@ pow(const basic_vec<_Tp, _Abi>& __x, const basic_vec<_Tp, _Abi>& __y)
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
+//----------------------------------------------------------------------------------------------------------------------
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+using simd::arg;
+using simd::conj;
+using simd::imag;
+using simd::norm;
+using simd::polar;
+using simd::proj;
+using simd::real;
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
 #include <cuda/std/__cccl/epilogue.h>
 
 #endif // _CUDA_STD___SIMD_COMPLEX_MATH_H

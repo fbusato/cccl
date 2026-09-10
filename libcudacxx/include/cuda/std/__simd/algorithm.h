@@ -106,6 +106,17 @@ select(const basic_mask<_Bytes, _Abi>& __c, const _Tp& __a, const _Up& __b) noex
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
+//----------------------------------------------------------------------------------------------------------------------
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+using simd::clamp;
+using simd::max;
+using simd::min;
+using simd::minmax;
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
 #include <cuda/std/__cccl/epilogue.h>
 
 #endif // _CUDA_STD___SIMD_ALGORITHM_H

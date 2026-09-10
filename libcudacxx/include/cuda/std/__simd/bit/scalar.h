@@ -494,6 +494,28 @@ _CCCL_REQUIRES(__cccl_is_unsigned_integer_v<_Tp>)
 
 _CCCL_END_NAMESPACE_CUDA_STD_SIMD
 
+//----------------------------------------------------------------------------------------------------------------------
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+using simd::bit_ceil;
+using simd::bit_floor;
+using simd::bit_reverse;
+using simd::bit_width;
+using simd::byteswap;
+using simd::countl_one;
+using simd::countl_zero;
+using simd::countr_one;
+using simd::countr_zero;
+using simd::has_single_bit;
+using simd::popcount;
+using simd::rotl;
+using simd::rotr;
+using simd::shl;
+using simd::shr;
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
 #include <cuda/std/__cccl/epilogue.h>
 
 #endif // _CUDA_STD___SIMD_BIT_SCALAR_H
