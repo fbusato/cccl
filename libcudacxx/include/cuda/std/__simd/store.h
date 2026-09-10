@@ -47,9 +47,9 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
-template <typename _Tp, typename _Abi, typename _Up, typename... _Flags>
+template <typename _Tp, typename _Abi, typename _Up, typename _Count = __simd_size_type, typename... _Flags>
 _CCCL_HOST_DEVICE_API constexpr void
-__check_store_preconditions(_Up* const __ptr, flags<_Flags...>, const __simd_size_type __count = 1) noexcept
+__check_store_preconditions(_Up* const __ptr, flags<_Flags...>, const _Count __count = 1) noexcept
 {
   static_assert(__is_vectorizable_v<_Up>, "cuda::std::simd::store: range_value_t<R> must be a vectorizable type");
 
@@ -65,11 +65,11 @@ __check_store_preconditions(_Up* const __ptr, flags<_Flags...>, const __simd_siz
 }
 
 // [simd.loadstore] helper: core partial store to pointer + count + mask
-template <typename _Tp, typename _Abi, typename _Up, typename... _Flags>
+template <typename _Tp, typename _Abi, typename _Up, typename _Count, typename... _Flags>
 _CCCL_HOST_DEVICE_API constexpr void __partial_store_to_ptr(
   const basic_vec<_Tp, _Abi>& __v,
   _Up* const __ptr,
-  const __simd_size_type __count,
+  const _Count __count,
   const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
   flags<_Flags...> __flags = {}) noexcept
 {
@@ -79,7 +79,7 @@ _CCCL_HOST_DEVICE_API constexpr void __partial_store_to_ptr(
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
   {
-    if (__mask[__i] && __i < __count)
+    if (__mask[__i] && ::cuda::std::cmp_less(__i, __count))
     {
       __ptr[__i] = static_cast<_Up>(__v[__i]);
     }
@@ -158,12 +158,9 @@ _CCCL_HOST_DEVICE_API constexpr void partial_store(
   flags<_Flags...> __f = {})
 {
   const auto __range_size = ::cuda::std::ranges::size(__r);
-  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__range_size),
-               "cuda::std::simd::partial_store: range size out of range");
-  const auto __size = static_cast<__simd_size_type>(__range_size);
-  const auto __ptr  = ::cuda::std::ranges::data(__r);
+  const auto __ptr        = ::cuda::std::ranges::data(__r);
 
-  ::cuda::std::simd::__partial_store_to_ptr(__v, __ptr, __size, __mask, __f);
+  ::cuda::std::simd::__partial_store_to_ptr(__v, __ptr, __range_size, __mask, __f);
 }
 
 // partial_store: range, no mask
@@ -193,10 +190,7 @@ _CCCL_HOST_DEVICE_API constexpr void partial_store(
   const typename basic_vec<_Tp, _Abi>::mask_type& __mask,
   flags<_Flags...> __f = {})
 {
-  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__n), "cuda::std::simd::partial_store: n out of range");
-  const auto __size = static_cast<__simd_size_type>(__n);
-
-  ::cuda::std::simd::__partial_store_to_ptr(__v, ::cuda::std::to_address(__first), __size, __mask, __f);
+  ::cuda::std::simd::__partial_store_to_ptr(__v, ::cuda::std::to_address(__first), __n, __mask, __f);
 }
 
 // partial_store: iterator + count, no mask
@@ -226,11 +220,8 @@ _CCCL_HOST_DEVICE_API constexpr void partial_store(
   flags<_Flags...> __f = {})
 {
   const auto __distance = ::cuda::std::distance(__first, __last);
-  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__distance),
-               "cuda::std::simd::partial_store: distance(first, last) out of range");
-  const auto __size = static_cast<__simd_size_type>(__distance);
 
-  ::cuda::std::simd::__partial_store_to_ptr(__v, ::cuda::std::to_address(__first), __size, __mask, __f);
+  ::cuda::std::simd::__partial_store_to_ptr(__v, ::cuda::std::to_address(__first), __distance, __mask, __f);
 }
 
 // partial_store: iterator + sentinel, no mask

@@ -25,6 +25,7 @@
 #include <cuda/__memory/is_aligned.h>
 #include <cuda/__type_traits/is_trivially_copyable.h>
 #include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__fwd/span.h>
 #include <cuda/std/__ranges/concepts.h>
 #include <cuda/std/__simd/abi.h>
@@ -94,16 +95,16 @@ template <typename _Range>
 _CCCL_CONCEPT __has_static_size = __has_tuple_size_v<_Range> || __has_static_extent_v<_Range>;
 
 template <typename _Range>
-[[nodiscard]] _CCCL_HOST_DEVICE_API _CCCL_CONSTEVAL __simd_size_type __get_static_range_size() noexcept
+[[nodiscard]] _CCCL_HOST_DEVICE_API _CCCL_CONSTEVAL size_t __get_static_range_size() noexcept
 {
   using __range_t = remove_cvref_t<_Range>;
   if constexpr (__has_tuple_size_v<_Range>)
   {
-    return __simd_size_type{tuple_size_v<__range_t>};
+    return tuple_size_v<__range_t>;
   }
   else if constexpr (__has_static_extent_v<_Range>)
   {
-    return __simd_size_type{__range_t::extent};
+    return __range_t::extent;
   }
   else
   {
@@ -112,7 +113,7 @@ template <typename _Range>
 }
 
 template <typename _Range>
-inline constexpr __simd_size_type __static_range_size_v = __get_static_range_size<_Range>();
+inline constexpr size_t __static_range_size_v = __get_static_range_size<_Range>();
 
 // This trait is defined at namespace scope (not as a static member of basic_vec) because GCC 13 rejects partial
 // specialization of static member variable templates. The static-size detection intentionally avoids directly using

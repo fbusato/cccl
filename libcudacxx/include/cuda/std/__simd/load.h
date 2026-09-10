@@ -53,9 +53,9 @@ _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 template <typename _Vp, typename _Up>
 using __load_vec_t = conditional_t<is_void_v<_Vp>, basic_vec<_Up>, _Vp>;
 
-template <typename _Result, typename _Up, typename... _Flags>
+template <typename _Result, typename _Up, typename _Count = __simd_size_type, typename... _Flags>
 _CCCL_HOST_DEVICE_API constexpr void
-__check_load_preconditions(const _Up* __ptr, flags<_Flags...>, const __simd_size_type __count = 1) noexcept
+__check_load_preconditions(const _Up* __ptr, flags<_Flags...>, const _Count __count = 1) noexcept
 {
   using __value_t = typename _Result::value_type;
   static_assert(same_as<remove_cvref_t<_Result>, _Result>, "V must not be a reference or cv-qualified type");
@@ -76,10 +76,10 @@ __check_load_preconditions(const _Up* __ptr, flags<_Flags...>, const __simd_size
 }
 
 // [simd.loadstore] helper: core partial load from pointer + count + mask
-template <typename _Result, typename _Up, typename... _Flags>
+template <typename _Result, typename _Up, typename _Count, typename... _Flags>
 [[nodiscard]] _CCCL_HOST_DEVICE_API constexpr _Result __partial_load_from_ptr(
   const _Up* __ptr,
-  const __simd_size_type __count,
+  const _Count __count,
   const typename _Result::mask_type& __mask,
   flags<_Flags...> __flags = {}) noexcept
 {
@@ -91,7 +91,8 @@ template <typename _Result, typename _Up, typename... _Flags>
   _CCCL_PRAGMA_UNROLL_FULL()
   for (__simd_size_type __i = 0; __i < __simd_size; ++__i)
   {
-    const auto __value = (__mask[__i] && __i < __count) ? static_cast<__value_t>(__ptr[__i]) : __value_t{};
+    const auto __value =
+      (__mask[__i] && ::cuda::std::cmp_less(__i, __count)) ? static_cast<__value_t>(__ptr[__i]) : __value_t{};
     __result.__set(__i, __value);
   }
   return __result;
@@ -165,11 +166,9 @@ partial_load(_Range&& __r,
 {
   using __result_t        = __load_vec_t<_Vp, ::cuda::std::ranges::range_value_t<_Range>>;
   const auto __range_size = ::cuda::std::ranges::size(__r);
-  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__range_size),
-               "cuda::std::simd::partial_load: range size out of range");
-  const auto __size = static_cast<__simd_size_type>(__range_size);
 
-  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(::cuda::std::ranges::data(__r), __size, __mask, __f);
+  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(
+    ::cuda::std::ranges::data(__r), __range_size, __mask, __f);
 }
 
 // partial_load: range, no mask
@@ -194,11 +193,9 @@ _CCCL_REQUIRES(contiguous_iterator<_Ip>)
   flags<_Flags...> __f = {})
 {
   using __result_t = __load_vec_t<_Vp, iter_value_t<_Ip>>;
-  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__n), "cuda::std::simd::partial_load: n out of range");
-  const auto __ptr  = ::cuda::std::to_address(__first);
-  const auto __size = static_cast<__simd_size_type>(__n);
+  const auto __ptr = ::cuda::std::to_address(__first);
 
-  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(__ptr, __size, __mask, __f);
+  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(__ptr, __n, __mask, __f);
 }
 
 // partial_load: iterator + count, no mask
@@ -225,11 +222,8 @@ _CCCL_REQUIRES(contiguous_iterator<_Ip> _CCCL_AND sized_sentinel_for<_Sp, _Ip>)
   using __result_t      = __load_vec_t<_Vp, iter_value_t<_Ip>>;
   const auto __ptr      = ::cuda::std::to_address(__first);
   const auto __distance = ::cuda::std::distance(__first, __last);
-  _CCCL_ASSERT(::cuda::std::in_range<__simd_size_type>(__distance),
-               "cuda::std::simd::partial_load: distance(first, last) out of range");
-  const auto __size = static_cast<__simd_size_type>(__distance);
 
-  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(__ptr, __size, __mask, __f);
+  return ::cuda::std::simd::__partial_load_from_ptr<__result_t>(__ptr, __distance, __mask, __f);
 }
 
 // partial_load: iterator + sentinel, no mask

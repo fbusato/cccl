@@ -100,9 +100,9 @@ private:
   template <size_t, typename, typename>
   friend class basic_mask;
 
-  template <typename _Result, typename _Up, typename... _Flags>
+  template <typename _Result, typename _Up, typename _Count, typename... _Flags>
   _CCCL_HOST_DEVICE_API friend constexpr _Result
-  __partial_load_from_ptr(const _Up*, __simd_size_type, const typename _Result::mask_type&, flags<_Flags...>) noexcept;
+  __partial_load_from_ptr(const _Up*, _Count, const typename _Result::mask_type&, flags<_Flags...>) noexcept;
 
   template <typename _Result, typename _Up, typename... _Flags>
   _CCCL_HOST_DEVICE_API friend constexpr _Result
