@@ -41,14 +41,6 @@
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD_SIMD
 
-template <size_t _Bytes>
-inline constexpr bool __is_vectorizable_byte_size_v =
-  (_Bytes == 1 || _Bytes == 2 || _Bytes == 4 || _Bytes == 8
-#if _CCCL_HAS_INT128()
-   || _Bytes == 16
-#endif // _CCCL_HAS_INT128()
-  );
-
 // If basic_mask<Bytes, Abi> is disabled, the specialization has a deleted default constructor, deleted destructor,
 // deleted copy constructor, and deleted copy assignment. In addition only the value_type and abi_type members are
 // present.
@@ -119,7 +111,7 @@ public:
     return {};
   }
 
-  static constexpr __simd_size_constant<__simd_size_v<__integer_from<_Bytes>, _Abi>> size{};
+  static constexpr __simd_size_constant<__mask_size_v<_Bytes, _Abi>> size{};
 
   static constexpr auto __usize = size_t{size};
   static constexpr auto __size  = __simd_size_type{size};
@@ -135,7 +127,7 @@ public:
   {}
 
   _CCCL_TEMPLATE(size_t _UBytes, typename _UAbi)
-  _CCCL_REQUIRES((__simd_size_v<__integer_from<_UBytes>, _UAbi> == __size))
+  _CCCL_REQUIRES((__mask_size_v<_UBytes, _UAbi> == __size))
   _CCCL_HOST_DEVICE_API constexpr explicit basic_mask(const basic_mask<_UBytes, _UAbi>& __x) noexcept
   {
     _CCCL_PRAGMA_UNROLL_FULL()

@@ -41,56 +41,88 @@ inline constexpr size_t __simd_pointer_alignment_v = ::cuda::std::max(alignof(_T
 
 // [simd.traits], alignment
 template <typename _Tp, typename _Up = typename _Tp::value_type>
-struct alignment;
+struct alignment
+{};
+
+template <typename _Up, bool = __is_vectorizable_v<_Up>>
+struct __alignment
+{};
+
+template <typename _Up>
+struct __alignment<_Up, true> : integral_constant<size_t, __simd_pointer_alignment_v<_Up>>
+{};
 
 template <typename _Tp, typename _Abi, typename _Up>
-struct alignment<basic_vec<_Tp, _Abi>, _Up> : integral_constant<size_t, __simd_pointer_alignment_v<_Up>>
-{
-  static_assert(__is_vectorizable_v<_Up>, "U must be a vectorizable type");
-};
+struct alignment<basic_vec<_Tp, _Abi>, _Up> : __alignment<_Up>
+{};
 
 template <typename _Tp, typename _Up = typename _Tp::value_type>
 inline constexpr size_t alignment_v = alignment<_Tp, _Up>::value;
 
 // [simd.traits], rebind
 template <typename _Tp, typename _Vp>
-struct rebind;
+struct rebind
+{};
+
+template <typename _Tp, typename _Vp, bool>
+struct __rebind
+{};
 
 template <typename _Tp, typename _Up, typename _Abi>
-struct rebind<_Tp, basic_vec<_Up, _Abi>>
+struct __rebind<_Tp, basic_vec<_Up, _Abi>, true>
 {
-  static_assert(__is_vectorizable_v<_Tp>, "T must be a vectorizable type");
   using type = basic_vec<_Tp, __deduce_abi_t<_Tp, __simd_size_v<_Up, _Abi>>>;
 };
 
 template <typename _Tp, size_t _Bytes, typename _Abi>
-struct rebind<_Tp, basic_mask<_Bytes, _Abi>>
+struct __rebind<_Tp, basic_mask<_Bytes, _Abi>, true>
 {
-  static_assert(__is_vectorizable_v<_Tp>, "T must be a vectorizable type");
-  using __integer_t       = __integer_from<sizeof(_Tp)>;
-  using __integer_bytes_t = __integer_from<_Bytes>;
-
-  using type = basic_mask<sizeof(_Tp), __deduce_abi_t<__integer_t, __simd_size_v<__integer_bytes_t, _Abi>>>;
+  using type = basic_mask<sizeof(_Tp), __deduce_abi_t<_Tp, __mask_size_v<_Bytes, _Abi>>>;
 };
+
+template <typename _Tp, typename _Up, typename _Abi>
+struct rebind<_Tp, basic_vec<_Up, _Abi>>
+    : __rebind<_Tp, basic_vec<_Up, _Abi>, __is_vectorizable_v<_Tp> && (__simd_size_v<_Up, _Abi> > 0)>
+{};
+
+template <typename _Tp, size_t _Bytes, typename _Abi>
+struct rebind<_Tp, basic_mask<_Bytes, _Abi>>
+    : __rebind<_Tp, basic_mask<_Bytes, _Abi>, __is_vectorizable_v<_Tp> && (__mask_size_v<_Bytes, _Abi> > 0)>
+{};
 
 template <typename _Tp, typename _Vp>
 using rebind_t = typename rebind<_Tp, _Vp>::type;
 
 // [simd.traits], resize
 template <__simd_size_type _Np, typename _Vp>
-struct resize;
+struct resize
+{};
+
+template <__simd_size_type _Np, typename _Vp, bool>
+struct __resize
+{};
 
 template <__simd_size_type _Np, typename _Tp, typename _Abi>
-struct resize<_Np, basic_vec<_Tp, _Abi>>
+struct __resize<_Np, basic_vec<_Tp, _Abi>, true>
 {
   using type = basic_vec<_Tp, __deduce_abi_t<_Tp, _Np>>;
 };
 
 template <__simd_size_type _Np, size_t _Bytes, typename _Abi>
-struct resize<_Np, basic_mask<_Bytes, _Abi>>
+struct __resize<_Np, basic_mask<_Bytes, _Abi>, true>
 {
   using type = basic_mask<_Bytes, __deduce_abi_t<__integer_from<_Bytes>, _Np>>;
 };
+
+template <__simd_size_type _Np, typename _Tp, typename _Abi>
+struct resize<_Np, basic_vec<_Tp, _Abi>>
+    : __resize<_Np, basic_vec<_Tp, _Abi>, (__simd_size_v<_Tp, _Abi> > 0) && (_Np >= 1 && _Np <= 64)>
+{};
+
+template <__simd_size_type _Np, size_t _Bytes, typename _Abi>
+struct resize<_Np, basic_mask<_Bytes, _Abi>>
+    : __resize<_Np, basic_mask<_Bytes, _Abi>, (__mask_size_v<_Bytes, _Abi> > 0) && (_Np >= 1 && _Np <= 64)>
+{};
 
 template <__simd_size_type _Np, typename _Vp>
 using resize_t = typename resize<_Np, _Vp>::type;

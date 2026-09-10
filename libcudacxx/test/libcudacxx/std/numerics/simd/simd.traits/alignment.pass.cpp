@@ -28,6 +28,12 @@ namespace simd = cuda::std::simd;
 
 inline constexpr size_t optimal_cuda_alignment = _CCCL_CTK_AT_LEAST(12, 9) ? 32 : 16;
 
+template <typename T, typename U, typename = void>
+inline constexpr bool has_alignment = false;
+
+template <typename T, typename U>
+inline constexpr bool has_alignment<T, U, cuda::std::void_t<decltype(simd::alignment<T, U>::value)>> = true;
+
 template <typename T, int N>
 TEST_HOST_DEVICE_FUNC void test_default_u()
 {
@@ -79,6 +85,13 @@ TEST_HOST_DEVICE_FUNC void test()
   test_explicit_u<int, 4, char>();
   test_explicit_u<float, 2, double>();
   test_explicit_u<double, 4, int>();
+
+  using Vec = simd::vec<int, 4>;
+  static_assert(has_alignment<Vec, int>);
+  static_assert(!has_alignment<Vec, long double>);
+  static_assert(!has_alignment<Vec, const int>);
+  static_assert(!has_alignment<simd::mask<int, 4>, int>);
+  static_assert(!has_alignment<int, int>);
 }
 
 int main(int, char**)

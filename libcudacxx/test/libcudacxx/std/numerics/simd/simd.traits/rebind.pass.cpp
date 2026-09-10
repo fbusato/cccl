@@ -24,6 +24,12 @@
 
 namespace simd = cuda::std::simd;
 
+template <typename T, typename V, typename = void>
+inline constexpr bool has_rebind = false;
+
+template <typename T, typename V>
+inline constexpr bool has_rebind<T, V, cuda::std::void_t<typename simd::rebind<T, V>::type>> = true;
+
 //----------------------------------------------------------------------------------------------------------------------
 // rebind with basic_vec
 
@@ -105,6 +111,15 @@ TEST_HOST_DEVICE_FUNC void test()
   test_rebind_t_alias<float, simd::vec<int, 4>>();
   test_rebind_t_alias<int, simd::vec<double, 2>>();
   test_rebind_t_alias<double, simd::mask<int, 4>>();
+
+  static_assert(has_rebind<int, simd::vec<float, 4>>);
+  static_assert(has_rebind<int, simd::mask<float, 4>>);
+  static_assert(!has_rebind<long double, simd::vec<float, 4>>);
+  static_assert(!has_rebind<cuda::std::complex<int>, simd::mask<float, 4>>);
+  static_assert(!has_rebind<void, simd::vec<float, 4>>);
+  static_assert(!has_rebind<int, int>);
+  static_assert(!has_rebind<int, simd::basic_vec<float, simd::fixed_size<0>>>);
+  static_assert(!has_rebind<int, simd::basic_mask<sizeof(float), simd::fixed_size<65>>>);
 }
 
 int main(int, char**)

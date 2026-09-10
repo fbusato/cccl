@@ -17,7 +17,12 @@
 // character types, and float/double; false for bool, const/volatile types.
 
 #include <cuda/std/__simd_>
+#include <cuda/std/complex>
 #include <cuda/std/cstdint>
+
+#if _CCCL_HAS_HOST_STD_LIB()
+#  include <complex>
+#endif // _CCCL_HAS_HOST_STD_LIB()
 
 #include "test_macros.h"
 
@@ -56,12 +61,31 @@ static_assert(simd::__is_vectorizable_v<__half>);
 static_assert(simd::__is_vectorizable_v<__nv_bfloat16>);
 #endif
 
+// complex types
+static_assert(simd::__is_vectorizable_v<cuda::std::complex<float>>);
+static_assert(simd::__is_vectorizable_v<cuda::std::complex<double>>);
+static_assert(simd::__is_vectorizable_v<cuda::complex<float>>);
+static_assert(simd::__is_vectorizable_v<cuda::complex<double>>);
+#if _CCCL_HAS_HOST_STD_LIB()
+static_assert(simd::__is_vectorizable_v<::std::complex<float>>);
+static_assert(simd::__is_vectorizable_v<::std::complex<double>>);
+#endif // _CCCL_HAS_HOST_STD_LIB()
+
 // negative cases
 static_assert(!simd::__is_vectorizable_v<bool>);
+static_assert(!simd::__is_vectorizable_v<long double>);
 static_assert(!simd::__is_vectorizable_v<const int>);
 static_assert(!simd::__is_vectorizable_v<volatile int>);
 static_assert(!simd::__is_vectorizable_v<const volatile int>);
 static_assert(!simd::__is_vectorizable_v<void>);
+static_assert(!simd::__is_vectorizable_v<cuda::std::complex<int>>);
+static_assert(!simd::__is_vectorizable_v<cuda::std::complex<long double>>);
+static_assert(!simd::__is_vectorizable_v<cuda::complex<int>>);
+static_assert(!simd::__is_vectorizable_v<cuda::complex<long double>>);
+#if _CCCL_HAS_HOST_STD_LIB()
+static_assert(!simd::__is_vectorizable_v<::std::complex<int>>);
+static_assert(!simd::__is_vectorizable_v<::std::complex<long double>>);
+#endif // _CCCL_HAS_HOST_STD_LIB()
 
 struct user_type
 {};

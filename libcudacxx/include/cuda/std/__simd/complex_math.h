@@ -281,51 +281,56 @@ struct __gen_complex_apply_binary
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
 _CCCL_REQUIRES(__is_complex_vectorizable_v<_Tp>)
-[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<_Tp>, basic_vec<_Tp, _Abi>>
+[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<basic_vec<_Tp, _Abi>>,
+                                                       basic_vec<_Tp, _Abi>>
 real(const basic_vec<_Tp, _Abi>& __v) noexcept
 {
   using __vec_t    = basic_vec<_Tp, _Abi>;
-  using __result_t = rebind_t<__simd_complex_value_type_t<_Tp>, __vec_t>;
+  using __result_t = rebind_t<__simd_complex_value_type_t<__vec_t>, __vec_t>;
   return __result_t{__gen_complex_apply_unary<__vec_t, __fn_real>{__v}};
 }
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
 _CCCL_REQUIRES(__is_complex_vectorizable_v<_Tp>)
-[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<_Tp>, basic_vec<_Tp, _Abi>>
+[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<basic_vec<_Tp, _Abi>>,
+                                                       basic_vec<_Tp, _Abi>>
 imag(const basic_vec<_Tp, _Abi>& __v) noexcept
 {
   using __vec_t    = basic_vec<_Tp, _Abi>;
-  using __result_t = rebind_t<__simd_complex_value_type_t<_Tp>, __vec_t>;
+  using __result_t = rebind_t<__simd_complex_value_type_t<__vec_t>, __vec_t>;
   return __result_t{__gen_complex_apply_unary<__vec_t, __fn_imag>{__v}};
 }
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
 _CCCL_REQUIRES(__is_complex_vectorizable_v<_Tp>)
-[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<_Tp>, basic_vec<_Tp, _Abi>>
+[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<basic_vec<_Tp, _Abi>>,
+                                                       basic_vec<_Tp, _Abi>>
 abs(const basic_vec<_Tp, _Abi>& __v)
 {
   using __vec_t    = basic_vec<_Tp, _Abi>;
-  using __result_t = rebind_t<__simd_complex_value_type_t<_Tp>, __vec_t>;
+  using __result_t = rebind_t<__simd_complex_value_type_t<__vec_t>, __vec_t>;
   return __result_t{__gen_complex_apply_unary<__vec_t, __fn_abs>{__v}};
 }
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
 _CCCL_REQUIRES(__is_complex_vectorizable_v<_Tp>)
-[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<_Tp>, basic_vec<_Tp, _Abi>>
+[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<basic_vec<_Tp, _Abi>>,
+                                                       basic_vec<_Tp, _Abi>>
 arg(const basic_vec<_Tp, _Abi>& __v)
 {
   using __vec_t    = basic_vec<_Tp, _Abi>;
-  using __result_t = rebind_t<__simd_complex_value_type_t<_Tp>, __vec_t>;
+  using __result_t = rebind_t<__simd_complex_value_type_t<__vec_t>, __vec_t>;
   return __result_t{__gen_complex_apply_unary<__vec_t, __fn_arg>{__v}};
 }
 
 _CCCL_TEMPLATE(typename _Tp, typename _Abi)
 _CCCL_REQUIRES(__is_complex_vectorizable_v<_Tp>)
-[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<_Tp>, basic_vec<_Tp, _Abi>>
+[[nodiscard]] _CCCL_HOST_DEVICE_API constexpr rebind_t<__simd_complex_value_type_t<basic_vec<_Tp, _Abi>>,
+                                                       basic_vec<_Tp, _Abi>>
 norm(const basic_vec<_Tp, _Abi>& __v)
 {
   using __vec_t    = basic_vec<_Tp, _Abi>;
-  using __result_t = rebind_t<__simd_complex_value_type_t<_Tp>, __vec_t>;
+  using __result_t = rebind_t<__simd_complex_value_type_t<__vec_t>, __vec_t>;
   return __result_t{__gen_complex_apply_unary<__vec_t, __fn_norm>{__v}};
 }
 

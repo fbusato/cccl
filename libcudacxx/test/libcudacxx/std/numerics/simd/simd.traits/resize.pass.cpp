@@ -28,6 +28,12 @@
 
 namespace simd = cuda::std::simd;
 
+template <int N, typename V, typename = void>
+inline constexpr bool has_resize = false;
+
+template <int N, typename V>
+inline constexpr bool has_resize<N, V, cuda::std::void_t<typename simd::resize<N, V>::type>> = true;
+
 //----------------------------------------------------------------------------------------------------------------------
 // resize with basic_vec
 
@@ -108,6 +114,17 @@ TEST_HOST_DEVICE_FUNC void test()
   // resize_t alias matches resize::type
   test_resize_t_alias<8, simd::vec<int, 4>>();
   test_resize_t_alias<2, simd::vec<float, 8>>();
+
+  static_assert(has_resize<4, simd::vec<int, 2>>);
+  static_assert(has_resize<4, simd::mask<int, 2>>);
+  static_assert(!has_resize<0, simd::vec<int, 2>>);
+  static_assert(!has_resize<-1, simd::vec<int, 2>>);
+  static_assert(!has_resize<65, simd::vec<int, 2>>);
+  static_assert(!has_resize<0, simd::mask<int, 2>>);
+  static_assert(!has_resize<65, simd::mask<int, 2>>);
+  static_assert(!has_resize<4, int>);
+  static_assert(!has_resize<4, simd::basic_vec<int, simd::fixed_size<0>>>);
+  static_assert(!has_resize<4, simd::basic_mask<sizeof(int), simd::fixed_size<65>>>);
 }
 
 int main(int, char**)
