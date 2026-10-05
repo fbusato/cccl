@@ -22,7 +22,10 @@
 #include <cub/util_debug.cuh>
 #include <cub/util_type.cuh>
 
+#include <cuda/__bit/bitmask.h>
 #include <cuda/__cmath/pow2.h>
+#include <cuda/__warp/lane_mask.h>
+#include <cuda/__warp/warp_match_any.h>
 
 CUB_NAMESPACE_BEGIN
 
@@ -395,63 +398,6 @@ _CCCL_DEVICE _CCCL_FORCEINLINE T ShuffleIndex(T input, int src_lane, unsigned in
 namespace detail
 {
 /**
- * Implementation detail for `MatchAny`. It provides specializations for full and partial warps.
- * For partial warps, inactive threads must be masked out. This is done in the partial warp
- * specialization below.
- * Usage:
- * ```
- * // returns a mask of threads with the same 4 least-significant bits of `label`
- * // in a warp with 16 active threads
- * warp_matcher_t<4, 16>::match_any(label);
- *
- * // returns a mask of threads with the same 4 least-significant bits of `label`
- * // in a warp with 32 active threads (no extra work is done)
- * warp_matcher_t<4, 32>::match_any(label);
- * ```
- */
-template <int LabelBits, int WarpActiveThreads>
-struct warp_matcher_t
-{
-  static _CCCL_DEVICE unsigned int match_any(unsigned int label)
-  {
-    return warp_matcher_t<LabelBits, 32>::match_any(label) & ~(~0 << WarpActiveThreads);
-  }
-};
-
-template <int LabelBits>
-struct warp_matcher_t<LabelBits, warp_threads>
-{
-  // match.any.sync.b32 is slower when matching a few bits
-  // using a ballot loop instead
-  static _CCCL_DEVICE unsigned int match_any(unsigned int label)
-  {
-    unsigned int retval;
-
-    // Extract masks of common threads for each bit
-    _CCCL_PRAGMA_UNROLL_FULL()
-    for (int BIT = 0; BIT < LabelBits; ++BIT)
-    {
-      unsigned int mask;
-      const unsigned int current_bit = 1 << BIT;
-      asm("{\n"
-          "    .reg .pred p;\n"
-          "    and.b32 %0, %1, %2;"
-          "    setp.ne.u32 p, %0, 0;\n"
-          "    vote.ballot.sync.b32 %0, p, 0xffffffff;\n"
-          "    @!p not.b32 %0, %0;\n"
-          "}\n"
-          : "=r"(mask)
-          : "r"(label), "r"(current_bit));
-
-      // Remove peers who differ
-      retval = (BIT == 0) ? mask : retval & mask;
-    }
-
-    return retval;
-  }
-};
-
-/**
  * @brief Shifts @p val left by the amount specified by unsigned 32-bit value in @p num_bits. If @p
  * num_bits is larger than 32 bits, @p num_bits is clamped to 32.
  */
@@ -482,7 +428,15 @@ _CCCL_DEVICE _CCCL_FORCEINLINE uint32_t LogicShiftRight(uint32_t val, uint32_t n
 template <int LabelBits, int WarpActiveThreads = detail::warp_threads>
 inline _CCCL_DEVICE unsigned int MatchAny(unsigned int label)
 {
-  return detail::warp_matcher_t<LabelBits, WarpActiveThreads>::match_any(label);
+  if constexpr (WarpActiveThreads == detail::warp_threads)
+  {
+    return ::cuda::device::__warp_match_any_bits<LabelBits>(label).value();
+  }
+  else
+  {
+    constexpr auto member_mask = ::cuda::device::lane_mask{::cuda::bitmask(0, WarpActiveThreads)};
+    return ::cuda::device::__warp_match_any_bits<LabelBits>(label, member_mask).value();
+  }
 }
 
 CUB_NAMESPACE_END

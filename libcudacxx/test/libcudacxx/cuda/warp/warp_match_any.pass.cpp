@@ -98,6 +98,11 @@ TEST_DEVICE_FUNC void test_match_any_bits()
         const uint32_t value = (threadIdx.x % groups) * 0x9E3779B9u;
         assert(cuda::device::__warp_match_any_bits<NumBits>(value, mask)
                == cuda::device::warp_match_any(value & low_bits, mask));
+        if (i == 32)
+        {
+          assert(cuda::device::__warp_match_any_bits<NumBits>(value)
+                 == cuda::device::warp_match_any(value & low_bits, mask));
+        }
       }
     }
   }
