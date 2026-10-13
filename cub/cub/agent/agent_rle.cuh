@@ -208,8 +208,9 @@ struct AgentRle
   // Parameterized WarpScan type
   using WarpScanPairs = WarpScan<LengthOffsetPair>;
 
-  // Reduce-length-by-run scan operator
-  using ReduceBySegmentOpT = ReduceBySegmentOp<::cuda::std::plus<>>;
+  // Reduce-length-by-run scan operator. plus<LengthT> instead of plus<> selects the ShuffleDown look-back in
+  // TilePrefixCallbackOp, which is faster for run-length encoding.
+  using ReduceBySegmentOpT = ReduceBySegmentOp<::cuda::std::plus<LengthT>>;
 
   // Callback type for obtaining tile prefix during block scan
   using DelayConstructorT = typename AgentRlePolicyT::detail::delay_constructor_t;
@@ -325,7 +326,7 @@ struct AgentRle
       , d_offsets_out(d_offsets_out)
       , d_lengths_out(d_lengths_out)
       , equality_op(equality_op)
-      , scan_op(::cuda::std::plus<>{})
+      , scan_op(::cuda::std::plus<LengthT>{})
       , num_items(num_items)
       , streaming_context(streaming_context)
   {}
@@ -918,8 +919,7 @@ struct AgentRle
         tile_aggregate, warp_aggregate, warp_exclusive_in_tile, thread_exclusive_in_warp, lengths_and_num_runs);
 
       // First warp computes tile prefix in lane 0
-      TilePrefixCallbackOpT prefix_op(
-        tile_status, temp_storage.aliasable.scan_storage.prefix, ::cuda::std::plus<>{}, tile_idx);
+      TilePrefixCallbackOpT prefix_op(tile_status, temp_storage.aliasable.scan_storage.prefix, scan_op, tile_idx);
       const unsigned int warp_id = ((WARPS == 1) ? 0 : threadIdx.x / WARP_THREADS);
       if (warp_id == 0)
       {

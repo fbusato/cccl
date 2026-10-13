@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (c) 2011, Duane Merrill. All rights reserved.
-// SPDX-FileCopyrightText: Copyright (c) 2011-2018, NVIDIA CORPORATION. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2011-2026, NVIDIA CORPORATION. All rights reserved.
 // SPDX-License-Identifier: BSD-3
 
 /**
  * @file
- * cub::WarpReduceShfl provides SHFL-based variants of parallel reduction of items partitioned across a CUDA thread
- * warp.
+ * CUB_NS_QUALIFIER::WarpReduceShfl provides SHFL-based variants of parallel reduction of items partitioned across a
+ * CUDA thread warp.
  */
 
 #pragma once
@@ -23,13 +23,18 @@
 #include <cub/thread/thread_operators.cuh>
 #include <cub/util_ptx.cuh>
 #include <cub/util_type.cuh>
+#include <cub/warp/specializations/warp_reduce_shfl_ptx.cuh>
 #include <cub/warp/specializations/warp_redux.cuh>
 
+#include <cuda/__cmath/ilog.h>
 #include <cuda/__cmath/pow2.h>
 #include <cuda/__functional/operator_properties.h>
 #include <cuda/__ptx/instructions/get_sreg.h>
+#include <cuda/__utility/static_for.h>
 #include <cuda/std/__bit/countr.h>
 #include <cuda/std/__functional/operations.h>
+#include <cuda/std/__type_traits/conditional.h>
+#include <cuda/std/__type_traits/is_floating_point.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/cstdint>
 
@@ -67,16 +72,10 @@ struct WarpReduceShfl
   //---------------------------------------------------------------------
 
   /// Whether the logical warp size and the PTX warp size coincide
-  static constexpr bool IS_ARCH_WARP = (LogicalWarpThreads == warp_threads);
-
-  /// The number of warp reduction steps
-  static constexpr int STEPS = Log2<LogicalWarpThreads>::VALUE;
-
-  /// Number of logical warps in a PTX warp
-  static constexpr int LOGICAL_WARPS = warp_threads / LogicalWarpThreads;
+  static constexpr bool IsArchWarp = (LogicalWarpThreads == warp_threads);
 
   /// The 5-bit SHFL mask for logically splitting warps into sub-segments starts 8-bits up
-  static constexpr unsigned SHFL_C = (warp_threads - LogicalWarpThreads) << 8;
+  static constexpr unsigned ShflC = (warp_threads - LogicalWarpThreads) << 8;
 
   /// Shared memory storage layout type
   using TempStorage = NullType;
@@ -99,12 +98,12 @@ struct WarpReduceShfl
   //---------------------------------------------------------------------
 
   /// Constructor
-  _CCCL_DEVICE _CCCL_FORCEINLINE WarpReduceShfl(TempStorage& /*temp_storage*/)
+  _CCCL_DEVICE_API _CCCL_FORCEINLINE WarpReduceShfl(TempStorage& /*temp_storage*/)
       : lane_id(static_cast<int>(::cuda::ptx::get_sreg_laneid()))
-      , warp_id(IS_ARCH_WARP ? 0 : (lane_id / LogicalWarpThreads))
-      , member_mask(WarpMask<LogicalWarpThreads>(warp_id))
+      , warp_id(IsArchWarp ? 0 : (lane_id / LogicalWarpThreads))
+      , member_mask(CUB_NS_QUALIFIER::WarpMask<LogicalWarpThreads>(warp_id))
   {
-    if (!IS_ARCH_WARP)
+    if constexpr (!IsArchWarp)
     {
       lane_id = lane_id % LogicalWarpThreads;
     }
@@ -112,341 +111,42 @@ struct WarpReduceShfl
 
   //---------------------------------------------------------------------
   // Reduction steps
+  //
+  // Each step combines the calling thread's input with the input of the lane `offset` positions down, where
+  // `last_lane` is the index of the last lane in the segment.
   //---------------------------------------------------------------------
 
-  /**
-   * @brief Reduction (specialized for summation across uint32 types)
-   *
-   * @param[in] input
-   *   Calling thread's input item.
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   *
-   * @param[in] offset
-   *   Up-offset to pull from
-   */
-  _CCCL_DEVICE _CCCL_FORCEINLINE unsigned int
-  ReduceStep(unsigned int input, ::cuda::std::plus<> /*reduction_op*/, int last_lane, int offset)
-  {
-    unsigned int output;
-    const int shfl_c = last_lane | SHFL_C; // Shuffle control (mask and last_lane)
-
-    // Use predicate set from SHFL to guard against invalid peers
-    asm volatile(
-      "{"
-      "  .reg .u32 r0;"
-      "  .reg .pred p;"
-      "  shfl.sync.down.b32 r0|p, %1, %2, %3, %5;"
-      "  @p add.u32 r0, r0, %4;"
-      "  mov.u32 %0, r0;"
-      "}"
-      : "=r"(output)
-      : "r"(input), "r"(offset), "r"(shfl_c), "r"(input), "r"(member_mask));
-
-    return output;
-  }
-
-  /**
-   * @brief Reduction (specialized for summation across fp32 types)
-   *
-   * @param[in] input
-   *   Calling thread's input item.
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   *
-   * @param[in] offset
-   *   Up-offset to pull from
-   */
-  _CCCL_DEVICE _CCCL_FORCEINLINE float
-  ReduceStep(float input, ::cuda::std::plus<> /*reduction_op*/, int last_lane, int offset)
-  {
-    float output;
-    const int shfl_c = last_lane | SHFL_C; // Shuffle control (mask and last_lane)
-
-    // Use predicate set from SHFL to guard against invalid peers
-    asm volatile(
-      "{"
-      "  .reg .f32 r0;"
-      "  .reg .pred p;"
-      "  shfl.sync.down.b32 r0|p, %1, %2, %3, %5;"
-      "  @p add.f32 r0, r0, %4;"
-      "  mov.f32 %0, r0;"
-      "}"
-      : "=f"(output)
-      : "f"(input), "r"(offset), "r"(shfl_c), "f"(input), "r"(member_mask));
-
-    return output;
-  }
-
-  /**
-   * @brief Reduction (specialized for summation across unsigned long long types)
-   *
-   * @param[in] input
-   *   Calling thread's input item
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   *
-   * @param[in] offset
-   *   Up-offset to pull from
-   */
-  _CCCL_DEVICE _CCCL_FORCEINLINE unsigned long long
-  ReduceStep(unsigned long long input, ::cuda::std::plus<> /*reduction_op*/, int last_lane, int offset)
-  {
-    unsigned long long output;
-    int shfl_c = last_lane | SHFL_C; // Shuffle control (mask and last_lane)
-
-    asm volatile(
-      "{"
-      "  .reg .u32 lo;"
-      "  .reg .u32 hi;"
-      "  .reg .pred p;"
-      "  mov.b64 {lo, hi}, %1;"
-      "  shfl.sync.down.b32 lo|p, lo, %2, %3, %4;"
-      "  shfl.sync.down.b32 hi|p, hi, %2, %3, %4;"
-      "  mov.b64 %0, {lo, hi};"
-      "  @p add.u64 %0, %0, %1;"
-      "}"
-      : "=l"(output)
-      : "l"(input), "r"(offset), "r"(shfl_c), "r"(member_mask));
-
-    return output;
-  }
-
-  /**
-   * @brief Reduction (specialized for summation across long long types)
-   *
-   * @param[in] input
-   *   Calling thread's input item
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   *
-   * @param[in] offset
-   *   Up-offset to pull from
-   */
-  _CCCL_DEVICE _CCCL_FORCEINLINE long long
-  ReduceStep(long long input, ::cuda::std::plus<> /*reduction_op*/, int last_lane, int offset)
-  {
-    long long output;
-    int shfl_c = last_lane | SHFL_C; // Shuffle control (mask and last_lane)
-
-    // Use predicate set from SHFL to guard against invalid peers
-    asm volatile(
-      "{"
-      "  .reg .u32 lo;"
-      "  .reg .u32 hi;"
-      "  .reg .pred p;"
-      "  mov.b64 {lo, hi}, %1;"
-      "  shfl.sync.down.b32 lo|p, lo, %2, %3, %4;"
-      "  shfl.sync.down.b32 hi|p, hi, %2, %3, %4;"
-      "  mov.b64 %0, {lo, hi};"
-      "  @p add.s64 %0, %0, %1;"
-      "}"
-      : "=l"(output)
-      : "l"(input), "r"(offset), "r"(shfl_c), "r"(member_mask));
-
-    return output;
-  }
-
-  /**
-   * @brief Reduction (specialized for summation across double types)
-   *
-   * @param[in] input
-   *   Calling thread's input item.
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   *
-   * @param[in] offset
-   *   Up-offset to pull from
-   */
-  _CCCL_DEVICE _CCCL_FORCEINLINE double
-  ReduceStep(double input, ::cuda::std::plus<> /*reduction_op*/, int last_lane, int offset)
-  {
-    double output;
-    const int shfl_c = last_lane | SHFL_C; // Shuffle control (mask and last_lane)
-
-    // Use predicate set from SHFL to guard against invalid peers
-    asm volatile(
-      "{"
-      "  .reg .u32 lo;"
-      "  .reg .u32 hi;"
-      "  .reg .pred p;"
-      "  .reg .f64 r0;"
-      "  mov.b64 %0, %1;"
-      "  mov.b64 {lo, hi}, %1;"
-      "  shfl.sync.down.b32 lo|p, lo, %2, %3, %4;"
-      "  shfl.sync.down.b32 hi|p, hi, %2, %3, %4;"
-      "  mov.b64 r0, {lo, hi};"
-      "  @p add.f64 %0, %0, r0;"
-      "}"
-      : "=d"(output)
-      : "d"(input), "r"(offset), "r"(shfl_c), "r"(member_mask));
-
-    return output;
-  }
-
-  /**
-   * @brief Reduction (specialized for swizzled ReduceByKeyOp<::cuda::std::plus<>> across
-   *        KeyValuePair<KeyT, ValueT> types)
-   *
-   * @param[in] input
-   *   Calling thread's input item
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   *
-   * @param[in] offset
-   *   Up-offset to pull from
-   */
-  template <typename ValueT, typename KeyT>
-  _CCCL_DEVICE _CCCL_FORCEINLINE KeyValuePair<KeyT, ValueT> ReduceStep(
-    KeyValuePair<KeyT, ValueT> input,
-    SwizzleScanOp<ReduceByKeyOp<::cuda::std::plus<>>> /*reduction_op*/,
-    int last_lane,
-    int offset)
-  {
-    KeyValuePair<KeyT, ValueT> output;
-
-    KeyT other_key = ShuffleDown<LogicalWarpThreads>(input.key, offset, last_lane, member_mask);
-
-    output.key   = input.key;
-    output.value = ReduceStep(input.value, ::cuda::std::plus<>{}, last_lane, offset);
-
-    if (input.key != other_key)
-    {
-      output.value = input.value;
-    }
-
-    return output;
-  }
-
-  /**
-   * @brief Reduction (specialized for swizzled ReduceBySegmentOp<cuda::std::plus<>> across
-   *        KeyValuePair<OffsetT, ValueT> types)
-   *
-   * @param[in] input
-   *   Calling thread's input item.
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   *
-   * @param[in] offset
-   *   Up-offset to pull from
-   */
-  template <typename ValueT, typename OffsetT>
-  _CCCL_DEVICE _CCCL_FORCEINLINE KeyValuePair<OffsetT, ValueT> ReduceStep(
-    KeyValuePair<OffsetT, ValueT> input,
-    SwizzleScanOp<ReduceBySegmentOp<::cuda::std::plus<>>> /*reduction_op*/,
-    int last_lane,
-    int offset)
-  {
-    // The reduction supplies both output fields.
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    KeyValuePair<OffsetT, ValueT> output;
-
-    output.value = ReduceStep(input.value, ::cuda::std::plus<>{}, last_lane, offset);
-    output.key   = ReduceStep(input.key, ::cuda::std::plus<>{}, last_lane, offset);
-
-    if (input.key > 0)
-    {
-      output.value = input.value;
-    }
-
-    return output;
-  }
-
-  /**
-   * @brief Reduction step (generic)
-   *
-   * @param[in] input
-   *   Calling thread's input item
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   *
-   * @param[in] offset
-   *   Up-offset to pull from
-   */
-  template <typename Tp, typename ReductionOp>
-  _CCCL_DEVICE _CCCL_FORCEINLINE Tp ReduceStep(Tp input, ReductionOp reduction_op, int last_lane, int offset)
-  {
-    Tp output = input;
-
-    Tp temp = ShuffleDown<LogicalWarpThreads>(output, offset, last_lane, member_mask);
-
-    // Perform reduction op if valid
-    if (offset + lane_id <= last_lane)
-    {
-      output = reduction_op(input, temp);
-    }
-
-    return output;
-  }
-
-  //---------------------------------------------------------------------
-  // Templated reduction iteration
-  //---------------------------------------------------------------------
-
-  /**
-   * @param[in] input
-   *   Calling thread's input item.
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   */
-  template <typename ReductionOp, int STEP>
-  _CCCL_DEVICE _CCCL_FORCEINLINE void
-  ReduceStep(T& input, ReductionOp reduction_op, int last_lane, constant_t<STEP> /*step*/)
-  {
-    input = ReduceStep(input, reduction_op, last_lane, 1 << STEP);
-    ReduceStep(input, reduction_op, last_lane, constant_v<STEP + 1>);
-  }
-
-  /**
-   * @param[in] input
-   *   Calling thread's input item.
-   *
-   * @param[in] reduction_op
-   *   Binary reduction operator
-   *
-   * @param[in] last_lane
-   *   Index of last lane in segment
-   */
+  // Summation is routed to the PTX specializations. Integers use the unsigned ones: two's complement addition is the
+  // same for signed and unsigned types, and the low bits of narrower integers are preserved.
   template <typename ReductionOp>
-  _CCCL_DEVICE _CCCL_FORCEINLINE void
-  ReduceStep(T& /*input*/, ReductionOp /*reduction_op*/, int /*last_lane*/, constant_t<STEPS> /*step*/)
-  {}
+  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T
+  ReduceStep(T input, ReductionOp reduction_op, int last_lane, int offset)
+  {
+    if constexpr (is_shfl_down_op_supported_v<ReductionOp, T>)
+    {
+      constexpr auto plus = ::cuda::std::plus<>{};
+      using unsigned_t    = ::cuda::std::conditional_t<sizeof(T) == 8, ::cuda::std::uint64_t, ::cuda::std::uint32_t>;
+      using cast_t        = ::cuda::std::conditional_t<::cuda::std::is_floating_point_v<T>, T, unsigned_t>;
+      const int shfl_c    = last_lane | ShflC;
+      const auto input1   = static_cast<cast_t>(input);
+      return static_cast<T>(CUB_NS_QUALIFIER::detail::shfl_down_op(input1, plus, offset, shfl_c, member_mask));
+    }
+    else
+    {
+      const auto temp = CUB_NS_QUALIFIER::ShuffleDown<LogicalWarpThreads>(input, offset, last_lane, member_mask);
+      return (offset + lane_id <= last_lane) ? reduction_op(input, temp) : input;
+    }
+  }
+
+  // Applies the reduction steps for offsets 1, 2, ..., LogicalWarpThreads / 2
+  template <typename ReductionOp>
+  _CCCL_DEVICE_API _CCCL_FORCEINLINE void ShuffleReduce(T& input, ReductionOp reduction_op, int last_lane)
+  {
+    constexpr int steps = ::cuda::ilog2(LogicalWarpThreads);
+    ::cuda::static_for<steps>([&](auto step) {
+      input = ReduceStep(input, reduction_op, last_lane, 1u << step);
+    });
+  }
 
   //---------------------------------------------------------------------
   // Reduction operations
@@ -468,7 +168,7 @@ struct WarpReduceShfl
    *   Binary reduction operator
    */
   template <bool AllValidLanes, typename ReductionOp>
-  _CCCL_DEVICE _CCCL_FORCEINLINE T Reduce(T input, int valid_items, ReductionOp reduction_op)
+  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T Reduce(T input, int valid_items, ReductionOp reduction_op)
   {
     // Dispatch to more efficient intrinsics when applicable
     const int last_lane = (AllValidLanes) ? LogicalWarpThreads - 1 : valid_items - 1;
@@ -485,19 +185,18 @@ struct WarpReduceShfl
     {
       constexpr bool has_identity = ::cuda::has_identity_element_v<ReductionOp, T>;
       T reduce_value              = input;
-      if constexpr (IS_ARCH_WARP && (AllValidLanes || has_identity) && is_warp_redux_op_supported<ReductionOp, T>)
+      if constexpr (IsArchWarp && (AllValidLanes || has_identity) && is_warp_redux_op_supported<ReductionOp, T>)
       {
         if constexpr (!AllValidLanes)
         {
           reduce_value = lane_id <= last_lane ? input : ::cuda::identity_element<ReductionOp, T>();
         }
-        if (const auto output = cub::detail::warp_redux(reduce_value, member_mask, reduction_op))
+        if (const auto output = CUB_NS_QUALIFIER::detail::warp_redux(reduce_value, 0xFFFFFFFFu, reduction_op))
         {
           return *output;
         }
       }
-      // Template-iterate reduction steps
-      ReduceStep(reduce_value, reduction_op, last_lane, constant_v<0>);
+      ShuffleReduce(reduce_value, reduction_op, last_lane);
       return reduce_value;
     }
   }
@@ -518,13 +217,13 @@ struct WarpReduceShfl
    *   Binary reduction operator
    */
   template <bool HeadSegmented, typename FlagT, typename ReductionOp>
-  _CCCL_DEVICE _CCCL_FORCEINLINE T SegmentedReduce(T input, FlagT flag, ReductionOp reduction_op)
+  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T SegmentedReduce(T input, FlagT flag, ReductionOp reduction_op)
   {
     // Get the start flags for each thread in the warp.
     unsigned warp_flags = __ballot_sync(member_mask, flag);
 
     // Convert to tail-segmented
-    if (HeadSegmented)
+    if constexpr (HeadSegmented)
     {
       warp_flags >>= 1;
     }
@@ -533,7 +232,7 @@ struct WarpReduceShfl
     warp_flags &= ::cuda::ptx::get_sreg_lanemask_ge();
 
     // Mask of physical lanes outside the logical warp and convert to logical lanemask
-    if (!IS_ARCH_WARP)
+    if constexpr (!IsArchWarp)
     {
       warp_flags = (warp_flags & member_mask) >> (warp_id * LogicalWarpThreads);
     }
@@ -544,11 +243,8 @@ struct WarpReduceShfl
     // Find the next set flag
     const int last_lane = ::cuda::std::countr_zero(warp_flags);
 
-    T output = input;
-    // Template-iterate reduction steps
-    ReduceStep(output, reduction_op, last_lane, constant_v<0>);
-
-    return output;
+    ShuffleReduce(input, reduction_op, last_lane);
+    return input;
   }
 };
 } // namespace detail
