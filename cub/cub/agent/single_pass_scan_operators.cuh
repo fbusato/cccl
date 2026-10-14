@@ -40,7 +40,6 @@
 #include <cuda/std/__functional/operations.h>
 #include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__type_traits/enable_if.h>
-#include <cuda/std/__type_traits/is_same.h>
 
 #include <nv/target>
 
@@ -1224,9 +1223,6 @@ inline constexpr bool is_segment_sum_v = false;
 
 template <typename KeyT, typename ValueT>
 inline constexpr bool is_segment_sum_v<KeyValuePair<KeyT, ValueT>, ReduceBySegmentOp<::cuda::std::plus<>>> = true;
-
-template <typename KeyT, typename ValueT>
-inline constexpr bool is_segment_sum_v<KeyValuePair<KeyT, ValueT>, ReduceBySegmentOp<::cuda::std::plus<ValueT>>> = true;
 } // namespace detail
 
 template <typename T,
@@ -1280,48 +1276,6 @@ struct TilePrefixCallbackOp
       : TilePrefixCallbackOp(tile_status, temp_storage, scan_op, blockIdx.x)
   {}
 
-  // Reduces the window of predecessor tiles, where lane i + 1 holds an older tile than lane i: lane i combines lanes
-  // i..(first tail at or after i) with the swizzled scan operator.
-  [[nodiscard]] _CCCL_DEVICE _CCCL_FORCEINLINE T WindowReduce(T value, int tail_flag)
-  {
-    if constexpr (detail::is_segment_sum_v<T, ScanOpT>)
-    {
-      // Sums keys and values member-wise, keeping the value of lanes that start a segment (nonzero key). plus<> sums
-      // with shfl_down_op, plus<ValueT> (run-length encoding) with ShuffleDown.
-      using KeyT      = typename T::Key;
-      using ValueT    = typename T::Value;
-      const auto plus = [] {
-        if constexpr (::cuda::std::is_same_v<ScanOpT, ReduceBySegmentOp<::cuda::std::plus<>>>)
-        {
-          return ::cuda::std::plus<>{};
-        }
-        else
-        {
-          return [](auto a, auto b) {
-            return a + b;
-          };
-        }
-      }();
-      auto& storage = temp_storage.warp_reduce.Alias();
-      detail::WarpReduceShfl<KeyT, detail::warp_threads> key_reduce{storage};
-      detail::WarpReduceShfl<ValueT, detail::warp_threads> value_reduce{storage};
-      const unsigned warp_flags = __ballot_sync(0xFFFFFFFF, tail_flag) & ::cuda::ptx::get_sreg_lanemask_ge();
-      const int last_lane       = ::cuda::std::countr_zero(warp_flags | (1u << (detail::warp_threads - 1)));
-      ::cuda::static_for<::cuda::ilog2(detail::warp_threads)>([&](auto step) {
-        const int offset = 1 << step;
-        const ValueT sum = value_reduce.ReduceStep(value.value, plus, last_lane, offset);
-        const KeyT key   = key_reduce.ReduceStep(value.key, plus, last_lane, offset);
-        value            = {key, (value.key > 0 ? value.value : sum)};
-      });
-      return value;
-    }
-    else
-    {
-      return WarpReduceT(temp_storage.warp_reduce)
-        .TailSegmentedReduce(value, tail_flag, SwizzleScanOp<ScanOpT>(scan_op));
-    }
-  }
-
   /**
    * @brief Block until all predecessors within the warp-wide window have non-invalid status
    *
@@ -1358,6 +1312,35 @@ struct TilePrefixCallbackOp
   }
 
 private:
+  // Reduces the window of predecessor tiles, where lane i + 1 holds an older tile than lane i: lane i combines lanes
+  // i..(first tail at or after i) with the swizzled scan operator.
+  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T WindowReduce(T value, int tail_flag)
+  {
+    if constexpr (detail::is_segment_sum_v<T, ScanOpT>)
+    {
+      using KeyT   = typename T::Key;
+      using ValueT = typename T::Value;
+      NullType storage;
+      detail::WarpReduceShfl<KeyT, detail::warp_threads> key_reduce{storage};
+      detail::WarpReduceShfl<ValueT, detail::warp_threads> value_reduce{storage};
+      const unsigned warp_flags = __ballot_sync(0xFFFFFFFF, tail_flag) & ::cuda::ptx::get_sreg_lanemask_ge();
+      const int last_lane       = ::cuda::std::countr_zero(warp_flags | (1u << (detail::warp_threads - 1)));
+
+      ::cuda::static_for<detail::log2_warp_threads>([&](auto step) {
+        constexpr int offset = 1u << step;
+        const ValueT sum     = value_reduce.ReduceStep(value.value, scan_op.op, last_lane, offset);
+        const KeyT key       = key_reduce.ReduceStep(value.key, scan_op.op, last_lane, offset);
+        value                = {key, (value.key > 0 ? value.value : sum)};
+      });
+      return value;
+    }
+    else
+    {
+      WarpReduceT warp_reduce{temp_storage.warp_reduce};
+      return warp_reduce.TailSegmentedReduce(value, tail_flag, SwizzleScanOp<ScanOpT>(scan_op));
+    }
+  }
+
   // Classic decoupled-lookback prefix computation.
   _CCCL_DEVICE _CCCL_FORCEINLINE T lookback(T block_aggregate)
   {

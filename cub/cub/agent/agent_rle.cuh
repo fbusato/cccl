@@ -29,7 +29,6 @@
 #include <cub/iterator/cache_modified_input_iterator.cuh>
 
 #include <cuda/__ptx/instructions/get_sreg.h>
-#include <cuda/std/__functional/operations.h>
 #include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/is_pointer.h>
@@ -86,6 +85,25 @@ using AgentRlePolicy CCCL_DEPRECATED_BECAUSE("Use the tuning API for DeviceRunLe
 /******************************************************************************
  * Thread block abstractions
  ******************************************************************************/
+
+namespace detail
+{
+namespace rle
+{
+// Not cuda::std::plus: the look-back is faster with ShuffleDown than with shfl_down_op for run-length encoding.
+struct length_plus
+{
+  template <typename T>
+  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T operator()(T a, T b) const
+  {
+    return a + b;
+  }
+};
+} // namespace rle
+
+template <typename KeyT, typename ValueT>
+inline constexpr bool is_segment_sum_v<KeyValuePair<KeyT, ValueT>, ReduceBySegmentOp<rle::length_plus>> = true;
+} // namespace detail
 
 namespace detail::rle
 {
@@ -208,9 +226,8 @@ struct AgentRle
   // Parameterized WarpScan type
   using WarpScanPairs = WarpScan<LengthOffsetPair>;
 
-  // Reduce-length-by-run scan operator. plus<LengthT> instead of plus<> selects the ShuffleDown look-back in
-  // TilePrefixCallbackOp, which is faster for run-length encoding.
-  using ReduceBySegmentOpT = ReduceBySegmentOp<::cuda::std::plus<LengthT>>;
+  // Reduce-length-by-run scan operator
+  using ReduceBySegmentOpT = ReduceBySegmentOp<length_plus>;
 
   // Callback type for obtaining tile prefix during block scan
   using DelayConstructorT = typename AgentRlePolicyT::detail::delay_constructor_t;
@@ -326,7 +343,7 @@ struct AgentRle
       , d_offsets_out(d_offsets_out)
       , d_lengths_out(d_lengths_out)
       , equality_op(equality_op)
-      , scan_op(::cuda::std::plus<LengthT>{})
+      , scan_op(length_plus{})
       , num_items(num_items)
       , streaming_context(streaming_context)
   {}
