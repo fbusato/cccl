@@ -23,16 +23,12 @@ CUB_NAMESPACE_BEGIN
 
 namespace detail
 {
-// Operator/type pairs computed by shfl_down_op. Integers are passed as the unsigned type of their size, or uint32_t if
-// narrower.
 template <typename ReductionOp, typename T>
 inline constexpr bool is_shfl_down_op_supported_v =
   ::cuda::__is_cuda_std_plus_v<ReductionOp, T>
   && ((::cuda::std::is_floating_point_v<T> && sizeof(T) <= sizeof(double))
       || (::cuda::std::__cccl_is_integer_v<T> && sizeof(T) <= sizeof(::cuda::std::uint64_t)));
 
-// Combines the calling thread's input with the input of the lane `offset` positions down. The predicate set by SHFL
-// guards against invalid peers.
 #define _CUB_SHFL_DOWN_OP_32BIT(CPP_OPERATOR, TYPE, PTX_OP, CONSTRAINT)                  \
   [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE TYPE shfl_down_op(                    \
     TYPE input, CPP_OPERATOR, int offset, int shfl_c, ::cuda::std::uint32_t member_mask) \
