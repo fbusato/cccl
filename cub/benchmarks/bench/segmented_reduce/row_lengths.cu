@@ -47,4 +47,4 @@ NVBENCH_BENCH_TYPES(row_lengths, NVBENCH_TYPE_AXES(nvbench::type_list<int32_t, d
   .set_name("row_lengths")
   .set_type_axes_names({"T{ct}", "OffsetT{ct}"})
   .add_string_axis("Matrix", row_length_matrices())
-  .add_string_axis("Layout", {"original", "shuffled"});
+  .add_string_axis("Layout", {"original", "shuffled", "discrete", "named"});

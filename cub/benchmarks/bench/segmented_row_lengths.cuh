@@ -22,6 +22,9 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <map>
+#include <random>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -60,8 +63,124 @@ inline std::vector<std::string> row_length_matrices()
   return ids;
 }
 
+// Fitted distributions read from $CCCL_BENCH_DISTRIBUTIONS, one line per matrix and layout:
+//   <matrix> <layout> <dist> <num_segments> <params...>
+//   binomial t p | negative_binomial k p | geometric p | uniform_int a b | poisson mean | discrete K v1..vK w1..wK
+struct distribution_spec
+{
+  std::string name;
+  std::size_t num_segments;
+  std::vector<double> params;
+};
+
+inline const std::map<std::string, distribution_spec>& distribution_specs()
+{
+  static const auto specs = [] {
+    std::map<std::string, distribution_spec> result;
+    const char* path = std::getenv("CCCL_BENCH_DISTRIBUTIONS");
+    if (!path)
+    {
+      return result;
+    }
+    std::ifstream file{path};
+    if (!file)
+    {
+      throw std::runtime_error(std::string{"Unable to open "} + path);
+    }
+    std::string line;
+    while (std::getline(file, line))
+    {
+      std::istringstream fields{line};
+      std::string matrix, layout;
+      distribution_spec spec;
+      fields >> matrix >> layout >> spec.name >> spec.num_segments;
+      for (double value; fields >> value;)
+      {
+        spec.params.push_back(value);
+      }
+      result.emplace(matrix + ' ' + layout, std::move(spec));
+    }
+    return result;
+  }();
+  return specs;
+}
+
+inline std::vector<std::uint32_t>
+generate_lengths(const std::string& matrix, const std::string& layout, std::size_t num_segments)
+{
+  const auto& specs = distribution_specs();
+  const auto it     = specs.find(matrix + ' ' + layout);
+  if (it == specs.end())
+  {
+    throw std::runtime_error("No " + layout + " distribution for " + matrix + " (check CCCL_BENCH_DISTRIBUTIONS)");
+  }
+  const auto& [name, spec_segments, p] = it->second;
+  if (spec_segments != num_segments)
+  {
+    throw std::runtime_error("Segment count mismatch between distribution and row-length file: " + matrix);
+  }
+
+  std::vector<std::uint32_t> lengths(num_segments);
+  std::mt19937_64 rng{42};
+  const auto fill = [&](auto dist, auto to_length) {
+    for (auto& length : lengths)
+    {
+      const auto value = static_cast<std::int64_t>(to_length(dist(rng)));
+      if (value < 0 || value > std::numeric_limits<std::uint32_t>::max())
+      {
+        throw std::runtime_error("Generated segment length out of range: " + matrix);
+      }
+      length = static_cast<std::uint32_t>(value);
+    }
+  };
+  const auto identity = [](auto value) {
+    return value;
+  };
+
+  if (name == "binomial")
+  {
+    fill(std::binomial_distribution<std::int64_t>{static_cast<std::int64_t>(p.at(0)), p.at(1)}, identity);
+  }
+  else if (name == "negative_binomial")
+  {
+    fill(std::negative_binomial_distribution<std::int64_t>{static_cast<std::int64_t>(p.at(0)), p.at(1)}, identity);
+  }
+  else if (name == "geometric")
+  {
+    fill(std::geometric_distribution<std::int64_t>{p.at(0)}, identity);
+  }
+  else if (name == "uniform_int")
+  {
+    fill(std::uniform_int_distribution<std::int64_t>{static_cast<std::int64_t>(p.at(0)),
+                                                     static_cast<std::int64_t>(p.at(1))},
+         identity);
+  }
+  else if (name == "poisson")
+  {
+    fill(std::poisson_distribution<std::int64_t>{p.at(0)}, identity);
+  }
+  else if (name == "discrete")
+  {
+    const auto k = static_cast<std::size_t>(p.at(0));
+    if (p.size() != 1 + 2 * k)
+    {
+      throw std::runtime_error("Malformed discrete distribution: " + matrix);
+    }
+    const auto values = p.begin() + 1;
+    fill(std::discrete_distribution<std::size_t>{values + k, values + 2 * k}, [&](std::size_t i) {
+      return values[i];
+    });
+  }
+  else
+  {
+    throw std::runtime_error("Unknown distribution " + name + ": " + matrix);
+  }
+  return lengths;
+}
+
 // layout == "original": row lengths in file order
 // layout == "shuffled": exact histogram of the row lengths, expanded back to one length per segment, then shuffled
+// layout == "discrete" / "named": lengths sampled from the fitted distribution (same number of segments)
 template <typename OffsetT>
 thrust::device_vector<OffsetT> load_segment_offsets(const std::string& matrix, const std::string& layout)
 {
@@ -85,6 +204,12 @@ thrust::device_vector<OffsetT> load_segment_offsets(const std::string& matrix, c
   if (num_segments > max_offset)
   {
     throw std::runtime_error("Too many segments for OffsetT: " + matrix);
+  }
+
+  const bool fitted = layout == "discrete" || layout == "named";
+  if (fitted)
+  {
+    h_lengths = generate_lengths(matrix, layout, num_segments);
   }
 
   thrust::device_vector<std::uint32_t> lengths = h_lengths;
@@ -132,7 +257,7 @@ thrust::device_vector<OffsetT> load_segment_offsets(const std::string& matrix, c
 
     thrust::shuffle(thrust::device, lengths.begin(), lengths.end(), thrust::default_random_engine{42});
   }
-  else if (layout != "original")
+  else if (layout != "original" && !fitted)
   {
     throw std::runtime_error("Unknown Layout: " + layout);
   }
