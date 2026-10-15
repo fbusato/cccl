@@ -24,6 +24,7 @@
 #include <cub/util_ptx.cuh>
 #include <cub/util_type.cuh>
 #include <cub/warp/specializations/warp_redux.cuh>
+#include <cub/warp/warp_utils.cuh>
 
 #include <cuda/__cmath/pow2.h>
 #include <cuda/__functional/operator_properties.h>
@@ -86,29 +87,20 @@ struct WarpReduceShfl
   //---------------------------------------------------------------------
 
   /// Lane index in logical warp
-  int lane_id;
+  int lane_id = CUB_NS_QUALIFIER::detail::logical_lane_id<LogicalWarpThreads>();
 
   /// Logical warp index in 32-thread physical warp
-  int warp_id;
+  int warp_id = CUB_NS_QUALIFIER::detail::logical_warp_id<LogicalWarpThreads>();
 
   /// 32-thread physical warp member mask of logical warp
-  ::cuda::std::uint32_t member_mask;
+  ::cuda::std::uint32_t member_mask = CUB_NS_QUALIFIER::WarpMask<LogicalWarpThreads>(warp_id);
 
   //---------------------------------------------------------------------
   // Construction
   //---------------------------------------------------------------------
 
   /// Constructor
-  _CCCL_DEVICE _CCCL_FORCEINLINE WarpReduceShfl(TempStorage& /*temp_storage*/)
-      : lane_id(static_cast<int>(::cuda::ptx::get_sreg_laneid()))
-      , warp_id(IS_ARCH_WARP ? 0 : (lane_id / LogicalWarpThreads))
-      , member_mask(WarpMask<LogicalWarpThreads>(warp_id))
-  {
-    if (!IS_ARCH_WARP)
-    {
-      lane_id = lane_id % LogicalWarpThreads;
-    }
-  }
+  _CCCL_DEVICE _CCCL_FORCEINLINE WarpReduceShfl(TempStorage& /*temp_storage*/) {}
 
   //---------------------------------------------------------------------
   // Reduction steps
@@ -402,8 +394,8 @@ struct WarpReduceShfl
 
     Tp temp = ShuffleDown<LogicalWarpThreads>(output, offset, last_lane, member_mask);
 
-    // Perform reduction op if valid
-    if (offset + lane_id <= last_lane)
+    // Compare the signed distance to the last lane so it can be reused across reduction steps.
+    if (lane_id - last_lane < 1 - offset)
     {
       output = reduction_op(input, temp);
     }
