@@ -24,6 +24,7 @@
 #include <cub/block/block_load.cuh>
 #include <cub/block/block_scan.cuh>
 #include <cub/block/block_store.cuh>
+#include <cub/detail/lookback_reduce_policy.cuh>
 #include <cub/iterator/cache_modified_input_iterator.cuh>
 #include <cub/util_type.cuh>
 
@@ -61,7 +62,8 @@ struct agent_scan_by_key_policy
 
   struct detail
   {
-    using delay_constructor_t = DelayConstructorT;
+    using delay_constructor_t    = DelayConstructorT;
+    using lookback_reduce_policy = default_lookback_reduce_policy;
   };
 };
 } // namespace detail
@@ -168,9 +170,15 @@ struct AgentScanByKey
 
   using BlockDiscontinuityKeysT = BlockDiscontinuity<KeyT, BLOCK_THREADS, 1, 1>;
 
-  using DelayConstructorT = typename AgentScanByKeyPolicyT::detail::delay_constructor_t;
-  using TilePrefixCallbackT =
-    TilePrefixCallbackOp<FlagValuePairT, ReduceBySegmentOpT, ScanTileStateT, DelayConstructorT>;
+  using DelayConstructorT    = typename AgentScanByKeyPolicyT::detail::delay_constructor_t;
+  using LookbackReducePolicy = detail::get_lookback_reduce_policy_t<AgentScanByKeyPolicyT>;
+  using TilePrefixCallbackT  = detail::tile_prefix_callback_op<
+    FlagValuePairT,
+    ReduceBySegmentOpT,
+    ScanTileStateT,
+    DelayConstructorT,
+    false,
+    LookbackReducePolicy>;
 
   using BlockScanT = BlockScan<FlagValuePairT, BLOCK_THREADS, AgentScanByKeyPolicyT::SCAN_ALGORITHM, 1, 1>;
 

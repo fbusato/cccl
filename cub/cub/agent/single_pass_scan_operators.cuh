@@ -20,6 +20,7 @@
 #endif // no system header
 
 #include <cub/detail/iket_support.cuh>
+#include <cub/detail/lookback_reduce_policy.cuh>
 #include <cub/detail/strong_load.cuh>
 #include <cub/detail/strong_store.cuh>
 #include <cub/detail/uninitialized_copy.cuh>
@@ -1199,15 +1200,6 @@ struct ReduceByKeyScanTileState<ValueT, KeyT, true>
  * block-cooperative scan
  ******************************************************************************/
 
-/**
- * Stateful block-scan prefix functor.  Provides the running prefix for
- * the current tile by using the callback warp to wait for
- * aggregates/prefixes from predecessor tiles to become available.
- *
- * @tparam DelayConstructorT
- *   Implementation detail, do not specify directly, requirements on the
- *   content of this type are subject to breaking change.
- */
 _CCCL_IKET_CREATE_PUSH_POP_RANGE(Lookback);
 _CCCL_IKET_CREATE_PUSH_POP_RANGE(ProcessWindow);
 _CCCL_IKET_CREATE_PUSH_POP_RANGE(Reduce);
@@ -1223,14 +1215,14 @@ inline constexpr bool is_segment_sum_v = false;
 
 template <typename KeyT, typename ValueT>
 inline constexpr bool is_segment_sum_v<KeyValuePair<KeyT, ValueT>, ReduceBySegmentOp<::cuda::std::plus<>>> = true;
-} // namespace detail
 
 template <typename T,
           typename ScanOpT,
           typename ScanTileStateT,
-          typename DelayConstructorT = detail::default_delay_constructor_t<T>,
-          bool StableReductionOrder  = false>
-struct TilePrefixCallbackOp
+          typename DelayConstructorT    = detail::default_delay_constructor_t<T>,
+          bool StableReductionOrder     = false,
+          typename LookbackReducePolicy = default_lookback_reduce_policy>
+struct tile_prefix_callback_op
 {
   // Parameterized warp reduce
   using WarpReduceT = WarpReduce<T, (1 << (5))>;
@@ -1262,7 +1254,7 @@ struct TilePrefixCallbackOp
   // Constructs prefix functor for a given tile index.
   // Precondition: thread blocks processing all of the predecessor tiles were scheduled.
   _CCCL_DEVICE _CCCL_FORCEINLINE
-  TilePrefixCallbackOp(ScanTileStateT& tile_status, TempStorage& temp_storage, ScanOpT scan_op, int tile_idx)
+  tile_prefix_callback_op(ScanTileStateT& tile_status, TempStorage& temp_storage, ScanOpT scan_op, int tile_idx)
       : temp_storage(temp_storage.Alias())
       , tile_status(tile_status)
       , scan_op(scan_op)
@@ -1272,8 +1264,8 @@ struct TilePrefixCallbackOp
   // Computes the tile index and constructs prefix functor with it.
   // Precondition: thread block per tile assignment.
   _CCCL_DEVICE _CCCL_FORCEINLINE
-  TilePrefixCallbackOp(ScanTileStateT& tile_status, TempStorage& temp_storage, ScanOpT scan_op)
-      : TilePrefixCallbackOp(tile_status, temp_storage, scan_op, blockIdx.x)
+  tile_prefix_callback_op(ScanTileStateT& tile_status, TempStorage& temp_storage, ScanOpT scan_op)
+      : tile_prefix_callback_op(tile_status, temp_storage, scan_op, blockIdx.x)
   {}
 
   /**
@@ -1320,6 +1312,9 @@ private:
     {
       using KeyT   = typename T::Key;
       using ValueT = typename T::Value;
+
+      constexpr bool use_shfl_down_op_for_value = LookbackReducePolicy::template use_shfl_down_op_for_value<ValueT>;
+      constexpr bool use_shfl_down_op_for_key   = LookbackReducePolicy::template use_shfl_down_op_for_key<KeyT>;
       NullType storage;
       detail::WarpReduceShfl<KeyT, detail::warp_threads> key_reduce{storage};
       detail::WarpReduceShfl<ValueT, detail::warp_threads> value_reduce{storage};
@@ -1328,9 +1323,11 @@ private:
 
       ::cuda::static_for<detail::log2_warp_threads>([&](auto step) {
         constexpr int offset = 1u << step;
-        const ValueT sum     = value_reduce.ReduceStep(value.value, scan_op.op, last_lane, offset);
-        const KeyT key       = key_reduce.ReduceStep(value.key, scan_op.op, last_lane, offset);
-        value                = {key, (value.key > 0 ? value.value : sum)};
+        const ValueT sum     = value_reduce.template ShuffleReduceStep<use_shfl_down_op_for_value>(
+          value.value, scan_op.op, last_lane, offset);
+        const KeyT key =
+          key_reduce.template ShuffleReduceStep<use_shfl_down_op_for_key>(value.key, scan_op.op, last_lane, offset);
+        value = {key, (value.key > 0 ? value.value : sum)};
       });
       return value;
     }
@@ -1488,6 +1485,40 @@ public:
   {
     return tile_idx;
   }
+};
+} // namespace detail
+
+/**
+ * Stateful block-scan prefix functor.  Provides the running prefix for
+ * the current tile by using the callback warp to wait for
+ * aggregates/prefixes from predecessor tiles to become available.
+ *
+ * @tparam DelayConstructorT
+ *   Implementation detail, do not specify directly, requirements on the
+ *   content of this type are subject to breaking change.
+ */
+template <typename T,
+          typename ScanOpT,
+          typename ScanTileStateT,
+          typename DelayConstructorT = detail::default_delay_constructor_t<T>,
+          bool StableReductionOrder  = false>
+struct TilePrefixCallbackOp
+    : detail::tile_prefix_callback_op<T, ScanOpT, ScanTileStateT, DelayConstructorT, StableReductionOrder>
+{
+private:
+  using base_type =
+    detail::tile_prefix_callback_op<T, ScanOpT, ScanTileStateT, DelayConstructorT, StableReductionOrder>;
+
+public:
+  _CCCL_DEVICE _CCCL_FORCEINLINE TilePrefixCallbackOp(
+    ScanTileStateT& tile_status, typename base_type::TempStorage& temp_storage, ScanOpT scan_op, int tile_idx)
+      : base_type(tile_status, temp_storage, scan_op, tile_idx)
+  {}
+
+  _CCCL_DEVICE _CCCL_FORCEINLINE
+  TilePrefixCallbackOp(ScanTileStateT& tile_status, typename base_type::TempStorage& temp_storage, ScanOpT scan_op)
+      : base_type(tile_status, temp_storage, scan_op)
+  {}
 };
 
 CUB_NAMESPACE_END

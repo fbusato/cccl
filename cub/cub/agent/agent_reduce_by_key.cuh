@@ -23,6 +23,7 @@
 #include <cub/block/block_load.cuh>
 #include <cub/block/block_scan.cuh>
 #include <cub/block/block_store.cuh>
+#include <cub/detail/lookback_reduce_policy.cuh>
 #include <cub/iterator/cache_modified_input_iterator.cuh>
 
 #include <cuda/__functional/operator_properties.h>
@@ -54,7 +55,8 @@ struct agent_reduce_by_key_policy
 
   struct detail
   {
-    using delay_constructor_t = DelayConstructorT;
+    using delay_constructor_t    = DelayConstructorT;
+    using lookback_reduce_policy = default_lookback_reduce_policy;
   };
 };
 } // namespace detail
@@ -227,9 +229,15 @@ struct AgentReduceByKey
   using BlockScanT = BlockScan<OffsetValuePairT, BLOCK_THREADS, AgentReduceByKeyPolicyT::SCAN_ALGORITHM>;
 
   // Callback type for obtaining tile prefix during block scan
-  using DelayConstructorT = typename AgentReduceByKeyPolicyT::detail::delay_constructor_t;
-  using TilePrefixCallbackOpT =
-    TilePrefixCallbackOp<OffsetValuePairT, ReduceBySegmentOpT, ScanTileStateT, DelayConstructorT>;
+  using DelayConstructorT     = typename AgentReduceByKeyPolicyT::detail::delay_constructor_t;
+  using LookbackReducePolicy  = detail::get_lookback_reduce_policy_t<AgentReduceByKeyPolicyT>;
+  using TilePrefixCallbackOpT = detail::tile_prefix_callback_op<
+    OffsetValuePairT,
+    ReduceBySegmentOpT,
+    ScanTileStateT,
+    DelayConstructorT,
+    false,
+    LookbackReducePolicy>;
 
   // Key and value exchange types
   using KeyExchangeT   = KeyOutputT[TILE_ITEMS + 1];
