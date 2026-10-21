@@ -29,6 +29,7 @@
 #include <cuda/__functional/operator_properties.h>
 #include <cuda/__ptx/instructions/get_sreg.h>
 #include <cuda/__utility/static_for.h>
+#include <cuda/__warp/warp_shuffle.h>
 #include <cuda/std/__bit/countr.h>
 #include <cuda/std/__functional/operations.h>
 #include <cuda/std/__type_traits/conditional.h>
@@ -86,11 +87,11 @@ struct WarpReduceShfl
   }
 
   // Single reduction step: plain or ptx shuffle down + op
-  template <typename ReductionOp>
+  template <bool UseShflDownOp = true, typename ReductionOp>
   [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T
-  ReduceStep(T input, ReductionOp reduction_op, int last_lane, int offset)
+  ShuffleReduceStep(const T input, ReductionOp reduction_op, const int last_lane, const int offset)
   {
-    if constexpr (is_shfl_down_op_supported_v<ReductionOp, T>)
+    if constexpr (UseShflDownOp && is_shfl_down_op_supported_v<ReductionOp, T>)
     {
       constexpr auto plus = ::cuda::std::plus<>{};
       using unsigned_t    = ::cuda::std::conditional_t<sizeof(T) == 8, ::cuda::std::uint64_t, ::cuda::std::uint32_t>;
@@ -101,28 +102,43 @@ struct WarpReduceShfl
     }
     else
     {
-      const auto temp = CUB_NS_QUALIFIER::ShuffleDown<LogicalWarpThreads>(input, offset, last_lane, member_mask);
-      return (offset + lane_id <= last_lane) ? reduction_op(input, temp) : input;
+      // Not a ternary: on sm_86, it makes nvcc emit divergent branches for comparison-based operators (e.g. arg_min)
+      // Preserve the dynamic clamp: a full-width shuffle changes scheduling in scan and RLE look-back.
+      T output    = input;
+      const T tmp = CUB_NS_QUALIFIER::ShuffleDown<LogicalWarpThreads>(input, offset, last_lane, member_mask);
+      if (offset + lane_id <= last_lane)
+      {
+        output = reduction_op(input, tmp);
+      }
+      return output;
     }
   }
 
   // Unrolls the reduction steps
   template <typename ReductionOp>
-  _CCCL_DEVICE_API _CCCL_FORCEINLINE void ShuffleReduce(T& input, ReductionOp reduction_op, int last_lane)
+  _CCCL_DEVICE_API _CCCL_FORCEINLINE void ShuffleReduce(T& input, ReductionOp reduction_op, const int last_lane)
   {
     constexpr int steps = ::cuda::ilog2(LogicalWarpThreads);
     ::cuda::static_for<steps>([&](auto step) {
-      input = ReduceStep(input, reduction_op, last_lane, 1u << step);
+      input = ShuffleReduceStep(input, reduction_op, last_lane, 1u << step);
     });
   }
 
-  //---------------------------------------------------------------------
-  // Reduction operations
-  //---------------------------------------------------------------------
+  // Unrolls the reduction steps when all lanes are valid: no range check, only lane 0 holds the result
+  template <typename ReductionOp>
+  _CCCL_DEVICE_API _CCCL_FORCEINLINE void FullShuffleReduce(T& input, ReductionOp reduction_op)
+  {
+    constexpr int steps = ::cuda::ilog2(LogicalWarpThreads);
+    ::cuda::static_for<steps>([&](auto step) {
+      const T tmp = ::cuda::device::warp_shuffle_down<LogicalWarpThreads>(input, 1u << step, member_mask);
+      input       = reduction_op(input, tmp);
+    });
+  }
 
   // AllValidLanes: Whether all lanes in each warp are contributing a valid fold of items
   template <bool AllValidLanes, typename ReductionOp>
-  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T Reduce(T input, int valid_items, ReductionOp reduction_op)
+  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T
+  Reduce(const T input, const int valid_items, ReductionOp reduction_op)
   {
     // Dispatch to more efficient intrinsics when applicable
     const int last_lane = (AllValidLanes) ? LogicalWarpThreads - 1 : valid_items - 1;
@@ -150,7 +166,16 @@ struct WarpReduceShfl
           return *output;
         }
       }
-      ShuffleReduce(reduce_value, reduction_op, last_lane);
+      if constexpr (AllValidLanes)
+      {
+        FullShuffleReduce(reduce_value, reduction_op);
+      }
+      else
+      {
+        // Not FullShuffleReduce with identity_element in the invalid lanes: lanes past last_lane may not exist (e.g.
+        // the last warp of a 65-thread block), and only the last_lane clamp avoids reading them
+        ShuffleReduce(reduce_value, reduction_op, last_lane);
+      }
       return reduce_value;
     }
   }
@@ -158,7 +183,7 @@ struct WarpReduceShfl
   // HeadSegmented: Whether flags indicate a segment-head or a segment-tail
   // flag:          Whether or not the current lane is a segment head/tail
   template <bool HeadSegmented, typename FlagT, typename ReductionOp>
-  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T SegmentedReduce(T input, FlagT flag, ReductionOp reduction_op)
+  [[nodiscard]] _CCCL_DEVICE_API _CCCL_FORCEINLINE T SegmentedReduce(T input, const FlagT flag, ReductionOp reduction_op)
   {
     // Get the start flags for each thread in the warp.
     unsigned warp_flags = __ballot_sync(member_mask, flag);
