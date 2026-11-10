@@ -26,7 +26,8 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 template <typename ValueType, typename CharT, class Traits>
 std::basic_istream<CharT, Traits>& operator>>(std::basic_istream<CharT, Traits>& is, complex<ValueType>& z)
 {
-  ValueType re, im;
+  ValueType re;
+  ValueType im;
 
   CharT ch;
   is >> ch;
