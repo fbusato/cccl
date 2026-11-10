@@ -14,9 +14,13 @@
 #endif // no system header
 
 #if _CCCL_CUDA_COMPILATION()
+#  include <cub/util_debug.cuh>
+#  include <cub/util_device.cuh>
+
 #  include <thrust/system/cuda/detail/core/triple_chevron_launch.h>
 #  include <thrust/system/cuda/detail/core/util.h>
 
+#  include <cuda/std/__cstddef/types.h>
 #  include <cuda/std/__type_traits/integral_constant.h>
 #  include <cuda/std/cassert>
 

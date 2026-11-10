@@ -14,10 +14,14 @@
 #endif // no system header
 #include <thrust/system/cuda/config.h>
 
+#include <cub/detail/unit_word.cuh>
+#include <cub/util_device.cuh>
+
+#include <thrust/detail/type_traits.h>
 #include <thrust/detail/type_traits/has_nested_type.h>
 #include <thrust/system/cuda/detail/util.h>
 
-#include <cuda/__memory/uninitialized_array.h>
+#include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__type_traits/integral_constant.h>
 #include <cuda/std/__type_traits/type_identity.h>
