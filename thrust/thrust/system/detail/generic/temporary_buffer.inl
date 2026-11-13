@@ -24,8 +24,8 @@ THRUST_NAMESPACE_BEGIN
 namespace system::detail::generic
 {
 template <typename T, typename DerivedPolicy>
-_CCCL_HOST_DEVICE ::cuda::std::pair<thrust::pointer<T, DerivedPolicy>,
-                                    typename thrust::pointer<T, DerivedPolicy>::difference_type>
+_CCCL_HOST_DEVICE_API ::cuda::std::pair<thrust::pointer<T, DerivedPolicy>,
+                                        typename thrust::pointer<T, DerivedPolicy>::difference_type>
 get_temporary_buffer(thrust::execution_policy<DerivedPolicy>& exec,
                      typename thrust::pointer<T, DerivedPolicy>::difference_type n)
 {
@@ -42,7 +42,8 @@ get_temporary_buffer(thrust::execution_policy<DerivedPolicy>& exec,
 
 _CCCL_EXEC_CHECK_DISABLE
 template <typename DerivedPolicy, typename Pointer>
-_CCCL_HOST_DEVICE void return_temporary_buffer(thrust::execution_policy<DerivedPolicy>& exec, Pointer p, std::ptrdiff_t)
+_CCCL_HOST_DEVICE_API void
+return_temporary_buffer(thrust::execution_policy<DerivedPolicy>& exec, Pointer p, std::ptrdiff_t)
 {
   // If we are here, no user customization of the three-argument signature with
   // a size parameter of `return_temporary_buffer` was found. There may be an
@@ -59,7 +60,7 @@ _CCCL_HOST_DEVICE void return_temporary_buffer(thrust::execution_policy<DerivedP
 
 _CCCL_EXEC_CHECK_DISABLE
 template <typename DerivedPolicy, typename Pointer>
-_CCCL_HOST_DEVICE void return_temporary_buffer(thrust::execution_policy<DerivedPolicy>& exec, Pointer p)
+_CCCL_HOST_DEVICE_API void return_temporary_buffer(thrust::execution_policy<DerivedPolicy>& exec, Pointer p)
 {
   // If we are here, no user customization of either the old two-argument
   // signature or the new three-argument signature with a size parameter of
