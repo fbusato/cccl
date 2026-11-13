@@ -110,5 +110,3 @@ _CCCL_HOST_DEVICE bool binary_search(RandomAccessIterator first, RandomAccessIte
 } // namespace system::detail::generic::scalar
 
 THRUST_NAMESPACE_END
-
-#include <thrust/system/detail/generic/scalar/binary_search.inl>
